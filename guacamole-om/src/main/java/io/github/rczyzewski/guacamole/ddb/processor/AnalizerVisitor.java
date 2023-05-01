@@ -1,7 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBAttribute;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexHashKey;
@@ -10,6 +9,7 @@ import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBLocalIndexRangeKe
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBRangeKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -19,7 +19,6 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor8;
 import javax.lang.model.util.Types;
@@ -77,6 +76,7 @@ public class AnalizerVisitor extends SimpleElementVisitor8<Object, Map<String, C
         return this;
     }
 
+    /**
     public TypeMirror getConverterMirror(Element e)
     {
 
@@ -89,16 +89,30 @@ public class AnalizerVisitor extends SimpleElementVisitor8<Object, Map<String, C
         }
         return null;
     }
+    public String getConverterClass(Element e)
+    {
+        String className = DynamoDBConverted.class.getName();
+        return e.getAnnotationMirrors().stream().filter(it->it.getAnnotationType().toString().equals(className))
+            .map(it->it.getElementValues())
+            .flatMap(it->it.entrySet().stream())
+            .filter(it->it.getKey().equals("converter"))
+            .map(it->it.getValue())
+            .map(it->it.toString())
+            .findFirst()
+         .orElse(null);
+    }
+
+     **/
 
     @Override
     public Object visitVariable(VariableElement e,  Map<String, ClassDescription> o) {
 
         ClassDescription classDescription = o.get(e.getEnclosingElement().getSimpleName().toString() );
 
-        FieldDescription.DDBType ddbType = Arrays.stream(FieldDescription.DDBType.values())
-                .filter(it -> it.match(e))
-                .findFirst()
-                .orElse(FieldDescription.DDBType.OTHER);
+        DDBType ddbType = Arrays.stream(DDBType.values())
+                                .filter(it -> it.match(e))
+                                .findFirst()
+                                .orElse(DDBType.OTHER);
 
         String name = e.getSimpleName().toString() ;
         types.asElement(e.asType()).accept(this, o);
@@ -125,7 +139,6 @@ public class AnalizerVisitor extends SimpleElementVisitor8<Object, Map<String, C
                 .typePackage(e.asType().toString())
                 .ddbType(ddbType)
                 .typeArguments(typeArguments)
-                .conversionClass(getConverterMirror(e))
                 .isHashKey(Optional.ofNullable(e.getAnnotation(DynamoDBHashKey.class)).isPresent())
                 .isRangeKey(Optional.ofNullable(e.getAnnotation(DynamoDBRangeKey.class)).isPresent())
                 .localIndex(Optional.ofNullable(e.getAnnotation(DynamoDBLocalIndexRangeKey.class))

@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.processor;
 import io.github.rczyzewski.guacamole.ddb.processor.ClassUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ class LiveDescriptionGeneratorTest
         ClassDescription a = ClassDescription.builder()
             .fieldDescriptions(Collections.singletonList(FieldDescription.builder()
                                                              .isHashKey(true)
-                                                             .ddbType(FieldDescription.DDBType.N)
+                                                             .ddbType(DDBType.N)
                                                              .attribute("primaryKeyHash")
                                                              .build()))
             .name("SomeClassName")
@@ -60,12 +61,12 @@ class LiveDescriptionGeneratorTest
                 Arrays.asList(FieldDescription.builder()
                                   .isHashKey(true)
                                   .attribute("primaryKeyHash")
-                                  .ddbType(FieldDescription.DDBType.N)
+                                  .ddbType(DDBType.N)
                                   .build(),
 
                               FieldDescription.builder()
                                   .isHashKey(true)
-                                  .ddbType(FieldDescription.DDBType.D)
+                                  .ddbType(DDBType.D)
                                   .attribute("primaryRange")
                                   .build())
             )

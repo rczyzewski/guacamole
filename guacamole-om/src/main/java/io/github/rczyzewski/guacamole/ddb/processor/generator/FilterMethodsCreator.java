@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import com.squareup.javapoet.ClassName;
@@ -32,7 +33,7 @@ public class FilterMethodsCreator
 
         return Stream.of(description.getHashField(), description.getRangeField())
             .filter(Objects::nonNull)
-            .filter(it -> it.getDdbType() != FieldDescription.DDBType.OTHER)
+            .filter(it -> it.getDdbType() != DDBType.OTHER)
             .flatMap(field -> Stream.of(Operator.values())
                 .map(op -> op.createMethod(className, field)))
             .filter(Objects::nonNull)
@@ -45,7 +46,7 @@ public class FilterMethodsCreator
     {
 
         return description.getAttributes().stream()
-            .filter(it -> it.getDdbType() != FieldDescription.DDBType.OTHER)
+            .filter(it -> it.getDdbType() != DDBType.OTHER)
             .flatMap(field -> Stream.of(Operator.values())
                 .map(op -> op.createMethod(className, field)))
             .filter(Objects::nonNull)
@@ -75,11 +76,8 @@ public class FilterMethodsCreator
 
         String methodName = fd.getName() + TypoUtils.upperCaseFirstLetter(op.getValue());
 
-        CodeBlock coreBlock = Optional.of(CodeBlock.of("$T.builder().$L(String.valueOf(property)).build()",
-                                                       AttributeValue.class, fd.getDdbType().getSymbol()))
-            .filter(it -> fd.getDdbType() != FieldDescription.DDBType.C)
-            .orElseGet(() -> CodeBlock.of("$T.builder().$L($T.toValue(property)).build()",
-                                          AttributeValue.class, fd.getDdbType().getSymbol(), fd.getConversionClass()));
+        CodeBlock coreBlock = CodeBlock.of("$T.builder().$L(String.valueOf(property)).build()",
+                                                       AttributeValue.class, fd.getDdbType().getSymbol());
 
         return MethodSpec.methodBuilder(methodName)
             .addModifiers(Modifier.PUBLIC)
@@ -148,16 +146,13 @@ public class FilterMethodsCreator
                 MethodSpec geMethod = GE.createMethod(className, fd);
                 MethodSpec leMethod = LE.createMethod(className, fd);
 
-                CodeBlock coreBlock = Optional.of(CodeBlock.of(
+                CodeBlock coreBlock =CodeBlock.of(
                     "$T.builder().$L(String.valueOf(begin)).build(), $T.builder().$L(String.valueOf(end)).build()",
-                    AttributeValue.class, fd.getDdbType().getSymbol(), AttributeValue.class,
-                    fd.getDdbType().getSymbol()))
-                    .filter(it -> fd.getDdbType() != FieldDescription.DDBType.C)
-                    .orElseGet(() -> CodeBlock.of(
-                        "$T.builder().$L($T.toValue(begin)).build(), $T.builder().$L($T.toValue(end)).build()",
-                        AttributeValue.class, fd.getDdbType().getSymbol(), fd.getConversionClass(),
-                        AttributeValue.class, fd.getDdbType().getSymbol(), fd.getConversionClass()
-                    ));
+                    AttributeValue.class,
+                    fd.getDdbType().getSymbol(),
+                    AttributeValue.class,
+                    fd.getDdbType().getSymbol());
+
 
                 String methodName = fd.getName() + TypoUtils.upperCaseFirstLetter(this.getValue());
                 return MethodSpec.methodBuilder(methodName)
@@ -206,7 +201,7 @@ public class FilterMethodsCreator
             @Override
             public MethodSpec createMethod(ClassName ret, FieldDescription fieldDescription)
             {
-                if (fieldDescription.getDdbType().isListQuerable()) {
+                if (fieldDescription.getDdbType().isListQueryable()) {
                     return createSingleArgMethod(ret, fieldDescription, this);
                 } else {
                     return null;
@@ -218,7 +213,7 @@ public class FilterMethodsCreator
             @Override
             public MethodSpec createMethod(ClassName ret, FieldDescription fieldDescription)
             {
-                if (fieldDescription.getDdbType().isListQuerable()) {
+                if (fieldDescription.getDdbType().isListQueryable()) {
                     return createSingleArgMethod(ret, fieldDescription, this);
                 } else {
                     return null;
@@ -230,7 +225,7 @@ public class FilterMethodsCreator
             @Override
             public MethodSpec createMethod(ClassName ret, FieldDescription fieldDescription)
             {
-                if (fieldDescription.getDdbType().isListQuerable()) {
+                if (fieldDescription.getDdbType().isListQueryable()) {
                     return createSingleArgMethod(ret, fieldDescription, this);
                 } else {
                     return null;

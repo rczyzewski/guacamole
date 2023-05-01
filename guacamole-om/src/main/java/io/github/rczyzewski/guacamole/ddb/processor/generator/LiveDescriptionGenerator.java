@@ -4,6 +4,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.ClassUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.Logger;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.FieldMappingDescription;
 import com.squareup.javapoet.ClassName;
@@ -126,22 +127,7 @@ public class LiveDescriptionGenerator
 
     }
 
-
-
-
-        else if (FieldDescription.DDBType.C == fieldDescription.getDdbType()) {
-
-            return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
-                                                 CodeBlock.of("(bean, value) ->  bean.with$L($T.valueOf(value.$L()))",
-                                                              sufix,
-                                                              fieldDescription.getConversionClass(),
-                                                              fieldDescription.getDdbType().getSymbol()),
-                                                 CodeBlock.of(
-                                                     "value -> $T.ofNullable(value.get$L()).map(it-> $T.builder().$L($T.toValue(it)).build())",
-                                                     Optional.class, sufix, AttributeValue.class,
-                                                     fieldDescription.getDdbType().getSymbol(),
-                                                     fieldDescription.getConversionClass()));
-        } else if (Arrays.asList(FieldDescription.DDBType.N, FieldDescription.DDBType.D, FieldDescription.DDBType.S, FieldDescription.DDBType.L).contains(fieldDescription.getDdbType())) {
+         else if (Arrays.asList(DDBType.N, DDBType.D, DDBType.S, DDBType.L).contains(fieldDescription.getDdbType())) {
 
             return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
                                                  CodeBlock.of("(bean, value) -> bean.with$L($T.valueOf(value.$L()))",
