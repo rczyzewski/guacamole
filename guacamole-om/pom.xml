@@ -145,7 +145,7 @@
     </dependency>
     <dependency>
       <groupId>io.github.rczyzewski</groupId>
-      <artifactId>guacamole-reactor-wrapper</artifactId>
+      <artifactId>guacamole-base</artifactId>
       <version>0.1.1</version>
     </dependency>
     <dependency>

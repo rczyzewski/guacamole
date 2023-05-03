@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.github.rczyzewski</groupId>
-  <artifactId>examples</artifactId>
+  <artifactId>guacamole-reactor</artifactId>
   <version>0.1.1</version>
   <build>
     <plugins>
@@ -33,26 +33,6 @@
           </dependency>
         </dependencies>
       </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.9</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <!-- attached to Maven test phase -->
-          <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
 
     </plugins>
   </build>
@@ -69,6 +49,12 @@
         <version>2.20.26</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-bom</artifactId>
+        <version>2022.0.6</version>
+        <type>pom</type>
       </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
@@ -88,21 +74,23 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>io.github.rczyzewski</groupId>
-      <artifactId>guacamole-om</artifactId>
-      <version>0.1.1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>dynamodb</artifactId>
-      <version>2.20.26</version>
     </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+      <version>3.5.5</version>
+    </dependency>
+
+
 
     <!-- Test dependencies -->
     <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-dynamodb -->
     <dependency>
       <groupId>com.amazonaws</groupId>
+      <!-- required for test containers localstack -->
       <artifactId>aws-java-sdk-dynamodb</artifactId>
       <version>1.12.457</version>
       <scope>test</scope>
@@ -152,6 +140,11 @@
     </dependency>
     <dependency>
       <groupId>io.github.rczyzewski</groupId>
+      <artifactId>guacamole-om</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.rczyzewski</groupId>
       <artifactId>guacamole-base</artifactId>
       <version>0.1.1</version>
     </dependency>
@@ -161,6 +154,7 @@
       <version>3.5.5</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 </project>
 

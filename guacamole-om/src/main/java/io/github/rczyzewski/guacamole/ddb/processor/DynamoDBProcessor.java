@@ -1,9 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.google.auto.service.AutoService;
-import io.github.rczyzewski.guacamole.ddb.reactor.BaseRepository;
-import io.github.rczyzewski.guacamole.ddb.reactor.DynamoSearch;
-import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
+import io.github.rczyzewski.guacamole.ddb.BaseRepository;
+import io.github.rczyzewski.guacamole.ddb.DynamoSearch;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.FilterMethodsCreator;
@@ -19,8 +18,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
 import lombok.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import software.amazon.awssdk.services.dynamodb.model.Condition;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
@@ -87,7 +84,7 @@ public class DynamoDBProcessor extends AbstractProcessor
         RoundEnvironment roundEnv)
     {
 
-        AnalizerVisitor classAnalyzer = new AnalizerVisitor(logger, types);
+        AnalyzerVisitor classAnalyzer = new AnalyzerVisitor(types);
 
         roundEnv.getElementsAnnotatedWith(DynamoDBTable.class)
                 .stream()
@@ -123,9 +120,9 @@ public class DynamoDBProcessor extends AbstractProcessor
             .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
+            .addAnnotation(Builder.class)
             .addAnnotation(AllArgsConstructor.class)
             .addModifiers(PUBLIC)
-            .addField(FieldSpec.builder(get(RxDynamo.class), "rxDynamo", FINAL, PRIVATE).build())
             .addField(FieldSpec.builder(get(String.class), "tableName", FINAL, PRIVATE).build())
                 .addTypes(classDescription.getSourandingClasses().values()
                         .stream()
@@ -154,7 +151,7 @@ public class DynamoDBProcessor extends AbstractProcessor
                            })
                            .collect(Collectors.toCollection(ArrayDeque::new))
             )
-            .addMethod(MethodSpec.methodBuilder("requestUpdate")
+            .addMethod(MethodSpec.methodBuilder("update")
                            .addModifiers(PUBLIC)
                            .addParameter(ParameterSpec.builder(clazz, "someName").build())
                            .addCode(CodeBlock.builder()
@@ -173,61 +170,42 @@ public class DynamoDBProcessor extends AbstractProcessor
 
                            .returns(get(UpdateItemRequest.class))
                            .build())
-            .addMethod(MethodSpec.methodBuilder("update")
-                           .addModifiers(PUBLIC)
-                           .addAnnotation(Override.class)
-                           .addParameter(ParameterSpec.builder(clazz, "someName").build())
-                           .addCode(CodeBlock.builder()
-                                        .indent()
-                                        .add("return rxDynamo.update(requestUpdate(someName))\n.thenReturn(someName);")
-                                        .unindent()
-                                        .build())
-
-                           .returns(get(ClassName.get(Mono.class), clazz))
-                           .build())
             .addMethod(MethodSpec.methodBuilder("create")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addParameter(ParameterSpec.builder(clazz, "someName").build())
-                           .addCode(CodeBlock.builder()
-                                        .indent()
-                                        .add("return rxDynamo.save(\n$L)\n.thenReturn(someName);",
+                           .addCode(
                                              CodeBlock.builder().indent()
-                                                 .add("$T.builder()\n", PutItemRequest.class)
+                                                 .add("return $T.builder()\n", PutItemRequest.class)
                                                  .add(".tableName(tableName)\n")
                                                  .add(".item($L.export(someName))\n", mainMapperName)
-                                                 .add(".build()")
+                                                 .add(".build();")
                                                  .unindent()
                                                  .build())
-                                        .unindent()
-                                        .build())
-                           .returns(get(ClassName.get(Mono.class), clazz))
+                           .returns(PutItemRequest.class)
+                           .build())
+            .addMethod(MethodSpec.methodBuilder("getAll")
+                                 .addModifiers(PUBLIC)
+                                 .addAnnotation(Override.class)
+                                     .addCode(
+                                          CodeBlock.builder()
+                                                   .add("return $T.builder()\n", DynamoSearch.class)
+                                                   .add(".tableName(tableName)\n")
+                                                   .add(".build();\n")
+                                                   .build())
+                                 .returns(DynamoSearch.class)
                            .build())
             .addMethod(MethodSpec.methodBuilder("delete")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addParameter(ParameterSpec.builder(clazz, "someName").build())
-                           .addCode(CodeBlock.builder().indent()
-                                        .add("return rxDynamo.delete(\n$L)\n.then();\n",
+                           .addCode(
                                              CodeBlock.builder().indent()
-                                                 .add("$T.builder()\n.key($L.export(someName))\n.build()",
+                                                 .add("return $T.builder()\n.key($L.export(someName))\n.build();",
                                                       DeleteItemRequest.class, mainMapperName)
                                                  .unindent()
                                                  .build())
-                                        .unindent()
-                                        .build())
-                           .returns(get(ClassName.get(Mono.class), get(Void.class)))
-                           .build())
-            .addMethod(MethodSpec.methodBuilder("getAll")
-                           .addModifiers(PUBLIC)
-                           .addAnnotation(Override.class)
-                           .addCode("return rxDynamo.search(\n$L)\n",
-                                    CodeBlock.builder().indent().add("$T.builder()\n", DynamoSearch.class)
-                                        .add(".tableName(tableName)\n")
-                                        .add(".build()\n")
-                                        .build())
-                           .addCode(".map($L::transform);", mainMapperName)
-                           .returns(get(ClassName.get(Flux.class), clazz))
+                           .returns(DeleteItemRequest.class)
                            .build())
             .addMethod(MethodSpec.methodBuilder("createTable")
                            .addModifiers(PUBLIC)
@@ -253,7 +231,7 @@ public class DynamoDBProcessor extends AbstractProcessor
                         TypoUtils.toClassName(it.getName()) + "CustomSearch"))
 
                 .addCode(
-                    "return new $L$L(rxDynamo, DynamoSearch.builder().tableName(tableName).indexName($S).build());\n",
+                    "return new $L$L(DynamoSearch.builder().tableName(tableName).indexName($S).build());\n",
                         TypoUtils.toClassName(it.getName()), "CustomSearch", it.getName())
                 .build())
             .forEach(navigatorClass::addMethod);
@@ -269,9 +247,6 @@ public class DynamoDBProcessor extends AbstractProcessor
 
     public TypeSpec fluentQueryGenerator(IndexDescription indexDescription, ClassDescription classDescription)
     {
-
-        ClassName clazz = ClassName.get(classDescription.getPackageName(), classDescription.getName());
-
         ParameterizedTypeName conditionType = get(ClassName.get(Map.class),
                                                   ClassName.get(String.class), ClassName.get(Condition.class));
 
@@ -331,15 +306,8 @@ public class DynamoDBProcessor extends AbstractProcessor
             .addAnnotation(With.class)
             .addAnnotation(Getter.class)
             .addAnnotation(AllArgsConstructor.class)
-            .addField(FieldSpec.builder(RxDynamo.class, "rxDynamo", FINAL, PRIVATE).build())
             .addField(FieldSpec.builder(DynamoSearch.class, "dynamoSearch", FINAL, PRIVATE).build())
             .addModifiers(PUBLIC, FINAL)
-            .addMethod(MethodSpec.methodBuilder("execute")
-                           .addModifiers(PUBLIC)
-                           .returns(get(ClassName.get(Flux.class), clazz))
-                           .addCode("return rxDynamo.search(dynamoSearch)")
-                           .addCode(".map($L::transform);", toSnakeCase(classDescription.getName()))
-                           .build())
             .addMethod(MethodSpec.methodBuilder("filter")
                            .addModifiers(PUBLIC)
                            .returns(customSearchAF)
