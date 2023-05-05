@@ -15,4 +15,5 @@ public class FieldMappingDescription<T>
     //TODO:  make specific classes
     BiFunction<T, AttributeValue, T> wither;
     Function<T, Optional<AttributeValue>> export;
+    String shortCode;
 }

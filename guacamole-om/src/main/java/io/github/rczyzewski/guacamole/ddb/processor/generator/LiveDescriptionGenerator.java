@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.ClassUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.Logger;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
@@ -86,69 +87,72 @@ public class LiveDescriptionGenerator
 
     public CodeBlock createFieldMappingDescription(
         String dynamoDBName,
+        String shortCode,
         boolean key,
         CodeBlock toJava,
         CodeBlock toDynamo)
     {
 
         return CodeBlock.builder().indent()
-            .add("new $T<>($S\n, $L,\n$L,\n$L)",
+            .add("new $T<>($S\n, $L,\n$L,\n$L,\n$S)",
                  FieldMappingDescription.class,
                  dynamoDBName,
                  key,
                  CodeBlock.builder().indent().add(toJava).unindent().build(),
-                 CodeBlock.builder().indent().add(toDynamo).unindent().build())
+                 CodeBlock.builder().indent().add(toDynamo).unindent().build(),
+                 shortCode
+            )
             .unindent()
             .build();
     }
 
     @NotNull
-    public CodeBlock create(@NotNull FieldDescription fieldDescription)
+    public CodeBlock create(@NotNull FieldDescription fieldDescription, ConsecutiveIdGenerator generator)
     {
 
-        String sufix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
+        String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
         boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
 
         if ("java.lang.List<String>".equals(fieldDescription.getTypeName())) {
 
-            return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
-                                                 CodeBlock.of("(bean, value) -> bean.with$L(value.ss())", sufix),
+            return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
+                                                 CodeBlock.of("(bean, value) -> bean.with$L(value.ss())", suffix),
                                                  CodeBlock.of(
                                                      "value -> $T.of(value.get$L()).map(it->$T.builder().ss().build())",
-                                                     Optional.class, sufix, AttributeValue.class));
+                                                     Optional.class, suffix, AttributeValue.class));
 
         } if (fieldDescription.getTypeName().startsWith("java.util.List")) {
 
         String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArguments().get(0));
-        return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
-                CodeBlock.of("(bean, value) -> bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))", sufix ,AttributeValue.class, liveMappingName),
+        return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
+                CodeBlock.of("(bean, value) -> bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))", suffix ,AttributeValue.class, liveMappingName),
                 CodeBlock.of("value -> $T.of(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit -> $T.builder().m(iit).build()).collect($T.toList())).build())",
-                        Optional.class, sufix, AttributeValue.class, liveMappingName, AttributeValue.class, Collectors.class));
+                        Optional.class, suffix, AttributeValue.class, liveMappingName, AttributeValue.class, Collectors.class));
 
     }
 
          else if (Arrays.asList(DDBType.N, DDBType.D, DDBType.S, DDBType.L).contains(fieldDescription.getDdbType())) {
 
-            return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
+            return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
                                                  CodeBlock.of("(bean, value) -> bean.with$L($T.valueOf(value.$L()))",
-                                                              sufix,
+                                                              suffix,
                                                               fieldDescription.getDdbType().getClazz(),
                                                               fieldDescription.getDdbType().getSymbol()),
                                                  CodeBlock.of(
                                                      "value -> $T.ofNullable(value.get$L()).map(it-> $T.builder().$L(it.toString()).build())",
-                                                     Optional.class, sufix, AttributeValue.class,
+                                                     Optional.class, suffix, AttributeValue.class,
                                                      fieldDescription.getDdbType().getSymbol()));
 
         } else if (null != fieldDescription.getClassReference()) {
 
             String liveMappingName = TypoUtils.toSnakeCase( fieldDescription.getClassDescription().getName());
 
-            return createFieldMappingDescription(fieldDescription.getAttribute(), isKeyValue,
+            return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
                                                  CodeBlock.of("(bean, value) -> bean.with$L($L.transform(value.m()))",
-                                                              sufix, liveMappingName),
+                                                              suffix, liveMappingName),
                                                  CodeBlock.of(
                                                      "value -> $T.ofNullable(value.get$L()).map(it-> $T.builder().m($L.export(it)).build())",
-                                                     Optional.class, sufix, AttributeValue.class, liveMappingName));
+                                                     Optional.class, suffix, AttributeValue.class, liveMappingName));
 
         } else {
 
@@ -186,12 +190,12 @@ public class LiveDescriptionGenerator
     {
 
         ClassName mappedClassName = ClassName.get(description.getPackageName(), description.getName());
-
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDEFGHIJKLMNOPRSTUWXYZ").build();
         CodeBlock indentBlocks = CodeBlock.builder()
             .indent()
             .add(description.getFieldDescriptions()
                      .stream()
-                     .map(this::create)
+                     .map(it -> this.create(it, idGenerator))
                      .collect(CodeBlock.joining(",\n ")))
             .unindent()
             .build();

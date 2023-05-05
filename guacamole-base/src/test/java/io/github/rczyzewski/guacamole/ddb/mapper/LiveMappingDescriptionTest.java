@@ -31,7 +31,7 @@ class LiveMappingDescriptionTest
         Function<T, Optional<AttributeValue>> export
     )
     {
-        return Collections.singletonList(new FieldMappingDescription<>("a", false, wither, export));
+        return Collections.singletonList(new FieldMappingDescription<>("a", false, wither, export, "fakeShortName"));
     }
 
     @Test
@@ -40,30 +40,31 @@ class LiveMappingDescriptionTest
 
         FieldMappingDescription<TestBean> d = new FieldMappingDescription<>("a", true,
             (bean, value) -> bean.withStringProperty(value.s()),
-            value -> Optional.of(AttributeValue.builder().s(value.getStringProperty()).build()));
+            value -> Optional.of(AttributeValue.builder().s(value.getStringProperty()).build()), "a");
 
         FieldMappingDescription<TestBean> d2 = new FieldMappingDescription<>("b", true,
             (bean, value) -> bean.withIntegerProperty(Integer.valueOf(value.n())),
-            value -> Optional.of(AttributeValue.builder().n(value.getIntegerProperty().toString()).build()));
+            value -> Optional.of(AttributeValue.builder().n(value.getIntegerProperty().toString()).build()), "b");
 
         FieldMappingDescription<TestBean> d3 = new FieldMappingDescription<>("c", false,
             (bean, value) -> bean.withDoubleProperty(Double.valueOf(value.n())),
-            value -> Optional.of(AttributeValue.builder().n(value.getDoubleProperty().toString()).build()));
+            value -> Optional.of(AttributeValue.builder().n(value.getDoubleProperty().toString()).build()), "c");
 
         FieldMappingDescription<TestBean> d4 = new FieldMappingDescription<>("d", false,
             (bean, value) -> bean.withListStringProperty(value.ss()),
-            value -> Optional.of(AttributeValue.builder().ss(value.getListStringProperty()).build()));
+            value -> Optional.of(AttributeValue.builder().ss(value.getListStringProperty()).build()), "d");
 
         FieldMappingDescription<InternalDocument> internalField = new FieldMappingDescription<>("a", false,
             (bean, value) -> bean.withSomeContentOfInternalDocument(value.s()),
-            value -> Optional.of(AttributeValue.builder().s(value.getSomeContentOfInternalDocument()).build()));
+            value -> Optional.of(AttributeValue.builder().s(value.getSomeContentOfInternalDocument()).build()),"a");
 
         LiveMappingDescription<InternalDocument> internal = new LiveMappingDescription<>(InternalDocument::new,
                                                                                          Collections.singletonList(internalField));
 
         FieldMappingDescription<TestBean> d5 = new FieldMappingDescription<>("e", false,
             (bean, value) -> bean.withInternalDocument(internal.transform(value.m())),
-            value -> Optional.of(AttributeValue.builder().m(internal.export(value.getInternalDocument())).build()));
+            value -> Optional.of(AttributeValue.builder().m(internal.export(value.getInternalDocument())).build()),
+                                                                             "e");
 
         LiveMappingDescription<TestBean> dynamoObjectMapper = new LiveMappingDescription<>(TestBean::new,
             Arrays.asList(d, d2, d3, d4, d5));
