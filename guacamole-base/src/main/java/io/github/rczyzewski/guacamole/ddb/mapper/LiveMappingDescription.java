@@ -32,7 +32,7 @@ public class LiveMappingDescription<T>
 
     }
 
-    public MappedUpdateExpression generateExpression(T object, String table)
+    public MappedUpdateExpression<T> generateUpdateExpression(T object, String table)
     {
         var a = ConsecutiveIdGenerator.builder().base("abcde").build();
 
@@ -54,11 +54,7 @@ public class LiveMappingDescription<T>
                         .collect(Collectors.toList());
         Map<String, AttributeValue> keys = this.exportKeys(object);
 
-        return MappedUpdateExpression.builder()
-                                     .tableName(table)
-                                     .keys(keys)
-                                     .setExpressions(ddd).build();
-
+        return new MappedUpdateExpression<T>(table, keys, null, ddd);
     }
 
     public T transform(Map<String, AttributeValue> m)

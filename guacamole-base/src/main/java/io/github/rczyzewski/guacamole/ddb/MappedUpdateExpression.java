@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -12,13 +14,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Value
-@Builder
-public class MappedUpdateExpression
+@Builder(toBuilder = true)
+@AllArgsConstructor
+public class MappedUpdateExpression<T>
 {
 
     String tableName;
     Map<String, AttributeValue> keys;
-
+    LogicalExpression<T> condition;
     List<UpdateExpression.SetExpression> setExpressions;
 
     public UpdateItemRequest serialize()
@@ -47,4 +50,11 @@ public class MappedUpdateExpression
                                 .tableName(tableName)
                                 .build();
     }
+
+    public MappedUpdateExpression<T> withCondition(LogicalExpression<T> condition)
+    {
+        return this.condition == condition ? this : new MappedUpdateExpression<T>(this.tableName, this.keys, condition,
+                                                                                  this.setExpressions);
+    }
+
 }
