@@ -2,7 +2,6 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Singular;
 
 import java.util.List;
 

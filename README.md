@@ -1,68 +1,94 @@
-# guacamole
+# reactor-aws
+utilities for accessing AWS dynamodb, s3 and sqs
 
-### Legacy conditional parameters
+Library is a collection patterns that were gathered while working with AWS.
 
-https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.html
-> ⚠ Important
-> With the introduction of expression parameters, several older parameters have
-> been deprecated. New applications should not use these legacy parameters, but
-> should use expression parameters instead. For more information, see Using
-> expressions in DynamoDB.
-> 
-> Additionally, DynamoDB does not allow mixing legacy conditional parameters and
-> expression parameters in a single call. For example, calling the Query operation
-> with AttributesToGet and ConditionExpression will result in an error.
-
-### Debugging the AnnotationProcessor
-
-One of the way to debug the build process is to follow instructions:
-[link](https://medium.com/@joachim.beckers/debugging-an-annotation-processor-using-intellij-idea-in-2018-cde72758b78a)
-
-### Working with localstack - aws emulator
-
-Article presenting usage of the localstack:
-[link](https://medium.com/geekculture/localstack-full-local-aws-stack-for-development-and-tests-in-docker-dd19ba2cecc2)
-In short:
-
-```shell
-docker pull localstack/localstack
-docker run -it -p 4566:4566 -p 4571:4571 localstack/localstack
-
-```
-
-Then check [health](http://localhost:4566/health)
-Port 4566 is reposnsible for ddb service.
-
-Admin for local ddb -[dynamo-db-admin](https://morioh.com/p/3b2d1a094050)
-
-```shell
-export DYNAMO_ENDPOINT=http://localhost:4566
-cd ~/node_modules/dynamodb-admin/bin
-./dynamodb-admin.js
-```
-
-It will expose a web interface: http://0.0.0.0:8001/
-
-## processing annotations
-
-Importatnty link explainig how annotations are processed:
-[link](https://stackoverflow.com/questions/7687829/java-6-annotation-processing-getting-a-class-from-an-annotation)
+The purpose reactor-ddb-om is to perform  DynamoDB operatioon with support of the compiler, lombok and the IDE.
+After defining the model class like follows:
 
 ```java
-class Example
+@Value
+@With
+@Builder
+@DynamoDBTable
+public class Customer {
+
+    @DynamoDBHashKey
+    String id;
+
+    @DynamoDBRangeKey
+    String name;
+
+    String email;
+
+    @DynamoDBConverted(converter = InstantConverter.class)
+    Instant regDate;
+}
+```
+
+Your application code might look like:
+```java
+public class SmpleApp
 {
-    String getConverterClass(Element e)
+
+    public static void main(String... args)
     {
-        String className = DynamoDBConverted.class.getName();
-        return e.getAnnotationMirrors().stream().filter(
-                    it -> it.getAnnotationType().toString().equals(className))
-                .map(it -> it.getElementValues())
-                .flatMap(it -> it.entrySet().stream())
-                .filter(it -> it.getKey().equals("converter"))
-                .map(it -> it.getValue())
-                .map(it -> it.toString())
-                .findFirst()
-                .orElse(null);
+
+        DynamoDbAsyncClient dynamoDBclient =
+            DynamoDbAsyncClient.builder().region(Region.US_EAST_1).build();
+
+        RxDynamo rxDynamo = new RxDynamoImpl(dynamoDBclient);
+        CustomerRepository epo = new CustomerRepository(rxDynamo, "Customer");
+
+        //default create tabe request - indexes already detected
+        CreateTableRequest request = epo.createTable();
+        //let's assume that wee need to customize it
+        request.toBuilder().billingMode(BillingMode.PAY_PER_REQUEST).build();
+        //creating the table in the cloud
+        rxDynamo.createTable(request).block();
+
+        LocalDate localDate = LocalDate.parse("2020-04-07");
+        LocalDateTime localDateTime = localDate.atStartOfDay();
+        Instant instant = localDateTime.toInstant(ZoneOffset.UTC);
+
+        Customer customer = Customer.builder()
+                                    .email("sblue@noserver.com")
+                                    .id("id103")
+                                    .name("Susan Blue")
+                                    .regDate(instant)
+                                    .build();
+
+        //Inserting new object into dynamoDB
+        epo.create(customer)
+           .map(it -> customer.withEmail("another@noserver.com"))
+           //Executing update request for the same object
+           .flatMap(epo::update)
+           .block();
+
+        //Scanning the table
+        epo.getAll()
+           .log("AllCustomers")
+           .blockLast();
+
+        //Getting all the customers with given id
+        epo.primary()
+           .keyFilter()
+           .idEquals("id103")
+           .end()
+           .execute()
+           .log("CustomerId103")
+           .blockLast();
+
+        epo.primary()
+           .filter()
+           .emailEquals("another@noserver.com")
+           .end()
+           .execute()
+           .log("CustomerWitEmai")
+           .blockLast();
     }
 }
 ```
+
+That is much shorter way, than using amazon client directly: https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/examples-dynamodb.html
+

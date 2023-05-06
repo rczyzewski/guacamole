@@ -54,7 +54,7 @@ public class LiveMappingDescription<T>
                         .collect(Collectors.toList());
         Map<String, AttributeValue> keys = this.exportKeys(object);
 
-        return new MappedUpdateExpression<T>(table, keys, null, ddd);
+        return new MappedUpdateExpression<>(table, keys, null, ddd);
     }
 
     public T transform(Map<String, AttributeValue> m)
