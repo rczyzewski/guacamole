@@ -1,9 +1,10 @@
-# reactor-aws
-utilities for accessing AWS dynamodb, s3 and sqs
+# Guacamole
+
+utilities for accessing AWS dynamodb
 
 Library is a collection patterns that were gathered while working with AWS.
 
-The purpose reactor-ddb-om is to perform  DynamoDB operatioon with support of the compiler, lombok and the IDE.
+The purpose guacamole is to perform  DynamoDB operatioon with support of the compiler, lombok and the IDE.
 After defining the model class like follows:
 
 ```java

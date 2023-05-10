@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.ddb.processor;
 import com.google.auto.service.AutoService;
 import io.github.rczyzewski.guacamole.ddb.BaseRepository;
 import io.github.rczyzewski.guacamole.ddb.DynamoSearch;
+import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.FilterMethodsCreator;
@@ -115,6 +116,9 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         ClassName repositoryClazz = ClassName.get(classDescription.getPackageName(),
                                                   classDescription.getName() + "Repository");
+        ClassName updateClazzName = ClassName.get(classDescription.getPackageName(),
+                                                  classDescription.getName() + "Repository",
+                                                 "LogicalExpressionBuilder");
 
         String mainMapperName = toSnakeCase(classDescription.getName());
 
@@ -173,6 +177,20 @@ public class DynamoDBProcessor extends AbstractProcessor
                                         .build())
 
                            .returns(get(UpdateItemRequest.class))
+                           .build())
+            .addMethod(MethodSpec.methodBuilder("updateWithExpression")
+                                 .addModifiers(PUBLIC)
+                                 .addParameter(ParameterSpec.builder(clazz, "bean").build())
+                                 .addCode(
+                                     CodeBlock.builder().indent()
+                                         .add("$T gen = new $T() ;  \n"
+                                              , updateClazzName, updateClazzName)
+                                              .add("return $L.generateUpdateExpression(bean, gen, this.tableName);", mainMapperName )
+                                              .unindent()
+                                              .build())
+                                 //.returns(updateClazzName)
+                                 .returns(ParameterizedTypeName.get(ClassName.get(MappedUpdateExpression.class),clazz,
+                                                                    updateClazzName))
                            .build())
             .addMethod(MethodSpec.methodBuilder("create")
                            .addModifiers(PUBLIC)

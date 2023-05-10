@@ -1,8 +1,8 @@
-# guacamole
+# guacamole - notes for developers
 
 ### Legacy conditional parameters
 
-https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.html
+From [aws](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.html):
 > ⚠ Important
 > With the introduction of expression parameters, several older parameters have
 > been deprecated. New applications should not use these legacy parameters, but
@@ -12,6 +12,16 @@ https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyCondition
 > Additionally, DynamoDB does not allow mixing legacy conditional parameters and
 > expression parameters in a single call. For example, calling the Query operation
 > with AttributesToGet and ConditionExpression will result in an error.
+>
+##
+Some attribute names are invalid, when using in expression, that is also incompatible:
+
+```shell
+> software.amazon.awssdk.services.dynamodb.model.DynamoDbException: 
+> Invalid ConditionExpression: 
+> Attribute name is a reserved keyword; reserved keyword: 
+> range (Service: DynamoDb, Status Code: 400, Request ID: bbbc69dc-5bdb-4bfd-a147-6d1695722040)
+```
 
 ### Debugging the AnnotationProcessor
 
@@ -45,7 +55,7 @@ It will expose a web interface: http://0.0.0.0:8001/
 
 ## processing annotations
 
-Importatnty link explainig how annotations are processed:
+Important link explaining how annotations are processed:
 [link](https://stackoverflow.com/questions/7687829/java-6-annotation-processing-getting-a-class-from-an-annotation)
 
 ```java

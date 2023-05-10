@@ -1,7 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
@@ -15,7 +15,6 @@ import lombok.With;
 import org.jetbrains.annotations.NotNull;
 
 import static javax.lang.model.element.Modifier.FINAL;
-import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
@@ -44,9 +43,7 @@ public class LogicalExpressionBuilderGenerator
                                               .addAnnotation(With.class)
 
                                               .addAnnotation(AllArgsConstructor.class)
-                                              .addField(FieldSpec.builder(String.class, "customSearch", FINAL, PRIVATE)
-                                                                 .build())
-                                              .addField(FieldSpec.builder(String.class, "conditionHashMap").build());
+            .addInitializerBlock(CodeBlock.of("this.e = this;"));
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
 
@@ -54,7 +51,8 @@ public class LogicalExpressionBuilderGenerator
                 var m = MethodSpec.methodBuilder(fd.getName() + "Equals")
                     .addParameter(String.class, "value")
                                   .addModifiers(PUBLIC)
-                                  .addCode("return null;")
+                                  .addCode("      return new LogicalExpression.Equal<>($S, value); \n",
+                                           fd.getAttribute())
                                   .returns(returnExpressionType)
                                   .build();
                 queryClass.addMethod(m);
@@ -63,7 +61,8 @@ public class LogicalExpressionBuilderGenerator
                 var m = MethodSpec.methodBuilder(fd.getName() + "LessThan")
                                   .addModifiers(PUBLIC)
                     .addParameter(Integer.class, "value")
-                                  .addCode("return null;")
+                                  .addCode("      return new LogicalExpression.LessThanExpression<>($S, value); \n",
+                                           fd.getAttribute())
                                   .returns(returnExpressionType)
                                   .build();
                 queryClass.addMethod(m);
