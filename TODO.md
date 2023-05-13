@@ -2,6 +2,9 @@ Plan for development of the library
 
 #### Release 1.1
 * [ ] make updates based on expressions 
+* [ ] make UpdateWithExpression,method part of Repository object
+* [ ] introduce Enum With all String fields
+* [ ] create a method in ExpressionGenerator.equls(), that takes field
 * [ ] typesafe conditional update support 
 * [ ] add support/potential support for other reactive libraries
 #### Release 1.2
