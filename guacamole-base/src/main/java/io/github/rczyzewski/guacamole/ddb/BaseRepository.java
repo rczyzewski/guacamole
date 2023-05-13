@@ -11,7 +11,7 @@ public interface BaseRepository<T >
 
     PutItemRequest create(T item);
     DeleteItemRequest delete(T item);
-    @Deprecated(since="2023-05-10")
+    @Deprecated
     UpdateItemRequest update(T data);
     DynamoSearch getAll();
     CreateTableRequest createTable();

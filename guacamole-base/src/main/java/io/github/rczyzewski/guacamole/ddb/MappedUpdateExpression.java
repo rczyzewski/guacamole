@@ -11,12 +11,14 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 
 @Value
 @Builder(toBuilder = true)
@@ -32,9 +34,9 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
 
     public UpdateItemRequest serialize()
     {
-        var idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
-        var preparedConditionExpression = Optional.ofNullable(this.condition)
-                                                  .map(it -> it.prepare(idGenerator));
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
+        Optional<LogicalExpression<T>> preparedConditionExpression = Optional.ofNullable(this.condition)
+                .map(it -> it.prepare(idGenerator));
 
         Map<String, AttributeValue> values = setExpressions
             .stream()
@@ -44,20 +46,20 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
             .flatMap(Collection::stream)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        var allValues = Stream.of(values,
-                                  preparedConditionExpression.map(LogicalExpression::getValuesMap).orElse(Map.of()))
-                              .map(Map::entrySet)
-                              .flatMap(Collection::stream)
-                              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        Map<String, AttributeValue> allValues = Stream.of(values,
+                        preparedConditionExpression.map(LogicalExpression::getValuesMap).orElse(Collections.emptyMap()))
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        var updateExpression = setExpressions.stream()
-                                             .map(it -> String.format(" #%s = %s", it.getFieldCode(),
-                                                                      it.getValue().serialize()))
-                                             .collect(Collectors.joining(","));
+        String updateExpression = setExpressions.stream()
+                .map(it -> String.format(" #%s = %s", it.getFieldCode(),
+                        it.getValue().serialize()))
+                .collect(Collectors.joining(","));
 
-        var attributeNames = setExpressions
-            .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
-                                               UpdateExpression.SetExpression::getFieldDdbName));
+        Map<String, String> attributeNames = setExpressions
+                .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
+                        UpdateExpression.SetExpression::getFieldDdbName));
 
         return UpdateItemRequest.builder()
                                 .key(keys)

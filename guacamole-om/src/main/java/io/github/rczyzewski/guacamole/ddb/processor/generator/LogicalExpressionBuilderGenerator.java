@@ -31,10 +31,10 @@ public class LogicalExpressionBuilderGenerator
                                                  "LogicalExpressionBuilder");
 
 
-        var returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
+        ParameterizedTypeName returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
                                                        baseBean);
 
-        var superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
+        ParameterizedTypeName superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
                                                        baseBean, customSearchAF);
 
         TypeSpec.Builder queryClass = TypeSpec.classBuilder(customSearchAF)
@@ -48,7 +48,7 @@ public class LogicalExpressionBuilderGenerator
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
 
             if (fd.getDdbType() == DDBType.S) {
-                var m = MethodSpec.methodBuilder(fd.getName() + "Equals")
+                MethodSpec m = MethodSpec.methodBuilder(fd.getName() + "Equals")
                     .addParameter(String.class, "value")
                                   .addModifiers(PUBLIC)
                                   .addCode("      return new LogicalExpression.Equal<>($S, value); \n",
@@ -58,7 +58,7 @@ public class LogicalExpressionBuilderGenerator
                 queryClass.addMethod(m);
 
             } else if (fd.getDdbType() == DDBType.N) {
-                var m = MethodSpec.methodBuilder(fd.getName() + "LessThan")
+               MethodSpec m = MethodSpec.methodBuilder(fd.getName() + "LessThan")
                                   .addModifiers(PUBLIC)
                     .addParameter(Integer.class, "value")
                                   .addCode("      return new LogicalExpression.LessThanExpression<>($S, value); \n",

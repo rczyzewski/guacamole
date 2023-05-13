@@ -21,16 +21,16 @@ public class ConsecutiveIdGenerator implements Supplier<String>
 
     private String get(int position)
     {
-        var length = base.length();
+        int length = base.length();
         int reminder = position % length;
-        int new_position = position / length;
-        var prefix = new_position == 0 ? "" : get(new_position - 1);
+        int newPosition = position / length;
+        String prefix = newPosition == 0 ? "" : get(newPosition - 1);
         return prefix + base.charAt(reminder);
     }
 
     public String get()
     {
-        if (Objects.isNull(base) || base.isBlank())
+        if (Objects.isNull(base) || base.trim().isEmpty())
             throw new UnsupportedArgumentException("Base can't be null or blank");
         return get(this.position.getAndIncrement());
     }

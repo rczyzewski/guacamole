@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 @Slf4j
 @Testcontainers
-public class ListOfMappedObjectIT {
+class ListOfMappedObjectIT {
 
 
     static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");

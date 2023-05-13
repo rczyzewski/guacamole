@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.PrimitiveIterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,24 +18,25 @@ import java.util.stream.StreamSupport;
 @Slf4j
 class ConsecutiveIdGeneratorTest
 {
+    //TODO:: Add a test with duplicated letters in a base - because it won't generate uniqe things
     @Test
-    public void sunnyDay()
+    void sunnyDay()
     {
-        var idGenerator = ConsecutiveIdGenerator.builder().base("ABCD").build();
-        var values = Stream.generate(idGenerator)
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCD").build();
+         List<String> values = Stream.generate(idGenerator)
                            .limit(12)
                            .collect(Collectors.toList());
 
         Assertions.assertThat(values)
-                  .isEqualTo(List.of("A", "B", "C", "D", "AA", "AB", "AC", "AD", "BA", "BB", "BC", "BD"));
+                  .isEqualTo(Arrays.asList("A", "B", "C", "D", "AA", "AB", "AC", "AD", "BA", "BB", "BC", "BD"));
 
     }
 
     @Test
-    public void smallBase()
+    void smallBase()
     {
-        var idGenerator = ConsecutiveIdGenerator.builder().base("A").build();
-        var values = Stream.generate(idGenerator)
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("A").build();
+        List<String> values = Stream.generate(idGenerator)
                            .limit(1000)
                            .collect(Collectors.toList());
 
@@ -48,9 +50,9 @@ class ConsecutiveIdGeneratorTest
     }
 
     @Test
-    public void emptyBase()
+     void emptyBase()
     {
-        var idGenerator = ConsecutiveIdGenerator.builder().base("").build();
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("").build();
         Assertions.assertThatThrownBy(idGenerator::get).isInstanceOf(ConsecutiveIdGenerator.UnsupportedArgumentException.class);
 
     }

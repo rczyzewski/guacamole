@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,7 +13,7 @@ public class ExpressionGenerator<T, E >
 
     public LogicalExpression<T> and( LogicalExpression<T> l1)
     {
-        return new LogicalExpression.AndExpression<>(List.of(l1 ));
+        return new LogicalExpression.AndExpression<>(Collections.singletonList(l1));
     }
 
     public LogicalExpression<T> and( LogicalExpression<T> l1, LogicalExpression<T> l)
@@ -21,7 +23,7 @@ public class ExpressionGenerator<T, E >
 
     public LogicalExpression<T> or(LogicalExpression<T> f, LogicalExpression<T> f2)
     {
-        return LogicalExpression.OrExpression.build(List.of(f, f2) );
+        return LogicalExpression.OrExpression.build(Arrays.asList(f, f2) );
     }
 
 

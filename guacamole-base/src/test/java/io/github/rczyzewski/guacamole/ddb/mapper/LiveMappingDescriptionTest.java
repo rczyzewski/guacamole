@@ -154,7 +154,7 @@ class LiveMappingDescriptionTest
         SimpleBeanWithListOfStrings a = dynamoObjectMapper.transform(
             Collections.singletonMap("a", AttributeValue.builder().ss("12").build()));
 
-        assertThat(a.getProperty()).isEqualTo(List.of("12"));
+        assertThat(a.getProperty()).isEqualTo(Collections.singletonList("12"));
 
 
     }

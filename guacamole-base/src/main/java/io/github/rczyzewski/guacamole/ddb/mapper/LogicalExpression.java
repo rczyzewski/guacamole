@@ -7,6 +7,7 @@ import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,7 +47,7 @@ public interface LogicalExpression<T>
         @Override
         public Map<String, AttributeValue> getValuesMap()
         {
-            return Map.of(shortValueCode, dynamoDBEncodedValue);
+            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
         }
     }
 
@@ -70,7 +71,7 @@ public interface LogicalExpression<T>
         @Override
         public Map<String, AttributeValue> getValuesMap()
         {
-            return Map.of(shortValueCode, dynamoDBEncodedValue);
+            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
         }
 
         @Override

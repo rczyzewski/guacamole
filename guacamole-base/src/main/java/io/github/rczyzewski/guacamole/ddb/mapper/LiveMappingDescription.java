@@ -34,27 +34,24 @@ public class LiveMappingDescription<T>
 
     public <G extends ExpressionGenerator<T,G>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)
     {
-        var a = ConsecutiveIdGenerator.builder().base("abcde").build();
-
-        var ddd = fields.stream()
-            .filter(it->! it.isKeyValue())
-                        .map(it -> {
-
-                            var v = ConstantValue.builder()
-                                                 .valueCode(a.get())
-                                                 .attributeValue(it.getExport().apply(object)
-                                                                   .orElse( AttributeValue.fromNul( true)))
-                                                 .build();
-
-                            return SetExpression.builder()
-                                                .fieldCode(it.getShortCode())
-                                                .fieldDdbName(it.getDdbName())
-                                                .value(v).build();
-                        })
-                        .collect(Collectors.toList());
+        ConsecutiveIdGenerator a = ConsecutiveIdGenerator.builder().base("abcde").build();
+        List<SetExpression> setExpressions = fields.stream()
+                .filter(it -> !it.isKeyValue())
+                .map(it -> {
+                    ConstantValue v = ConstantValue.builder()
+                            .valueCode(a.get())
+                            .attributeValue(it.getExport().apply(object)
+                                    .orElse(AttributeValue.fromNul(true)))
+                            .build();
+                    return SetExpression.builder()
+                            .fieldCode(it.getShortCode())
+                            .fieldDdbName(it.getDdbName())
+                            .value(v).build();
+                })
+                .collect(Collectors.toList());
         Map<String, AttributeValue> keys = this.exportKeys(object);
 
-        return new MappedUpdateExpression<>(generator, table, keys, null, ddd);
+        return new MappedUpdateExpression<>(generator, table, keys, null, setExpressions);
     }
 
     public T transform(Map<String, AttributeValue> m)
