@@ -43,7 +43,7 @@ class UpdateRecordIT
         rxDynamo.createTable(repo.createTable())
                 .block();
 
-        var item = CompositePrimaryIndexTable.builder()
+        CompositePrimaryIndexTable item = CompositePrimaryIndexTable.builder()
                                              .uid("someUID")
                                              .payload("ABC")
                                              .range("A")

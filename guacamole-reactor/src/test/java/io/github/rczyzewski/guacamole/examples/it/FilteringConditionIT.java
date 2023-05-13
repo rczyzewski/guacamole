@@ -17,6 +17,7 @@ import org.testcontainers.utility.DockerImageName;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -52,7 +53,8 @@ class FilteringConditionIT
 
 
         ddbClient.createTable(repo1.createTable()).get();
-        var item = repo1.create(CompositePrimaryIndexTable.builder()
+
+        PutItemRequest item = repo1.create(CompositePrimaryIndexTable.builder()
                                                .uid("someUUID")
                                                .range("other")
                                                .payload("payload")
@@ -62,12 +64,6 @@ class FilteringConditionIT
         ddbClient.putItem(item).get();
     }
 
-    @Test
-    void fullScanTest()
-    {
-        //StepVerifier.create(repo1.getAll().count()).expectNext(1L).verifyComplete();
-        //StepVerifier.create(repo1.primary().execute().count()).expectNext(1L).verifyComplete();
-    }
 
     private void checkFilter(
         long expected,
@@ -75,7 +71,7 @@ class FilteringConditionIT
             CompositePrimaryIndexTableRepository.nullCustomSearch> filter)
     {
 
-         var rxDynamo = new RxDynamoImpl(ddbClient);
+         RxDynamoImpl rxDynamo = new RxDynamoImpl(ddbClient);
 
         StepVerifier.create(
             Flux.just(repo1.primary())
