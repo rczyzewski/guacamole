@@ -1,11 +1,15 @@
 Plan for development of the library
 
 #### Release 1.1
-* [ ] make updates based on expressions 
-* [ ] make UpdateWithExpression,method part of Repository object
-* [ ] introduce Enum With all String fields
-* [ ] create a method in ExpressionGenerator.equls(), that takes field
-* [ ] typesafe conditional update support 
+* [x] make updates based on expressions 
+* [x] make UpdateWithExpression,method part of Repository object
+* [x] introduce Enum With all String fields - missing name converrsion
+* [o] create a method in ExpressionGenerator.equls(), that takes field
+* [ ] grenerrate all conditions for Integers
+* [ ] generate all condtions for Strings
+* [ ] check avialable condition functions 
+* [o] typesafe conditional update support 
+* [o] provide example in a README.md 
 * [ ] add support/potential support for other reactive libraries
 #### Release 1.2
 * [ ] typesafe setting caluclated value like : value1=value1+value2 

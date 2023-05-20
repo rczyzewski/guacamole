@@ -9,6 +9,8 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.FilterMethodsCreator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionBuilderGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
+import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -107,6 +109,21 @@ public class DynamoDBProcessor extends AbstractProcessor
                 });
 
         return true;
+    }
+
+    public TypeSpec getEnumFields(String name, List<FieldDescription> fieldDescriptions){
+        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(name)
+                                               .addAnnotation(Getter.class)
+                                               .addAnnotation(AllArgsConstructor.class)
+                                               .addField(FieldSpec.builder(String.class, "ddbField", PRIVATE, FINAL)
+                                                                  .build())
+                                               .addModifiers(PUBLIC, STATIC);
+        fieldDescriptions.forEach(it -> enumBuilder.addEnumConstant(TypoUtils.toSnakeCase(it.getName()),
+                                                                    TypeSpec.anonymousClassBuilder(String.format(
+                                                                                    "\"%s\"",
+                                                                                    it.getName()))
+                                                                            .build()));
+        return enumBuilder.build();
     }
 
     @SneakyThrows
@@ -236,6 +253,33 @@ public class DynamoDBProcessor extends AbstractProcessor
                                descriptionGenerator.createTableDefinition(new ClassUtils(classDescription, logger)))
                            .returns(ClassName.get(CreateTableRequest.class))
                            .build());
+
+        Optional.of(classDescription)
+                .map(it -> it.getFieldDescriptions()
+                             .stream()
+                             .filter(field -> field.getDdbType().equals(DDBType.N))
+                             .collect(Collectors.toList()))
+                .filter(fields -> !fields.isEmpty())
+                .map(fields -> this.getEnumFields("FieldAllNumbers", fields))
+                .ifPresent(navigatorClass::addType);
+        Optional.of(classDescription)
+                .map(it -> it.getFieldDescriptions()
+                             .stream()
+                             .filter(field -> field.getDdbType().equals(DDBType.S))
+                             .collect(Collectors.toList()))
+                .filter(fields -> !fields.isEmpty())
+                .map(fields -> this.getEnumFields("AllStrings", fields))
+                .ifPresent(navigatorClass::addType);
+        Optional.of(classDescription)
+                .map(it -> it.getFieldDescriptions()
+                             .stream()
+                             .filter(field -> field.getDdbType().equals(DDBType.S))
+                             .collect(Collectors.toList()))
+                .filter(fields -> !fields.isEmpty())
+                .map(fields -> this.getEnumFields("AllFields", fields))
+                .ifPresent(navigatorClass::addType);
+
+
 
         ClassUtils d = new ClassUtils(classDescription, logger);
 

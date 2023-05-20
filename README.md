@@ -1,8 +1,6 @@
 # Guacamole
 
-utilities for accessing AWS dynamodb
-
-Library is a collection patterns that were gathered while working with AWS.
+Typesafe utilities for accessing AWS dynamodb
 
 The purpose guacamole is to perform  DynamoDB operatioon with support of the compiler, lombok and the IDE.
 After defining the model class like follows:
@@ -90,6 +88,5 @@ public class SmpleApp
     }
 }
 ```
-
 That is much shorter way, than using amazon client directly: https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/examples-dynamodb.html
 

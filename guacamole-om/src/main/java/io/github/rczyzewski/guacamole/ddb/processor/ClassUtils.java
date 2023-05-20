@@ -29,6 +29,8 @@ public class ClassUtils
             .filter(FieldDescription::isHashKey)
             .findFirst()
             .orElseThrow(() -> {
+                //TODO: find a better way to signal the issue with a table description
+                //TODO: consider not defining primary index, and only allow scanning?
                 String errorMessage = String.format("there is no HashKey defined for %s %s",
                                                     classDescription.getPackageName(), classDescription.getName());
                 logger.warn(errorMessage);

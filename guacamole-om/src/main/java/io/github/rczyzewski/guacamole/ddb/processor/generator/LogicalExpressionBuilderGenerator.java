@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.ddb.processor.generator;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
@@ -61,10 +62,25 @@ public class LogicalExpressionBuilderGenerator
                MethodSpec m = MethodSpec.methodBuilder(fd.getName() + "LessThan")
                                   .addModifiers(PUBLIC)
                     .addParameter(Integer.class, "value")
-                                  .addCode("      return new LogicalExpression.LessThanExpression<>($S, value); \n",
+                                  .addCode("return new LogicalExpression.LessThanExpression<>($S, value); \n",
                                            fd.getAttribute())
                                   .returns(returnExpressionType)
                                   .build();
+                queryClass.addMethod(m);
+
+                m = MethodSpec.methodBuilder(fd.getName() + "LessThan")
+                              .addModifiers(PUBLIC)
+                              .addParameter(ParameterSpec.builder(ClassName.bestGuess("FieldAllNumbers"), "value")
+                                                    .build())
+                              .addCode(
+                                      CodeBlock.builder()
+                                              .indent()
+                                              .add("return new LogicalExpression.LessThanExpressionField<>($S, " +
+                                                           "value.getDdbField()); \n", fd.getAttribute())
+                                              .unindent()
+                                              .build())
+                              .returns(returnExpressionType)
+                        .build();
                 queryClass.addMethod(m);
 
             }
