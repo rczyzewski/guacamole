@@ -2,6 +2,7 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -11,6 +12,29 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ condition-expression ::=
+ operand comparator operand
+ | operand BETWEEN operand AND operand
+ | operand IN ( operand (',' operand (, ...) ))
+ | function
+ | condition AND condition
+ | condition OR condition
+ | NOT condition
+ | ( condition )
+
+
+ function ::=
+ attribute_exists (path)
+ | attribute_not_exists (path)
+ | attribute_type (path, type)
+ | begins_with (path, substr)
+ | contains (path, operand)
+ | size (path)
+ **/
+
 
 public interface LogicalExpression<T>{
     String serialize();
@@ -19,18 +43,102 @@ public interface LogicalExpression<T>{
 
     Map<String, AttributeValue> getValuesMap();
 
-    @RequiredArgsConstructor
+    interface NumberExpression<T>{
+
+        String serialize();
+
+        NumberExpression<T> prepare(ConsecutiveIdGenerator idGenerator);
+
+        Map<String, AttributeValue> getValuesMap();
+    }
+
     @AllArgsConstructor
+    class FixedNumberExpression<T> implements NumberExpression<T>{
+
+        String arg;
+
+        public String serialize(){
+            return arg;
+        }
+
+        public NumberExpression<T> prepare(ConsecutiveIdGenerator idGenerator){
+            return this;
+        }
+
+        public Map<String, AttributeValue> getValuesMap(){
+            return Collections.emptyMap();
+        }
+    }
+
     @With
-    class LessThanExpressionField<K> implements LogicalExpression<K>{
-        final String fieldName;
-        final String otherFieldName;
-        String shortValueCode;
-        AttributeValue dynamoDBEncodedValue;
+    @AllArgsConstructor
+    class CompoundCompariseExpression<T> implements LogicalExpression<T>{
+        NumberExpression<T> a;
+        ComparisonOperator operator;
+        NumberExpression<T> b;
 
         @Override
         public String serialize(){
-            return String.format(" %s < %s", fieldName, otherFieldName);
+            return a.serialize() + " " + operator.getSymbol() + b.serialize();
+        }
+
+        @Override
+        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator){
+            return this.withA(a.prepare(idGenerator))
+                       .withB(b.prepare(idGenerator));
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValuesMap(){
+            return Stream.of(a, b)
+                         .map(NumberExpression::getValuesMap)
+                         .map(Map::entrySet)
+                         .flatMap(Collection::stream)
+                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+    }
+
+    @AllArgsConstructor
+    @With
+    class AttributeExists<K> implements LogicalExpression<K>{
+
+        final boolean shouldExists;
+        final String fieldName;
+
+        @Override
+        public String serialize(){
+            if ( shouldExists ) {
+             return String.format("attribute_not_exists(%s)" , this.fieldName);
+
+            }
+            return String.format("attribute_exists(%s)" , this.fieldName);
+        }
+
+        @Override
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
+            //There is nothing to prepare
+            return this;
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValuesMap(){
+            return Collections.emptyMap();
+        }
+    }
+    @AllArgsConstructor
+    @With
+    class AttributeType<K> implements LogicalExpression<K>{
+
+        final boolean shouldExists;
+        final String fieldName;
+
+        @Override
+        public String serialize(){
+            if ( shouldExists ) {
+                return String.format("attribute_not_exists(%s)" , this.fieldName);
+
+            }
+            return String.format("attribute_exists(%s)" , this.fieldName);
         }
 
         @Override
@@ -45,55 +153,84 @@ public interface LogicalExpression<T>{
         }
     }
 
-    @RequiredArgsConstructor
+    /***
+     *   comparator ::=
+     *       =
+     *       | <>
+     *       | <
+     *       | <=
+     *       | >
+     *       | >=
+     *
+     */
+    @AllArgsConstructor
+    @Getter
+    enum ComparisonOperator{
+
+        EQUAL("="),
+        NOT_EQUAL("<>"),
+        LESS_THAN("<"),
+        LESS_OR_EQUAL("<="),
+        GREATER(">"),
+        GREATER_OR_EQUAL(">=");
+
+        private final String symbol;
+    }
     @AllArgsConstructor
     @With
-    class LessThanExpression<K> implements LogicalExpression<K>{
+    class ComparisonToReference<K> implements LogicalExpression<K>{
         final String fieldName;
-        final Integer value;
-        String shortValueCode;
-        AttributeValue dynamoDBEncodedValue;
+        final ComparisonOperator operator;
+        final String otherFieldName;
 
         @Override
         public String serialize(){
-            return String.format(" %s < %s", fieldName, shortValueCode);
+            return String.format(" %s %s %s", fieldName, operator.getSymbol(),  otherFieldName);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withShortValueCode(":" + idGenerator.get())
-                       .withDynamoDBEncodedValue(AttributeValue.fromN(Integer.toString(value)));
+            return this;
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
-            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
+            return Collections.emptyMap();
         }
     }
 
-    @AllArgsConstructor
+    /***
+     *   comparator ::=
+     *       =
+     *       | <>
+     *       | <
+     *       | <=
+     *       | >
+     *       | >=
+     *
+     */
     @RequiredArgsConstructor
+    @AllArgsConstructor
     @With
-    class Equal<K> implements LogicalExpression<K>{
+    class ComparisonToValue<K> implements LogicalExpression<K>{
         final String fieldName;
-        final String value;
+        final ComparisonOperator operator;
+        final AttributeValue dynamoDBEncodedValue;
         String shortValueCode;
-        AttributeValue dynamoDBEncodedValue;
+
+        @Override
+        public String serialize(){
+            return String.format(" %s %s %s", fieldName, operator.getSymbol(), shortValueCode);
+        }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withShortValueCode(":" + idGenerator.get())
-                       .withDynamoDBEncodedValue(AttributeValue.fromS(fieldName));
+            return this.withShortValueCode(":" + idGenerator.get());
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
-        }
-
-        @Override
-        public String serialize(){
-            return String.format(" %s = %s", fieldName, shortValueCode);
         }
     }
 

@@ -3,13 +3,18 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ExpressionGenerator<T, E >
 {
     protected E e;
+
+    LogicalExpression<T> compare(LogicalExpression.NumberExpression<T> a,
+                                 LogicalExpression.ComparisonOperator op,
+                                 LogicalExpression.NumberExpression<T> b ){
+        return new LogicalExpression.CompoundCompariseExpression<>(a , op ,b);
+    }
 
     public LogicalExpression<T> and( LogicalExpression<T> l1)
     {
