@@ -47,6 +47,7 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     }
 
 
+    @Override
     public AnalyzerVisitor visitType(TypeElement element,  Map<String, ClassDescription> o) {
 
         String name = element.getSimpleName().toString();

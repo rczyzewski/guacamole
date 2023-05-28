@@ -106,26 +106,31 @@ public interface LogicalExpression<T>{
     }
 
     @AllArgsConstructor
+    @RequiredArgsConstructor
     @With
     class AttributeExists<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
         final String fieldName;
+        String fieldCode;
 
         @Override
         public String serialize(){
             if ( shouldExists ) {
-             return String.format("attribute_not_exists(%s)" , this.fieldName);
+             return String.format("attribute_exists(%s)" , this.fieldCode);
 
             }
-            return String.format("attribute_exists(%s)" , this.fieldName);
+            return String.format("attribute_not_exists(%s)" , this.fieldCode);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription){
             //There is nothing to prepare
-            return this;
+            if(fieldCode != null)
+                return this;
+            String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
+            return this.withFieldCode("#" + sk);
         }
 
         @Override
@@ -135,16 +140,17 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            throw new RuntimeException("not implemented yet");
+            return Collections.singletonMap(fieldCode, fieldName);
         }
     }
+    @RequiredArgsConstructor
     @AllArgsConstructor
     @With
     class AttributeType<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
         final String fieldName;
-        final String fieldShortCode;
+        String fieldShortCode;
 
         @Override
         public String serialize(){
@@ -195,12 +201,14 @@ public interface LogicalExpression<T>{
 
         private final String symbol;
     }
-    @AllArgsConstructor
     @With
+    @RequiredArgsConstructor
+    @AllArgsConstructor
     class ComparisonToReference<K> implements LogicalExpression<K>{
         final String fieldName;
         final ComparisonOperator operator;
         final String otherFieldName;
+        String fieldCode;
 
         @Override
         public String serialize(){
@@ -275,7 +283,7 @@ public interface LogicalExpression<T>{
         }
     }
 
-    @AllArgsConstructor(staticName = "build")
+    @AllArgsConstructor
     @With
     class OrExpression<K> implements LogicalExpression<K>{
         List<LogicalExpression<K>> args;

@@ -1,10 +1,14 @@
 package io.github.rczyzewski.guacamole.examples.it;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
 import io.github.rczyzewski.guacamole.examples.shop.Product;
 import io.github.rczyzewski.guacamole.examples.shop.ProductRepository;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.data.Offset;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -19,6 +23,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Slf4j
@@ -36,36 +41,65 @@ class ConditionalUpdateIT{
 
     private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
 
-    ProductRepository repo = new ProductRepository(getTableName());
+    ProductRepository repo;
+
+    Product product = Product
+            .builder()
+            .uid("2028JGG")
+            .name("Millennium Falcon")
+            .description("It's the property of Han Solo.")
+            .price(8_000)
+            .piecesAvailable(1)
+            .build();
+
+    @BeforeEach
+    @SneakyThrows
+    void before(){
+
+        repo = new ProductRepository(getTableName());
+        rxDynamo.createTable(repo.createTable())
+                .block();
+        ddbClient.putItem( repo.create(product)).get();
+
+
+    }
 
     @Test
     void veryFirstTestForConditionalUpdate(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it -> it.and(it.nameEqual("RedCar"),
+                                                              it.or(it.priceLessOrEqual(100),
+                                                                    it.piecesAvailableGreaterOrEqual(4))))
+                                  .asUpdateItemRequest();
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        assertThatThrownBy(f::get)
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
 
-        rxDynamo.createTable(repo.createTable())
-                .block();
-
-        Product a = Product
-                .builder()
-                .uid("2028JGG")
-                .name("Millennium Falcon")
-                .description("It's the property of Han Solo.")
-                .price(8_000)
-                .piecesAvailable(1)
-                .build();
-
-
-
-        UpdateItemRequest n = repo.updateWithExpression(a.withCost(8_815))
-                .withCondition(it -> it.and(it.nameEqual("RedCar"),
-                                            it.or(it.priceLessOrEqual(100),
-                                                  it.piecesAvailableGreaterOrEqual(4))))
+    }
+    @Test
+    @SneakyThrows
+    void checkUpdateWhenFieldIsDefined(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it-> it.attributeExists(ProductRepository.AllFields.DESCRIPTION))
                                   .asUpdateItemRequest();
 
-        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(
-                n);
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        UpdateItemResponse a = f.get();
+        assertThat(a.consumedCapacity().capacityUnits()).isCloseTo(1.0, Offset.offset(0.001));
 
+    }
+    @Test
+    @SneakyThrows
+    void checkUpdateWhenFieldIsDefined2(){
+
+        UpdateItemRequest n =
+                repo.updateWithExpression(product.withCost(8_815))
+                    .withCondition(it -> new LogicalExpression.AttributeExists<>(true, "test", "#TESTCODE"))
+                    .asUpdateItemRequest();
+
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
         assertThatThrownBy(f::get)
-                .isInstanceOf(ConditionalCheckFailedException.class);
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
 
     }
 

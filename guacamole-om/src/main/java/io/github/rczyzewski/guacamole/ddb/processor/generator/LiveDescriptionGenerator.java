@@ -121,7 +121,7 @@ public class LiveDescriptionGenerator
                                                      "value -> $T.of(value.get$L()).map(it->$T.builder().ss().build())",
                                                      Optional.class, suffix, AttributeValue.class));
 
-        } if (fieldDescription.getTypeName().startsWith("java.util.List")) {
+        } else if (fieldDescription.getTypeName().startsWith("java.util.List")) {
 
         String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArguments().get(0));
         return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,

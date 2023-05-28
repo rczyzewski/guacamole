@@ -21,7 +21,7 @@ class TypoUtilsTest
     {
         String test = "";
 
-        assertThat(TypoUtils.upperCaseFirstLetter(test)).isEqualTo("");
+        assertThat(TypoUtils.upperCaseFirstLetter(test)).isEmpty();
     }
 
     @Test
@@ -42,7 +42,7 @@ class TypoUtilsTest
     }
 
     @Test
-    public void toClassName(){
+    void toClassName(){
 
         assertThat(TypoUtils.toClassName("ddddd")).isEqualTo("Ddddd");
         assertThat(TypoUtils.toClassName("foo_bar")).isEqualTo("FooBar");

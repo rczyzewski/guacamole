@@ -34,7 +34,7 @@ public class FieldDescription
 
         return this.getSourandingClasses().get(this.getClassReference());
     }
-    //ClassDescription classDescription;
+
     @ToString.Exclude
     private final Map<String,ClassDescription> sourandingClasses;
 
