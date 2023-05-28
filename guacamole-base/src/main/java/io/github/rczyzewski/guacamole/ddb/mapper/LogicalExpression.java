@@ -39,9 +39,10 @@ import java.util.stream.Stream;
 public interface LogicalExpression<T>{
     String serialize();
 
-    LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator);
+    LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription);
 
     Map<String, AttributeValue> getValuesMap();
+    Map<String, String> getAttributesMap();
 
     interface NumberExpression<T>{
 
@@ -83,7 +84,8 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator){
+        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<T> liveMappingDescription){
             return this.withA(a.prepare(idGenerator))
                        .withB(b.prepare(idGenerator));
         }
@@ -95,6 +97,11 @@ public interface LogicalExpression<T>{
                          .map(Map::entrySet)
                          .flatMap(Collection::stream)
                          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            throw new RuntimeException("not implemented yet");
         }
     }
 
@@ -115,7 +122,8 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<K> liveMappingDescription){
             //There is nothing to prepare
             return this;
         }
@@ -123,6 +131,11 @@ public interface LogicalExpression<T>{
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return Collections.emptyMap();
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            throw new RuntimeException("not implemented yet");
         }
     }
     @AllArgsConstructor
@@ -131,25 +144,31 @@ public interface LogicalExpression<T>{
 
         final boolean shouldExists;
         final String fieldName;
+        final String fieldShortCode;
 
         @Override
         public String serialize(){
             if ( shouldExists ) {
-                return String.format("attribute_not_exists(%s)" , this.fieldName);
-
+                return String.format("attribute_not_exists(%s)" , this.fieldShortCode);
             }
-            return String.format("attribute_exists(%s)" , this.fieldName);
+            return String.format("attribute_exists(%s)" , this.fieldShortCode);
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
             //There is nothing to prepare
-            return this;
+            String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
+            return this.withFieldShortCode("#" + sk);
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return Collections.emptyMap();
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            return Collections.singletonMap(fieldShortCode, fieldName);
         }
     }
 
@@ -189,13 +208,19 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<K> liveMappingDescription){
             return this;
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return Collections.emptyMap();
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            throw new RuntimeException("not implemented yet");
         }
     }
 
@@ -214,23 +239,39 @@ public interface LogicalExpression<T>{
     @With
     class ComparisonToValue<K> implements LogicalExpression<K>{
         final String fieldName;
+
+
         final ComparisonOperator operator;
         final AttributeValue dynamoDBEncodedValue;
         String shortValueCode;
 
+        String fieldCode;
+
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldName, operator.getSymbol(), shortValueCode);
+            return String.format(" %s %s %s", fieldCode, operator.getSymbol(), shortValueCode);
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withShortValueCode(":" + idGenerator.get());
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
+            String sk = liveMappingDescription.getDict()
+                                              .get(fieldName)
+                                              .getShortCode();
+            return this.withShortValueCode(":" + idGenerator.get())
+                    .withFieldCode("#" + sk);
+
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            return Collections.singletonMap(this.fieldCode, this.fieldName);
+
+
         }
     }
 
@@ -248,14 +289,25 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator)).collect(Collectors.toList()));
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator ,
+                                            LiveMappingDescription<K> liveMappingDescription){
+            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription))
+                                     .collect(Collectors.toList()));
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
             return args.stream()
                        .map(LogicalExpression::getValuesMap)
+                       .map(Map::entrySet)
+                       .flatMap(Collection::stream)
+                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            return args.stream()
+                       .map(LogicalExpression::getAttributesMap)
                        .map(Map::entrySet)
                        .flatMap(Collection::stream)
                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -285,8 +337,19 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator)).collect(Collectors.toList()));
+        public Map<String, String> getAttributesMap(){
+            return args.stream()
+                       .map(LogicalExpression::getAttributesMap)
+                       .map(Map::entrySet)
+                       .flatMap(Collection::stream)
+                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        @Override
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<K> liveMappingDescription){
+            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription))
+                                     .collect(Collectors.toList()));
         }
     }
 
@@ -306,8 +369,13 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator){
-            return this.withArg(arg.prepare(idGenerator));
+        public Map<String, String> getAttributesMap(){
+            return arg.getAttributesMap();
+        }
+
+        @Override
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
+            return this.withArg(arg.prepare(idGenerator, liveMappingDescription));
         }
     }
 }

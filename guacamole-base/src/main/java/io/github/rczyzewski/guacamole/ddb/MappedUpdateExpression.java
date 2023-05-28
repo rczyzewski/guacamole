@@ -2,6 +2,7 @@ package io.github.rczyzewski.guacamole.ddb;
 
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
+import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,12 +33,15 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
     Map<String, AttributeValue> keys;
     LogicalExpression<T> condition;
     List<UpdateExpression.SetExpression> setExpressions;
+    LiveMappingDescription<T> liveMappingDescription;
 
-    public UpdateItemRequest serialize()
+    public UpdateItemRequest asUpdateItemRequest()
     {
         ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
-        Optional<LogicalExpression<T>> preparedConditionExpression = Optional.ofNullable(this.condition)
-                .map(it -> it.prepare(idGenerator));
+
+        Optional<LogicalExpression<T>> preparedConditionExpression =
+                Optional.ofNullable(this.condition)
+                        .map(it -> it.prepare(idGenerator, liveMappingDescription));
 
         Map<String, AttributeValue> values = setExpressions
             .stream()
@@ -57,15 +62,25 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
                         it.getValue().serialize()))
                 .collect(Collectors.joining(","));
 
-        Map<String, String> attributeNames = setExpressions
+        Map<String, String> attributeNames =
+                setExpressions
                 .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
                         UpdateExpression.SetExpression::getFieldDdbName));
+
+        Map<String, String> ddd = preparedConditionExpression
+                .map(LogicalExpression::getAttributesMap)
+                .orElse(Collections.emptyMap());
+
+        Map<String, String> allAttributesName =
+                new  HashMap<>(attributeNames);
+                       allAttributesName.putAll(ddd);
+
 
         return UpdateItemRequest.builder()
                                 .key(keys)
                                 .expressionAttributeValues(allValues)
                                 .updateExpression("SET " + updateExpression)
-                                .expressionAttributeNames(attributeNames)
+                                .expressionAttributeNames(allAttributesName)
                                 .conditionExpression(preparedConditionExpression.map(LogicalExpression::serialize)
                                                                                 .orElse(null))
                                 .tableName(tableName)
@@ -79,7 +94,8 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
             generator,
             this.tableName, this.keys,
             condition.apply(generator),
-            this.setExpressions
+            this.setExpressions,
+            liveMappingDescription
         );
     }
 

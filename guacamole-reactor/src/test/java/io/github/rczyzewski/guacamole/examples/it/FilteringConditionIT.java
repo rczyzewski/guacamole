@@ -1,6 +1,6 @@
 package io.github.rczyzewski.guacamole.examples.it;
 
-import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamoImpl;
+import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
 import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.examples.model.CompositePrimaryIndexTable;
 import io.github.rczyzewski.guacamole.examples.model.CompositePrimaryIndexTableRepository;
@@ -71,7 +71,7 @@ class FilteringConditionIT
             CompositePrimaryIndexTableRepository.nullCustomSearch> filter)
     {
 
-         RxDynamoImpl rxDynamo = new RxDynamoImpl(ddbClient);
+         RxDynamo rxDynamo = new RxDynamo(ddbClient);
 
         StepVerifier.create(
             Flux.just(repo1.primary())

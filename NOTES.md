@@ -76,3 +76,21 @@ class Example
     }
 }
 ```
+### Reserved Words in DynamoDB expressions
+Reserved words are listed (here)[https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html]
+
+As a consequence, expression can't look like this: 
+```
+(  name = :A ) and ( (  price <= :B ) or (  piecesAvailable >= :C ) )
+```
+because it produces the errors like: 
+```
+java.util.concurrent.ExecutionException:
+software.amazon.awssdk.services.dynamodb.model.DynamoDbException:
+Invalid ConditionExpression:
+Attribute name is a reserved keyword; reserved keyword: name
+(Service: DynamoDb, Status Code: 400, Request ID: 8352d1a1-0cdc-4dd4-b033-d03c083b599a)
+```
+In the above case it's sufficient, to move `name` into expressionAttributeNames. 
+
+

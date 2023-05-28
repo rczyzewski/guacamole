@@ -2,6 +2,7 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.SetExpression;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 import static io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.*;
 
 @Slf4j
+@Getter
 public class LiveMappingDescription<T>
 {
 
@@ -51,7 +53,7 @@ public class LiveMappingDescription<T>
                 .collect(Collectors.toList());
         Map<String, AttributeValue> keys = this.exportKeys(object);
 
-        return new MappedUpdateExpression<>(generator, table, keys, null, setExpressions);
+        return new MappedUpdateExpression<>(generator, table, keys, null, setExpressions, this);
     }
 
     public T transform(Map<String, AttributeValue> m)

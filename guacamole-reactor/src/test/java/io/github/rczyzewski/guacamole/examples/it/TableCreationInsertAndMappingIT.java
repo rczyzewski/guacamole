@@ -2,7 +2,6 @@ package io.github.rczyzewski.guacamole.examples.it;
 
 import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
-import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamoImpl;
 import io.github.rczyzewski.guacamole.examples.model.GlobalHashIndexTable;
 import io.github.rczyzewski.guacamole.examples.model.GlobalHashIndexTableRepository;
 import io.github.rczyzewski.guacamole.examples.model.GlobalRangeIndexTable;
@@ -46,12 +45,12 @@ class TableCreationInsertAndMappingIT
     private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
     private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
-    private final RxDynamo rxDynamo = new RxDynamoImpl(ddbClient);
+    private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
 
     @AfterAll
     static void cleanup()
     {
-        //I guess, It might be reasonable to drop tablles that have been created
+        //I guess, It might be reasonable to drop tables that have been created
     }
 
     @Test
