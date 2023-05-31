@@ -4,7 +4,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Singular;
+import lombok.Value;
 import lombok.With;
+import lombok.experimental.NonFinal;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Collection;
@@ -12,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  condition-expression ::=
@@ -38,70 +40,31 @@ import java.util.stream.Stream;
 
 public interface LogicalExpression<T>{
     String serialize();
-
     LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription);
 
     Map<String, AttributeValue> getValuesMap();
     Map<String, String> getAttributesMap();
 
-    interface NumberExpression<T>{
-
-        String serialize();
-
-        NumberExpression<T> prepare(ConsecutiveIdGenerator idGenerator);
-
-        Map<String, AttributeValue> getValuesMap();
-    }
-
+    @Builder
     @AllArgsConstructor
-    class FixedNumberExpression<T> implements NumberExpression<T>{
+    @Value
+    @NonFinal
+    class FixedExpression<T> implements  LogicalExpression<T>{
+        String expression;
 
-        String arg;
+        @Singular("value")
+        Map<String, AttributeValue> valuesMap;
 
+        @Singular("attribute")
+        Map<String, String> attributesMap = Collections.emptyMap();
+        @Override
         public String serialize(){
-            return arg;
+            return this.getExpression();
         }
 
-        public NumberExpression<T> prepare(ConsecutiveIdGenerator idGenerator){
+        @Override
+        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription){
             return this;
-        }
-
-        public Map<String, AttributeValue> getValuesMap(){
-            return Collections.emptyMap();
-        }
-    }
-
-    @With
-    @AllArgsConstructor
-    class CompoundCompariseExpression<T> implements LogicalExpression<T>{
-        NumberExpression<T> a;
-        ComparisonOperator operator;
-        NumberExpression<T> b;
-
-        @Override
-        public String serialize(){
-            return a.serialize() + " " + operator.getSymbol() + b.serialize();
-        }
-
-        @Override
-        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
-                                            LiveMappingDescription<T> liveMappingDescription){
-            return this.withA(a.prepare(idGenerator))
-                       .withB(b.prepare(idGenerator));
-        }
-
-        @Override
-        public Map<String, AttributeValue> getValuesMap(){
-            return Stream.of(a, b)
-                         .map(NumberExpression::getValuesMap)
-                         .map(Map::entrySet)
-                         .flatMap(Collection::stream)
-                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        }
-
-        @Override
-        public Map<String, String> getAttributesMap(){
-            throw new RuntimeException("not implemented yet");
         }
     }
 

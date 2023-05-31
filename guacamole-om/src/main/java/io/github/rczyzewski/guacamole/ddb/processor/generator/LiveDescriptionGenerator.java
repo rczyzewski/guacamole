@@ -113,7 +113,9 @@ public class LiveDescriptionGenerator
         String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
         boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
 
-        if ("java.lang.List<String>".equals(fieldDescription.getTypeName())) {
+        //TODO: try to compile with different complers
+        //previous version: java.lang.List<String>
+        if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
 
             return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
                                                  CodeBlock.of("(bean, value) -> bean.with$L(value.ss())", suffix),

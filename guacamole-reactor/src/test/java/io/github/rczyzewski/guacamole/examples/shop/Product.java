@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.With;
 
+import java.util.List;
+
 @With
 @Value
 @Builder
@@ -16,7 +18,16 @@ public class Product{
     String uid;
     String name;
     String description;
+    List<String> colors;
     Integer price;
     Integer cost;
     Integer piecesAvailable;
+
+    //TODO: Sets are not yet supported in guacamole
+    //@Singular("tag")
+    //Set<String> tags;
+
+    //TODO: maps are not implemented in guacamole yet
+    //@Singular("colorRef")
+    //Map<Integer,String> colorsTable;
 }

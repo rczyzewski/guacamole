@@ -9,12 +9,6 @@ public class ExpressionGenerator<T, E >
 {
     protected E e;
 
-    LogicalExpression<T> compare(LogicalExpression.NumberExpression<T> a,
-                                 LogicalExpression.ComparisonOperator op,
-                                 LogicalExpression.NumberExpression<T> b ){
-        return new LogicalExpression.CompoundCompariseExpression<>(a , op ,b);
-    }
-
     public LogicalExpression<T> and(List<LogicalExpression<T>> l1){
         return new LogicalExpression.AndExpression<>(l1);
 

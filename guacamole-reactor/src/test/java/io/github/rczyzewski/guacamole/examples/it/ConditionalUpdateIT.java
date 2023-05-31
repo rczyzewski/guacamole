@@ -16,10 +16,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -47,6 +49,7 @@ class ConditionalUpdateIT{
             .builder()
             .uid("2028JGG")
             .name("Millennium Falcon")
+            .colors(Arrays.asList("red", "retired", "extremely", "dangerous"))
             .description("It's the property of Han Solo.")
             .price(8_000)
             .piecesAvailable(1)
@@ -61,6 +64,60 @@ class ConditionalUpdateIT{
                 .block();
         ddbClient.putItem( repo.create(product)).get();
 
+
+    }
+    @Test
+    void testingIfListContainsElement(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it -> LogicalExpression.FixedExpression.
+                                                  <Product>builder()
+                                          .expression(" contains(tags, :value)   >= 5 ")
+                                          .value(":value", AttributeValue.fromS("Jedi"))
+                                          .build())
+                                  .asUpdateItemRequest();
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        assertThatThrownBy(f::get)
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
+
+    }
+    @Test
+    void testingIfListContainsElementString(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it -> LogicalExpression.FixedExpression
+                                          .<Product>builder()
+                                          .expression(" contains(description, :value)   >= 5 ")
+                                          .value(":value", AttributeValue.fromS("red"))
+                                          .build())
+                                  .asUpdateItemRequest();
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        assertThatThrownBy(f::get)
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
+
+    }
+    @Test
+    void testingIfListContainsElementList(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it -> LogicalExpression.FixedExpression
+                                          .<Product>builder()
+                                          .expression(" contains(color, :value)   >= 5 ")
+                                          .value(":value", AttributeValue.fromS("red"))
+                                                                                        .build())
+                                  .asUpdateItemRequest();
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        assertThatThrownBy(f::get)
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
+
+    }
+    @Test
+    void testingSizeOfTheArrayExpression(){
+        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+                                  .withCondition(it -> LogicalExpression.FixedExpression.<Product>builder()
+                                                                 .expression(" size(color)   >= 5 ")
+                                          .build())
+                                  .asUpdateItemRequest();
+        CompletableFuture<UpdateItemResponse> f = ddbClient.updateItem(n);
+        assertThatThrownBy(f::get)
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
 
     }
 
