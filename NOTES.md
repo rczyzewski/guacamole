@@ -94,3 +94,19 @@ Attribute name is a reserved keyword; reserved keyword: name
 In the above case it's sufficient, to move `name` into expressionAttributeNames. 
 
 
+### Compatibility
+Lombok do not support Java 21 - there are compilation issues when working with java 21
+Today the last supported version is 20 - acording to lombok [changelog](https://projectlombok.org/changelog)
+Compilation error: 
+```shell
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) 
+on project guacamole-base: 
+  Fatal error compiling: 
+  java.lang.NoSuchFieldError: 
+  Class com.sun.tools.javac.tree.JCTree$JCImport does not have member field 'com.sun.tools.javac.tree.JCTree qualid'
+``` 
+
+Summary of testing:
+145 - JDKs from sdkMan  
+14 - failed because of java21 issues described above
+1 - JDK was unable to download

@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.github.rczyzewski</groupId>
   <artifactId>guacamole-reactor</artifactId>
   <version>0.1.1</version>
+  <parent>
+    <version>0.1.1</version>
+    <artifactId>guacamole</artifactId>
+    <groupId>io.github.rczyzewski</groupId>
+    <relativePath>./../../guacamole</relativePath>
+  </parent>
   <build>
     <plugins>
       <plugin>
@@ -21,7 +26,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>3.1.2</version>
         <configuration>
           <includes>**/*IT.java</includes>
         </configuration>
@@ -37,40 +42,12 @@
     </plugins>
   </build>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-  </properties>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bom</artifactId>
-        <version>2.20.26</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-bom</artifactId>
-        <version>2022.0.6</version>
-        <type>pom</type>
-      </dependency>
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers-bom</artifactId>
-        <type>pom</type>
-        <scope>import</scope>
-        <version>1.17.0</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <dependencies>
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.26</version>
+      <version>1.18.28</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
