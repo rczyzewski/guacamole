@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.examples.shop;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import lombok.Builder;
+import lombok.Singular;
 import lombok.Value;
 import lombok.With;
 
@@ -18,7 +19,10 @@ public class Product{
     String uid;
     String name;
     String description;
+//    @Singular("color")
     List<String> colors;
+ //   @Singular("colorIE")
+    List<String> colorsInEnglish;
     Integer price;
     Integer cost;
     Integer piecesAvailable;

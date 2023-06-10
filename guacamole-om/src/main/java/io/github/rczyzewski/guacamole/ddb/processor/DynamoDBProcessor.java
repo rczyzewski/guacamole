@@ -61,7 +61,9 @@ import static javax.lang.model.element.Modifier.STATIC;
  */
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
+@AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class DynamoDBProcessor extends AbstractProcessor
 {
 

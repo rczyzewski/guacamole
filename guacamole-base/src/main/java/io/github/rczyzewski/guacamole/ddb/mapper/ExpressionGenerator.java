@@ -9,6 +9,22 @@ public class ExpressionGenerator<T, E >
 {
     protected E e;
 
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op , Path<T> path2){
+
+        return LogicalExpression.FixedExpression.<T>builder().build();
+    }
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Double value){
+
+        return LogicalExpression.FixedExpression.<T>builder().build();
+    }
+    public LogicalExpression<T> compare(Path<T > path1, LogicalExpression.ComparisonOperator op, Integer value){
+
+        return LogicalExpression.FixedExpression.<T>builder().build();
+    }
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value){
+
+        return LogicalExpression.FixedExpression.<T>builder().build();
+    }
     public LogicalExpression<T> and(List<LogicalExpression<T>> l1){
         return new LogicalExpression.AndExpression<>(l1);
 
