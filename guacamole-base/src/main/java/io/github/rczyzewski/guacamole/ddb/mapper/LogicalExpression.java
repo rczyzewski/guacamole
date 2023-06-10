@@ -141,7 +141,7 @@ public interface LogicalExpression<T>{
         }
     }
 
-    /***
+    /*
      *   comparator ::=
      *       =
      *       | <>
@@ -195,7 +195,7 @@ public interface LogicalExpression<T>{
         }
     }
 
-    /***
+    /*
      *   comparator ::=
      *       =
      *       | <>
