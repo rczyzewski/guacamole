@@ -100,7 +100,7 @@ Today the last supported version is 20 - acording to lombok [changelog](https://
 Compilation error: 
 ```shell
 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) 
-on project guacamole-base: 
+on project guacamole-core: 
   Fatal error compiling: 
   java.lang.NoSuchFieldError: 
   Class com.sun.tools.javac.tree.JCTree$JCImport does not have member field 'com.sun.tools.javac.tree.JCTree qualid'

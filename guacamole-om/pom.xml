@@ -87,7 +87,7 @@
     </dependency>
     <dependency>
       <groupId>io.github.rczyzewski</groupId>
-      <artifactId>guacamole-base</artifactId>
+      <artifactId>guacamole-core</artifactId>
       <version>0.1.1-RC1</version>
     </dependency>
     <dependency>
