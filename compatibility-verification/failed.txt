@@ -1,0 +1,20 @@
+#Thu Jun 8 10:26:30 CEST 2023:20.0.1-amzn:openjdk version "20.0.1" 2023-04-18:1
+Thu Jun 8 10:26:30 CEST 2023|20.0.1-amzn
+#Thu Jun 8 12:53:53 CEST 2023:21.ea.25-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 12:56:36 CEST 2023:21.ea.24-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:01:39 CEST 2023:21.ea.23-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:05:54 CEST 2023:21.ea.22-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:08:48 CEST 2023:21.ea.21-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:12:18 CEST 2023:21.ea.20-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:14:12 CEST 2023:21.ea.19-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:16:51 CEST 2023:21.ea.18-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:20:21 CEST 2023:21.ea.17-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:23:13 CEST 2023:21.ea.16-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:25:00 CEST 2023:21.ea.15-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:26:44 CEST 2023:21.ea.14-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:28:26 CEST 2023:21.ea.13-open:openjdk version "21-ea" 2023-09-19:1
+#Thu Jun 8 13:30:00 CEST 2023:21.ea.12-open:openjdk version "21-ea" 2023-09-19:1
+Thu Jun 8 15:56:21 CEST 2023|11.0.18.fx-librca
+Fri Jun 9 06:37:35 CEST 2023|17.0.7-sem
+#Thu Jun 8 15:56:21 CEST 2023:11.0.18.fx-librca:openjdk version "11.0.18" 2023-01-17 LTS:1
+#Fri Jun 9 06:37:35 CEST 2023:17.0.7-sem:openjdk version "17.0.7" 2023-04-18:1
