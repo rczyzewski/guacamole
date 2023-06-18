@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
 
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

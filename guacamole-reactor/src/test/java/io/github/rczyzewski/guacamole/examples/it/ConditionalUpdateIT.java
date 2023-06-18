@@ -2,10 +2,10 @@ package io.github.rczyzewski.guacamole.examples.it;
 
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.FixedExpression;
-import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
 import io.github.rczyzewski.guacamole.examples.shop.Product;
 import io.github.rczyzewski.guacamole.examples.shop.ProductRepository;
+import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.data.Offset;

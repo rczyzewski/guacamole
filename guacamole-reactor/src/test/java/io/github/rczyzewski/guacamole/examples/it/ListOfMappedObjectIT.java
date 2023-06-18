@@ -1,9 +1,9 @@
 package io.github.rczyzewski.guacamole.examples.it;
 
-import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
 import io.github.rczyzewski.guacamole.examples.model.ListWithObjectsFieldTable;
 import io.github.rczyzewski.guacamole.examples.model.ListWithObjectsFieldTableRepository;
+import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;

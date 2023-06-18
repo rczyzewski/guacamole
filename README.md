@@ -7,6 +7,24 @@ The purpose guacamole is to perform  DynamoDB operatioon with support of the com
 ## Movie showing typing support
 As the single picture can express more than thousands of words.
 
+## Installation
+```xml
+<dependencies>
+    <dependency>
+        <groupId>io.github.rczyzewski</groupId>
+        <artifactId>guacamole-om</artifactId>
+        <version>0.1.1-RC1</version>
+        <!-- the scope is provided, as this is required just to generate code accessing dynamodb -->
+        <scope>provided</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.github.rczyzewski</groupId>
+        <artifactId>guacamole-core</artifactId>
+        <version>0.1.1-RC1</version>
+    </dependency>
+</dependencies>
+```
+To find the latest version check [mvnrepository](https://mvnrepository.com/artifact/io.github.rczyzewski/guacamole-core)
 
 ## Definition of the DDB table
 ```java
@@ -34,10 +52,7 @@ public class Customer {
 ```java
         DynamoDbAsyncClient dynamoDBclient =
             DynamoDbAsyncClient.builder().region(Region.US_EAST_1).build();
-
-        RxDynamo rxDynamo = new RxDynamoImpl(dynamoDBclient);
-        CustomerRepository epo = new CustomerRepository(rxDynamo, "Customer");
-
+        CustomerRepository epo = new CustomerRepository("Customer");
         //default create tabe request - indexes already detected
         CreateTableRequest request = epo.createTable();
         //let's assume that wee need to customize it

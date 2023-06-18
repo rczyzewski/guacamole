@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.examples.it;
 
-import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
 import io.github.rczyzewski.guacamole.examples.model.GlobalHashIndexTable;
 import io.github.rczyzewski.guacamole.examples.model.GlobalHashIndexTableRepository;
@@ -18,6 +17,7 @@ import io.github.rczyzewski.guacamole.examples.model.RecursiveTable;
 import io.github.rczyzewski.guacamole.examples.model.RecursiveTableRepository;
 import io.github.rczyzewski.guacamole.examples.model.TreeTable;
 import io.github.rczyzewski.guacamole.examples.model.TreeTableRepository;
+import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;

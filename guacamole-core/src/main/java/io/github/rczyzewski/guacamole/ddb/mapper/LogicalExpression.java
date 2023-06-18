@@ -153,7 +153,7 @@ public interface LogicalExpression<T>{
      */
     @AllArgsConstructor
     @Getter
-    enum ComparisonOperator{
+    public enum ComparisonOperator{
 
         EQUAL("="),
         NOT_EQUAL("<>"),

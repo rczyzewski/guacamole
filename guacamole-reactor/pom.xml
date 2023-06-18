@@ -32,32 +32,10 @@
     </dependency>
 
 
-
-    <!-- Test dependencies -->
-    <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-dynamodb -->
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <!-- required for test containers localstack -->
-      <artifactId>aws-java-sdk-dynamodb</artifactId>
-      <version>1.12.457</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.9.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>localstack</artifactId>
-      <version>1.17.6</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>1.17.6</version>
       <scope>test</scope>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.mockito/mockito-all -->
@@ -101,7 +79,12 @@
       <version>3.5.5</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>io.github.rczyzewski</groupId>
+      <artifactId>guacamole-dockertest</artifactId>
+      <version>0.1.1-RC1</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
 

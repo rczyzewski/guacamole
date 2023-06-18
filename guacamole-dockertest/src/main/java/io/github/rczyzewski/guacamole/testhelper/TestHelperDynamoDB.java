@@ -1,4 +1,4 @@
-package io.github.rczyzewski.guacamole.examples;
+package io.github.rczyzewski.guacamole.testhelper;
 
 import lombok.AllArgsConstructor;
 import org.testcontainers.containers.localstack.LocalStackContainer;

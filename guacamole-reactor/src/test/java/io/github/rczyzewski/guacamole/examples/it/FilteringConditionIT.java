@@ -1,9 +1,9 @@
 package io.github.rczyzewski.guacamole.examples.it;
 
 import io.github.rczyzewski.guacamole.ddb.reactor.RxDynamo;
-import io.github.rczyzewski.guacamole.examples.TestHelperDynamoDB;
 import io.github.rczyzewski.guacamole.examples.model.CompositePrimaryIndexTable;
 import io.github.rczyzewski.guacamole.examples.model.CompositePrimaryIndexTableRepository;
+import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
