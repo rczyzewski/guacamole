@@ -1,3 +1,7 @@
+package io.github.rczyzewski.testing_expressions;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.path.ListPath;
 import io.github.rczyzewski.guacamole.ddb.path.Path;
 import io.github.rczyzewski.guacamole.ddb.path.PrimitiveElement;
@@ -6,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Value;
+import lombok.With;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
@@ -65,7 +70,10 @@ class ScratchTest{
 
 @Value
 @Builder
+@DynamoDBTable
+@With
 class Employee{
+    @DynamoDBHashKey
     String id;
     String name;
     List<String> tags;
@@ -75,6 +83,8 @@ class Employee{
 
 @Value
 @Builder
+@With
+@DynamoDBDocument
 class Department{
     String id;
     String name;

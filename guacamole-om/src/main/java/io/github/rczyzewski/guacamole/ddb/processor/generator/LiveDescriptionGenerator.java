@@ -126,7 +126,7 @@ public class LiveDescriptionGenerator
         String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArguments().get(0));
         return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
                 CodeBlock.of("(bean, value) -> bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))", suffix ,AttributeValue.class, liveMappingName),
-                CodeBlock.of("value -> $T.of(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit -> $T.builder().m(iit).build()).collect($T.toList())).build())",
+                CodeBlock.of("value -> $T.ofNullable(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit -> $T.builder().m(iit).build()).collect($T.toList())).build())",
                         Optional.class, suffix, AttributeValue.class, liveMappingName, AttributeValue.class, Collectors.class));
 
     }
