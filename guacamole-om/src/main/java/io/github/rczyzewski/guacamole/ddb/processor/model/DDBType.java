@@ -11,27 +11,27 @@ import javax.lang.model.element.Element;
 @AllArgsConstructor
 public enum DDBType
 {
-    S("s", String.class, true) {
+    STRING("s", String.class, true) {
         public boolean match(Element e)
         {
             return "java.lang.String".equals(e.asType().toString());
         }
 
     },
-    N("n", Integer.class, false) {
+    INTEGER("n", Integer.class, false) {
         public boolean match(Element e)
         {
             return "java.lang.Integer".equals(e.asType().toString());
         }
 
     },
-    D("n", Double.class, false) {
+    DOUBLE("n", Double.class, false) {
         public boolean match(Element e)
         {
             return "java.lang.Double".equals(e.asType().toString());
         }
     },
-    L("n", Long.class, false) {
+    LONG("n", Long.class, false) {
         public boolean match(Element e)
         {
             return "java.lang.Long".equals(e.asType().toString());

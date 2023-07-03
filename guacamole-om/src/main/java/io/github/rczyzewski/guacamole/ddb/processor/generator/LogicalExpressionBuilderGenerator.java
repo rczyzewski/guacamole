@@ -59,7 +59,7 @@ public class LogicalExpressionBuilderGenerator
 
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
-            if(fd.getDdbType() == DDBType.S){
+            if(fd.getDdbType() == DDBType.STRING){
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
                               .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
@@ -85,7 +85,7 @@ public class LogicalExpressionBuilderGenerator
                               .build()
                           )
                       .forEach(queryClass::addMethod);
-            } else if (fd.getDdbType() == DDBType.N) {
+            } else if (fd.getDdbType() == DDBType.INTEGER) {
 
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec

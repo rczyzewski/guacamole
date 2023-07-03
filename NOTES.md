@@ -109,4 +109,57 @@ on project guacamole-core:
 Summary of testing:
 145 - JDKs from sdkMan  
 14 - failed because of java21 issues described above
-1 - JDK was unable to download
+1 - JDK was unable to download 
+
+### path generator
+There is a proposition, how complex DDB query could be done, with the typing support from your IDE. 
+Assuming that there is a ddb table defined like: 
+```java
+
+@Value
+@Builder
+@DynamoDBTable
+@With
+class Employee{
+    @DynamoDBHashKey
+    String id;
+    String name;
+    List<String> tags;
+    List<Employee> employees;
+    Department department;
+}
+
+@Value
+@Builder
+@With
+@DynamoDBDocument
+class Department{
+    String id;
+    String name;
+    String location;
+    Employee manaager;
+    List<Employee> employees;
+}
+```
+Possible access to those fields might look like follows:
+```java
+class PathTest{
+    @Test
+    void validatingPaths(){
+        
+        EmployeeRepository.Paths.EmployeePath pathCreator = EmployeeRepository.Paths.EmployeePath.builder().build();
+        
+        assertThat(pathCreator.selectEmployees().at(2).selectEmployees().serialize())
+                .isEqualTo("employees[2].employees");
+        assertThat(
+                pathCreator.selectDepartment().selectEmployees().at(1).selectEmployees().serialize())
+                .isEqualTo("department.emplyees[1].employees");
+
+       assertThat( pathCreator.selectDepartment().selectManaager().selectEmployees().at(0).selectName().serialize())
+               .isEqualTo("department.manager.employees[0].name");
+       
+    }
+}
+
+
+```

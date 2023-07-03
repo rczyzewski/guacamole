@@ -39,7 +39,7 @@ class LiveDescriptionGeneratorTest
         ClassDescription a = ClassDescription.builder()
             .fieldDescriptions(Collections.singletonList(FieldDescription.builder()
                                                              .isHashKey(true)
-                                                             .ddbType(DDBType.N)
+                                                             .ddbType(DDBType.INTEGER)
                                                              .attribute("primaryKeyHash")
                                                              .build()))
             .name("SomeClassName")
@@ -61,12 +61,12 @@ class LiveDescriptionGeneratorTest
                 Arrays.asList(FieldDescription.builder()
                                   .isHashKey(true)
                                   .attribute("primaryKeyHash")
-                                  .ddbType(DDBType.N)
+                                  .ddbType(DDBType.INTEGER)
                                   .build(),
 
                               FieldDescription.builder()
                                   .isHashKey(true)
-                                  .ddbType(DDBType.D)
+                                  .ddbType(DDBType.DOUBLE)
                                   .attribute("primaryRange")
                                   .build())
             )

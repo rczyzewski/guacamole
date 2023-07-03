@@ -9,6 +9,7 @@ import java.util.Map;
 
 @Getter
 @Builder
+@ToString
 public class ClassDescription
 {
     private final String name;

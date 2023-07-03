@@ -7,8 +7,9 @@ import java.util.Optional;
 
 @AllArgsConstructor
 @Builder
-public class PrimitiveElement<E> implements Path<E>{
-    Path<E> parent;
+public class PrimitiveElement<E> implements Path{
+    //TODO: generate code in a way, that it allows PrimitiveElement<E> extend Paths<E>
+    Path parent;
     String selectedElement;
 
     @Override

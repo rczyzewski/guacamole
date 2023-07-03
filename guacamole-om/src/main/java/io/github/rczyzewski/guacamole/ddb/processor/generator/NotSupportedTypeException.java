@@ -8,4 +8,8 @@ public class NotSupportedTypeException extends RuntimeException
     {
         super(fieldDescription.toString());
     }
+    NotSupportedTypeException(String msg)
+    {
+        super(msg);
+    }
 }

@@ -4,6 +4,7 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.FixedExpressi
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
@@ -11,10 +12,15 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,11 +34,12 @@ public class PathCondtiionsTest{
             .withServices(LocalStackContainer.Service.DYNAMODB)
             .withLogConsumer(new Slf4jLogConsumer(log));
 
-    private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
+    private static final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
-    private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
+    private static final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
+    private static final EmployeeRepository repo  = new EmployeeRepository("FirstOrder");
 
-    Employee employee = Employee
+    private static final Employee employee = Employee
             .builder()
             .id("BAD0_F1CE")
             .name("HanSolo")
@@ -46,18 +53,14 @@ public class PathCondtiionsTest{
                                   .build())
             .build();
 
-    EmployeeRepository repo  = new EmployeeRepository("FirstOrder");
 
-    @BeforeEach
-    @SneakyThrows
-    void before(){
-        ddbClient.createTable(repo.createTable()).get();
-    }
 
-    @Test
+    /*
     @SneakyThrows
-    void transactionExample(){
+    @BeforeAll
+    void dd(){
         ddbClient.putItem(repo.create(employee)).get();
+        ddbClient.createTable(repo.createTable()).get();
 
         UpdateItemRequest request = repo.updateWithExpression(employee)
             .withCondition(it-> FixedExpression.<Employee>builder()
@@ -66,4 +69,21 @@ public class PathCondtiionsTest{
 
         ddbClient.updateItem(request);
     }
+    */
+    @Test
+    void howDDBWorks(){
+
+        EmployeeRepository.Paths.EmployeePath.builder().build().serialize();
+      repo.updateWithExpression(employee.withName("John"))
+          .withCondition( it-> FixedExpression.<Employee>builder()
+                  .value(":ddd", AttributeValue.fromS("DDD"))
+                                              .build());
+      AttributeValue.fromNul(true);
+      AttributeValue.fromL(Arrays.asList()); AttributeValue.fromM(Collections.emptyMap());
+        AttributeValue.fromNs(null);
+        AttributeValue.fromB(SdkBytes.fromString("ddd", Charset.defaultCharset()));
+
+    }
+
+
 }
