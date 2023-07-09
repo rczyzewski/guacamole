@@ -18,7 +18,7 @@ public class ListPath<E, T> implements Path<E>{
     public String serialize(){
         return Optional.ofNullable(parent)
                        .map(Path::serialize)
-                       .map(it -> it + ".")
+                       .map(it -> it + "." + selectedField)
                        .orElse(selectedField);
     }
 
