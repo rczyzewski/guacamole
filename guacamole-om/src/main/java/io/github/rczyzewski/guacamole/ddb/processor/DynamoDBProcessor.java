@@ -243,10 +243,11 @@ public class DynamoDBProcessor extends AbstractProcessor
             .addMethod(MethodSpec.methodBuilder("delete")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
-                           .addParameter(ParameterSpec.builder(clazz, "someName").build())
+                           .addParameter(ParameterSpec.builder(clazz, "item").build())
                            .addCode(
                                              CodeBlock.builder().indent()
-                                                 .add("return $T.builder()\n.key($L.export(someName))\n.build();",
+                                                 .add("return $T.builder()" +
+                                                              "\n.key($L.exportKeys(item)).tableName(this.tableName)\n.build();",
                                                       DeleteItemRequest.class, mainMapperName)
                                                  .unindent()
                                                  .build())

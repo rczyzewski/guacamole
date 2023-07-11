@@ -16,7 +16,7 @@ public class TestHelperDynamoDB
     public DynamoDbAsyncClient getDdbAsyncClient()
     {
         return DynamoDbAsyncClient.builder()
-                                  .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
+                                  .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
                                   .credentialsProvider(
                                       StaticCredentialsProvider.create(
                                           AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())
