@@ -38,10 +38,11 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
     public UpdateItemRequest asUpdateItemRequest()
     {
         ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
+        Map<String, String>  shortCodeAccumulator = new HashMap<>();
 
         Optional<LogicalExpression<T>> preparedConditionExpression =
                 Optional.ofNullable(this.condition)
-                        .map(it -> it.prepare(idGenerator, liveMappingDescription));
+                        .map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator));
 
         Map<String, AttributeValue> values = setExpressions
             .stream()

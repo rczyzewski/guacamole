@@ -158,7 +158,12 @@ class ConditionsTest {
                 named("there should be someone more famous than the head of state(NOT)",
                         it -> it.not(it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))),
                 named("there should be someone more famous than the head of state(EQUAL)",
-                        it -> it.famousPersonEqual(CountryRepository.AllStrings.NAME.name()))
+                        it -> it.famousPersonEqual(CountryRepository.AllStrings.NAME.name())),
+
+                named("nothing compares to BrianMay(1)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectName())),
+                named("nothing compares to BrianMay(2)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectPopulation()))
 
         );
     }

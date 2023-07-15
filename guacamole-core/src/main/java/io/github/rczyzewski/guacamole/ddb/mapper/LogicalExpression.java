@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 
 public interface LogicalExpression<T>{
     String serialize();
-    LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription);
+    LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription, Map<String,String> shortCodeAccumulator);
 
     Map<String, AttributeValue> getValuesMap();
     Map<String, String> getAttributesMap();
@@ -63,7 +64,7 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription){
+        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription, Map<String,String> shortCodeAccumulator){
             return this;
         }
     }
@@ -88,7 +89,7 @@ public interface LogicalExpression<T>{
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
-                                            LiveMappingDescription<K> liveMappingDescription){
+                                            LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
             //There is nothing to prepare
             if(fieldCode != null)
                 return this;
@@ -124,7 +125,7 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
             //There is nothing to prepare
             String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
             return this.withFieldShortCode("#" + sk);
@@ -165,27 +166,33 @@ public interface LogicalExpression<T>{
         private final String symbol;
     }
     @With
+    @Builder
     @RequiredArgsConstructor
     @AllArgsConstructor
     class ComparisonToReference<K> implements LogicalExpression<K>{
         final String fieldName;
         final ComparisonOperator operator;
         final String otherFieldName;
+        String otherFieldCode;
         String fieldCode;
-
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldName, operator.getSymbol(),  otherFieldName);
+            return String.format(" %s %s %s", fieldCode, operator.getSymbol(),  otherFieldCode);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
-                                            LiveMappingDescription<K> liveMappingDescription){
+                                            LiveMappingDescription<K> liveMappingDescription,
+                                            Map<String,String> shortCodeAccumulator){
             String sk = liveMappingDescription.getDict()
                     .get(fieldName)
                     .getShortCode();
 
-            return this.withFieldCode("#" + sk);
+            String sk2 = liveMappingDescription.getDict()
+                    .get(otherFieldName)
+                    .getShortCode();
+
+            return this.withFieldCode("#" + sk).withOtherFieldCode("#" + sk2);
         }
 
         @Override
@@ -195,7 +202,10 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(this.fieldCode, this.fieldName);
+            HashMap<String, String> reta = new HashMap<>();
+            reta.put(this.fieldCode, this.fieldName);
+            reta.put(this.otherFieldCode, this.otherFieldName);
+            return reta;
         }
     }
 
@@ -219,7 +229,7 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
             String sk = liveMappingDescription.getDict()
                                               .get(fieldName)
                                               .getShortCode();
@@ -256,8 +266,8 @@ public interface LogicalExpression<T>{
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator ,
-                                            LiveMappingDescription<K> liveMappingDescription){
-            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription))
+                                            LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator))
                                      .collect(Collectors.toList()));
         }
 
@@ -313,8 +323,10 @@ public interface LogicalExpression<T>{
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
-                                            LiveMappingDescription<K> liveMappingDescription){
-            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription))
+                                            LiveMappingDescription<K> liveMappingDescription,
+                                            Map<String,String> shortCodeAccumulator
+        ){
+            return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator))
                                      .collect(Collectors.toList()));
         }
     }
@@ -340,8 +352,8 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription){
-            return this.withArg(arg.prepare(idGenerator, liveMappingDescription));
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+            return this.withArg(arg.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator));
         }
     }
 }

@@ -13,9 +13,11 @@ public class ExpressionGenerator<T, E >
     protected E e;
 
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op , Path<T> path2){
-
-        //TODO: This doesn't work
-        return LogicalExpression.FixedExpression.<T>builder().build();
+        return LogicalExpression.ComparisonToReference.<T>builder()
+                .otherFieldName(path2.serialize())
+                .fieldName(path1.serialize())
+                .operator(op)
+                .build();
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Double value){
         //TODO: This doesn't work
