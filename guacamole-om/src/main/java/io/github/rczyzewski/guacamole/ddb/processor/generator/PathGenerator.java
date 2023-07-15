@@ -69,7 +69,12 @@ public class PathGenerator{
                                               .addAnnotation(Builder.class)
                                               .addModifiers(PUBLIC, FINAL, STATIC);
         for(FieldDescription fd : classDescription.getFieldDescriptions()){
-            if(fd.getDdbType() == DDBType.STRING || fd.getDdbType() == DDBType.INTEGER){
+            if(fd.getDdbType() == DDBType.STRING ||
+                    fd.getDdbType() == DDBType.INTEGER ||
+                    fd.getDdbType() == DDBType.FLOAT ||
+                    fd.getDdbType() == DDBType.DOUBLE ||
+                    fd.getDdbType() == DDBType.LONG
+            ){
                 MethodSpec method = MethodSpec
                         .methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                         .addModifiers(PUBLIC)

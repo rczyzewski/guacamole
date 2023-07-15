@@ -163,8 +163,17 @@ class ConditionsTest {
                 named("nothing compares to BrianMay(1)",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectName())),
                 named("nothing compares to BrianMay(2)",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectPopulation()))
-
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectPopulation())),
+                named("nothing compares to BrianMay(2)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectPopulation())),
+                named("compares to BrianMay(including INTEGER)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectPopulation())),
+                named("compares to BrianMay(including DOUBLE)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectDensity())),
+                named("compares to BrianMay(including FLOAT)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectArea())),
+                named("compares to BrianMay(including not setup)",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectHeadOfState()))
         );
     }
 

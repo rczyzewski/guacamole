@@ -264,7 +264,7 @@ public class DynamoDBProcessor extends AbstractProcessor
         Optional.of(classDescription)
                 .map(it -> it.getFieldDescriptions()
                              .stream()
-                             .filter(field -> field.getDdbType().equals(DDBType.INTEGER))
+                             .filter(field -> Arrays.asList(DDBType.INTEGER, DDBType.FLOAT, DDBType.LONG, DDBType.DOUBLE ) .contains(field.getDdbType()))
                              .collect(Collectors.toList()))
                 .filter(fields -> !fields.isEmpty())
                 .map(fields -> this.getEnumFields("FieldAllNumbers", fields))
@@ -277,11 +277,9 @@ public class DynamoDBProcessor extends AbstractProcessor
                 .filter(fields -> !fields.isEmpty())
                 .map(fields -> this.getEnumFields("AllStrings", fields))
                 .ifPresent(navigatorClass::addType);
+
         Optional.of(classDescription)
-                .map(it -> it.getFieldDescriptions()
-                             .stream()
-                             .filter(field -> field.getDdbType().equals(DDBType.STRING))
-                             .collect(Collectors.toList()))
+                .map(ClassDescription::getFieldDescriptions)
                 .filter(fields -> !fields.isEmpty())
                 .map(fields -> this.getEnumFields("AllFields", fields))
                 .ifPresent(navigatorClass::addType);
