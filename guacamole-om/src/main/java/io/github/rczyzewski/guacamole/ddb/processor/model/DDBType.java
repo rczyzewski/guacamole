@@ -31,6 +31,12 @@ public enum DDBType
             return "java.lang.Double".equals(e.asType().toString());
         }
     },
+    FLOAT("n", Float.class, false) {
+        public boolean match(Element e)
+        {
+            return "java.lang.Float".equals(e.asType().toString());
+        }
+    },
     LONG("n", Long.class, false) {
         public boolean match(Element e)
         {

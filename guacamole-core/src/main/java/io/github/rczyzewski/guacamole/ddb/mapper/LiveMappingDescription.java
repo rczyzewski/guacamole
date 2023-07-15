@@ -39,6 +39,7 @@ public class LiveMappingDescription<T>
         ConsecutiveIdGenerator a = ConsecutiveIdGenerator.builder().base("abcde").build();
         List<SetExpression> setExpressions = fields.stream()
                 .filter(it -> !it.isKeyValue())
+                .filter( it -> it.getExport().apply(object).isPresent())
                 .map(it -> {
                     ConstantValue v = ConstantValue.builder()
                             .valueCode(a.get())

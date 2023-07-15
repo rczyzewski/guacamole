@@ -131,7 +131,7 @@ public class LiveDescriptionGenerator
 
     }
 
-         else if (Arrays.asList(DDBType.INTEGER, DDBType.DOUBLE, DDBType.STRING, DDBType.LONG).contains(fieldDescription.getDdbType())) {
+    else if (Arrays.asList(DDBType.INTEGER, DDBType.DOUBLE, DDBType.FLOAT, DDBType.STRING, DDBType.LONG).contains(fieldDescription.getDdbType())) {
 
             return createFieldMappingDescription(fieldDescription.getAttribute(), generator.get(), isKeyValue,
                                                  CodeBlock.of("(bean, value) -> bean.with$L($T.valueOf(value.$L()))",

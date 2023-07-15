@@ -181,7 +181,11 @@ public interface LogicalExpression<T>{
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription){
-            return this;
+            String sk = liveMappingDescription.getDict()
+                    .get(fieldName)
+                    .getShortCode();
+
+            return this.withFieldCode("#" + sk);
         }
 
         @Override
@@ -191,7 +195,7 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            throw new RuntimeException("not implemented yet");
+            return Collections.singletonMap(this.fieldCode, this.fieldName);
         }
     }
 
