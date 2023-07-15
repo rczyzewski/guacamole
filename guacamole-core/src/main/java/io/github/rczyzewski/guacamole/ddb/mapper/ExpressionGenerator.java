@@ -2,6 +2,7 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 
 
 import io.github.rczyzewski.guacamole.ddb.path.Path;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -13,19 +14,25 @@ public class ExpressionGenerator<T, E >
 
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op , Path<T> path2){
 
+        //TODO: This doesn't work
         return LogicalExpression.FixedExpression.<T>builder().build();
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Double value){
-
+        //TODO: This doesn't work
         return LogicalExpression.FixedExpression.<T>builder().build();
     }
     public LogicalExpression<T> compare(Path<T > path1, LogicalExpression.ComparisonOperator op, Integer value){
 
+        //TODO: This doesn't work
         return LogicalExpression.FixedExpression.<T>builder().build();
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value){
 
-        return LogicalExpression.FixedExpression.<T>builder().build();
+        return LogicalExpression.ComparisonToValue.<T>builder()
+                .dynamoDBEncodedValue(AttributeValue.fromS(value))
+                .fieldName(path1.serialize())
+                .operator(op)
+                .build();
     }
     public LogicalExpression<T> and(List<LogicalExpression<T>> l1){
         return new LogicalExpression.AndExpression<>(l1);

@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
@@ -25,11 +26,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.EQUAL;
+import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Named.of;
 
 @Slf4j
@@ -90,6 +93,75 @@ class ConditionsTest {
     public static Arguments named(String s, CountryCondition c) {
         return Arguments.of(of(s, c));
     }
+    private static Stream<Arguments> notMatchUnitedKingdom() {
+        CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
+        return Stream.of(
+                named("when id is not defined",
+                        it -> it.not(it.attributeExists(CountryRepository.AllFields.ID))),
+                //String attribute exists - Enum approach
+                named("has not a famous person",
+                        it -> it.not(it.attributeExists(FAMOUS_PERSON))),
+                //String to String comparison -> Path approach
+                named("most famous person is not Brian May(not operator)",
+                        it -> it.not( it.compare(path.selectFamousPerson(), EQUAL, "Brian May"))),
+                named("most famous person is Brian May(NOT_EQUAL)",
+                        it -> it.compare(path.selectFamousPerson(), NOT_EQUAL, "Brian May")),
+                named("most famous person is less famous as Brian May(LESS)",
+                        it -> it.compare(path.selectFamousPerson(), LogicalExpression.ComparisonOperator.LESS, "Brian May")),
+                named("most famous person is less famous as Brian May(not)",
+                        it -> it.not(it.compare(path.selectFamousPerson(), GREATER_OR_EQUAL, "Brian May"))),
+                named("most famous person is no more famous than Brian May(GREATER)",
+                        it -> it.compare(path.selectFamousPerson(), GREATER, "Brian May")),
+                named("most famous person is no more famous than Brian May(not)",
+                        it -> it.not(it.compare(path.selectFamousPerson(), LESS_OR_EQUAL, "Brian May"))),
+                //TODO: whe there is not it.fullNameExists()
+                //named("has a string property setup", (CountryCondition) it -> it.fullNameE ),
+                //String attribute greater/equal/less
+                named(  "when most famous person is not a Queen guitarist",
+                        it -> it.famousPersonNotEqual("Brian May")),
+
+                named(  "when most famous person is not a Queen guitarist(not)",
+                        it -> it.not(it.famousPersonEqual("Brian May"))),
+
+                named(  "when the most famous person is less famous than Brian",
+                        it -> it.famousPersonLess( "Brian May")),
+
+                named(  "when the most famous person is less famous than Brian(not)",
+                        it -> it.not(it.famousPersonGreaterOrEqual( "Brian May"))),
+
+                named("when famous person is less famous than Brian(less)",
+                        it -> it.famousPersonLess("Brian May")),
+                named("when famous person is less famous than Brian(NOT)",
+                        it -> it.not(it.famousPersonGreaterOrEqual("Brian May"))),
+
+                named("because he is  dictator(NOT)",
+                        it -> it.not(it.famousPersonNotEqual( "Sacha Noam Baron Cohen"))),
+                named("because he is dictator(EQUAL)",
+                        it -> it.famousPersonEqual( "Sacha Noam Baron Cohen")),
+                // the third way of making the same conditions
+                named("when most famous person is a Queen guitarist",
+                        it -> it.famousPersonNotEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+
+                named("when most famous person is a Queen guitarist",
+                        it -> it.not(it.famousPersonEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+
+                named("when the most famous person is not at least as famous as Brian",
+                        it -> it.famousPersonLess(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                named("when the most famous person is not at least as famous as Brian",
+                        it -> it.not(it.famousPersonGreaterOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+
+                named("when famous person is no more famous than Brian",
+                        it -> it.not(it.famousPersonLessOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+                named("when famous person is no more famous than Brian",
+                        it -> it.famousPersonGreater(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+
+                named("there should be someone more famous than the head of state(NOT)",
+                        it -> it.not(it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))),
+                named("there should be someone more famous than the head of state(EQUAL)",
+                        it -> it.famousPersonEqual(CountryRepository.AllStrings.NAME.name()))
+
+        );
+    }
 
     private static Stream<Arguments> matchesUnitedKingdom() {
         CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
@@ -107,7 +179,7 @@ class ConditionsTest {
                         it -> it.compare(path.selectFamousPerson(), GREATER_OR_EQUAL, "Brian May")),
                 named("most famous person is no more famous than Brian May",
                         it -> it.compare(path.selectFamousPerson(), LESS_OR_EQUAL, "Brian May")),
-                named("because is diffrent than dictator",
+                named("because is different than dictator",
                         it -> it.compare(path.selectFamousPerson(), NOT_EQUAL, "Sacha Noam Baron Cohen")),
                 //TODO: whe there is not it.fullNameExists()
                 //named("has a string property setup", (CountryCondition) it -> it.fullNameE ),
@@ -135,7 +207,7 @@ class ConditionsTest {
     @MethodSource("matchesUnitedKingdom")
     @DisplayName("Update happens when conditions are matching")
     @SneakyThrows
-    void compareDifferentThingsToInteger(CountryCondition condition) {
+    void updateWhenConditionsAreMatching(CountryCondition condition) {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
                 repo.updateWithExpression(updatedUnitedKingdom)
@@ -149,6 +221,29 @@ class ConditionsTest {
         Country poland = abc.get("PL");
         Country unitedKingdom = abc.get("UK");
         assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
+        assertThat(poland).isEqualTo(POLAND);
+    }
+    @ParameterizedTest
+    @MethodSource("notMatchUnitedKingdom")
+    @DisplayName("Update does not happen when conditions are not matching")
+    @SneakyThrows
+    void doNotUpdateWhenConditionsAreNotMatching(CountryCondition condition) {
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
+        UpdateItemRequest request =
+                repo.updateWithExpression(updatedUnitedKingdom)
+                        .withCondition(condition)
+                        .asUpdateItemRequest();
+
+        assertThatThrownBy(() -> ddbClient.updateItem(request).get())
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
+
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> collected = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = collected.get("PL");
+        Country unitedKingdom = collected.get("UK");
+        assertThat(unitedKingdom).isEqualTo(UNITED_KINGDOM);
         assertThat(poland).isEqualTo(POLAND);
     }
 }

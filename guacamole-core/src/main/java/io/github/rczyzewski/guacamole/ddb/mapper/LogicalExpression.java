@@ -153,11 +153,11 @@ public interface LogicalExpression<T>{
      */
     @AllArgsConstructor
     @Getter
-    public enum ComparisonOperator{
+     enum ComparisonOperator{
 
         EQUAL("="),
         NOT_EQUAL("<>"),
-        LESS_THAN("<"),
+        LESS("<"),
         LESS_OR_EQUAL("<="),
         GREATER(">"),
         GREATER_OR_EQUAL(">=");
@@ -199,18 +199,9 @@ public interface LogicalExpression<T>{
         }
     }
 
-    /*
-     *   comparator ::=
-     *       =
-     *       | <>
-     *       | <
-     *       | <=
-     *       | >
-     *       | >=
-     *
-     */
     @RequiredArgsConstructor
     @AllArgsConstructor
+    @Builder
     @With
     class ComparisonToValue<K> implements LogicalExpression<K>{
         final String fieldName;
@@ -335,8 +326,7 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize(){
-            //TODO: why this is not used??
-            return null;
+            return String.format("NOT (%s)", arg.serialize());
 
         }
 
