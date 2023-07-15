@@ -51,7 +51,8 @@ class ConditionsTest {
     private final static String TABLE_NAME = "Countries";
 
     private final CountryRepository repo = new CountryRepository(TABLE_NAME);
-    private static final Country POLAND = Country.builder()
+   private final static String BRIAN_MAY = "Brian May";
+   private static final Country POLAND = Country.builder()
             .id("PL")
             .name("Poland")
             .fullName("Republic of Poland")
@@ -173,7 +174,40 @@ class ConditionsTest {
                 named("compares to BrianMay(including FLOAT)",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectArea())),
                 named("compares to BrianMay(including not setup)",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectHeadOfState()))
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectHeadOfState())),
+                named("when famous person is Brian May, (written with AND)",
+                        it -> it.and(it.famousPersonNotEqual("Brian May")) ),
+               //TODO: take care about the parenthesis
+               // named("when famous person is Brian May, (written with AND)",
+               //         it -> it.not(it.and(it.famousPersonEqual("Brian May"))) ),
+                named("it's not Brian May and name is United Kingdom",
+                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameEqual("United Kingdom")) ),
+                named("it's not Brian May and it's not United Kingdom",
+                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameNotEqual("United Kingdom")) ),
+                named("it's not (Brian May and Untied Kingdom)",
+                        it -> it.not(it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom")) )),
+                named("it's Brian May and not UK and not(head of state exists)",
+                        it -> it.and(
+                                it.famousPersonEqual("Brian May"),
+                                it.not(it.nameEqual("United Kingdom")),
+                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
+                        ) ),
+                //TODO: take care about the parenthesis
+                //named("when famous person is Brian May, (written with AND)",
+                //         it -> it.not(it.or(it.famousPersonEqual("Brian May"))) ),
+                named("it's Brian May and  UK and head of state exists",
+                        it -> it.or(
+                                it.famousPersonNotEqual("Brian May"),
+                                it.nameNotEqual("United Kingdom"),
+                                it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)
+                        ) ),
+                named("(it's Brian May and  UK) or head of state exists",
+                        it -> it.or(
+                                it.not(it.and(
+                                        it.famousPersonEqual("Brian May"),
+                                        it.nameEqual("United Kingdom"))),
+                                it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)
+                        ))
         );
     }
 
@@ -188,7 +222,7 @@ class ConditionsTest {
                         it -> it.attributeExists(FAMOUS_PERSON)),
                 //String to String comparison -> Path approach
                 named("most famous person is Brian May",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL, "Brian May")),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY )),
                 named("most famous person is at least as famous as Brian May",
                         it -> it.compare(path.selectFamousPerson(), GREATER_OR_EQUAL, "Brian May")),
                 named("most famous person is no more famous than Brian May",
@@ -213,7 +247,23 @@ class ConditionsTest {
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonLessOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
                 named("there should be someone more famous than the head of state",
-                        it -> it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))
+                        it -> it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name())),
+                named("when famous person is Brian May, (written with AND)",
+                        it -> it.and(it.famousPersonEqual("Brian May")) ),
+                named("when famous person is Brian May, and name is United Kingdom",
+                        it -> it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom")) ),
+                named("when famous person is Brian May, and name is United Kingdom",
+                        it -> it.and(
+                                it.famousPersonEqual("Brian May"),
+                                it.nameEqual("United Kingdom"),
+                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
+                                )),
+                named("when famous person is Brian May OR name is United Kingdom OR NOT Head of State exists",
+                        it -> it.or(
+                                it.famousPersonEqual("Brian May"),
+                                it.nameEqual("United Kingdom"),
+                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
+                        ))
         );
     }
 

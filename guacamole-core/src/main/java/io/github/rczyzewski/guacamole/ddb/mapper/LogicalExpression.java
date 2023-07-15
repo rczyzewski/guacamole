@@ -202,10 +202,10 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            HashMap<String, String> reta = new HashMap<>();
-            reta.put(this.fieldCode, this.fieldName);
-            reta.put(this.otherFieldCode, this.otherFieldName);
-            return reta;
+            HashMap<String, String> returnValue = new HashMap<>();
+            returnValue.put(this.fieldCode, this.fieldName);
+            returnValue.put(this.otherFieldCode, this.otherFieldName);
+            return returnValue;
         }
     }
 
@@ -253,48 +253,47 @@ public interface LogicalExpression<T>{
 
     @AllArgsConstructor
     @With
-    class OrExpression<K> implements LogicalExpression<K>{
-        List<LogicalExpression<K>> args;
+    class OrExpression<K> implements LogicalExpression<K> {
+        final List<LogicalExpression<K>> args;
 
         @Override
-        public String serialize(){
+        public String serialize() {
             return args.stream()
-                       .map(LogicalExpression::serialize)
-                       .map(it -> String.format("( %s )", it))
-                       .collect(Collectors.joining(" or "));
+                    .map(LogicalExpression::serialize)
+                    .map(it -> String.format("( %s )", it))
+                    .collect(Collectors.joining(" or "));
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator ,
-                                            LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<K> liveMappingDescription, Map<String, String> shortCodeAccumulator) {
             return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator))
-                                     .collect(Collectors.toList()));
+                    .collect(Collectors.toList()));
         }
 
         @Override
-        public Map<String, AttributeValue> getValuesMap(){
+        public Map<String, AttributeValue> getValuesMap() {
             return args.stream()
-                       .map(LogicalExpression::getValuesMap)
-                       .map(Map::entrySet)
-                       .flatMap(Collection::stream)
-                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .map(LogicalExpression::getValuesMap)
+                    .map(Map::entrySet)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         @Override
-        public Map<String, String> getAttributesMap(){
+        public Map<String, String> getAttributesMap() {
             return args.stream()
-                       .map(LogicalExpression::getAttributesMap)
-                       .map(Map::entrySet)
-                       .flatMap(Collection::stream)
-                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .map(LogicalExpression::getAttributesMap)
+                    .map(Map::entrySet)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
     }
 
-    @Builder
-    @AllArgsConstructor
     @With
+    @Builder
     class AndExpression<K> implements LogicalExpression<K>{
-        List<LogicalExpression<K>> args;
+        final  List<LogicalExpression<K>> args;
 
         @Override
         public String serialize(){
@@ -331,10 +330,10 @@ public interface LogicalExpression<T>{
         }
     }
 
-    @AllArgsConstructor(staticName = "build")
     @With
+    @AllArgsConstructor(staticName = "build")
     class NotExpression<K> implements LogicalExpression<K>{
-        LogicalExpression<K> arg;
+        final LogicalExpression<K> arg;
 
         @Override
         public String serialize(){
