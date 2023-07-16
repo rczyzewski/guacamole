@@ -49,16 +49,39 @@ public class LogicalExpressionBuilderGenerator
             .addInitializerBlock(CodeBlock.of("this.e = this;"));
 
         MethodSpec fieldExists = MethodSpec.methodBuilder("attributeExists")
-                               .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
-                                                                  .build())
-                                 .addModifiers(PUBLIC)
-                                 .addCode("return new LogicalExpression.AttributeExists<>(true, value.getDdbField()); \n")
-                                 .returns(returnExpressionType)
-                                 .build();
+                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
+                        .build())
+                .addModifiers(PUBLIC)
+                .addCode("return new LogicalExpression.AttributeExists<>(true, value.getDdbField()); \n")
+                .returns(returnExpressionType)
+                .build();
         queryClass.addMethod(fieldExists);
+        MethodSpec fieldDoesntExists = MethodSpec.methodBuilder("attributeNotExists")
+                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
+                        .build())
+                .addModifiers(PUBLIC)
+                .addCode("return new LogicalExpression.AttributeExists<>(false, value.getDdbField()); \n")
+                .returns(returnExpressionType)
+                .build();
+        queryClass.addMethod(fieldDoesntExists);
 
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
+            queryClass .addMethod(
+                     MethodSpec
+                            .methodBuilder(fd.getName() + "Exists")
+                            .addModifiers(PUBLIC)
+                             .addCode("return new LogicalExpression.AttributeExists<>(true, $S); \n", fd.getAttribute())
+                            .returns(returnExpressionType)
+                            .build());
+
+            queryClass .addMethod(
+                    MethodSpec
+                            .methodBuilder(fd.getName() + "NotExists")
+                            .addModifiers(PUBLIC)
+                            .addCode("return new LogicalExpression.AttributeExists<>(false, $S); \n", fd.getAttribute())
+                            .returns(returnExpressionType)
+                            .build());
             if(fd.getDdbType() == DDBType.STRING){
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec

@@ -32,6 +32,7 @@ import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.Compar
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
+import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.HEAD_OF_STATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Named.of;
@@ -224,7 +225,17 @@ class ConditionsTest {
                 named("comparing String LESS Double",
                         it -> it.compare(path.selectFamousPerson(), LESS,  1D)),
                 named("comparing String LESS Float",
-                        it -> it.compare(path.selectFamousPerson(), LESS,  1F))
+                        it -> it.compare(path.selectFamousPerson(), LESS,  1F)),
+                named("attributeExists - using logical expression builder",
+                        CountryRepository.LogicalExpressionBuilder::headOfStateExists),
+                named("attributeExists - using enum reference",
+                        it-> it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)),
+                named("attributeDoNotExists - using logical expression builder",
+                        CountryRepository.LogicalExpressionBuilder::famousMusicianNotExists),
+                named("attributeDoNotExists - using negation and logical expression builder",
+                        it-> it.not(it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN))) ,
+                named("attributeDoNotExists - using 'NotExist' method from logical expression builder",
+                        it-> it.attributeNotExists(CountryRepository.AllFields.FAMOUS_MUSICIAN))
         );
     }
 
@@ -282,7 +293,16 @@ class ConditionsTest {
                                 it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
                         )),
                 named("when famous person is Brian May OR name is United Kingdom OR NOT Head of State exists",
-                        it -> it.or( it.famousPersonEqual("Brian May")))
+                        it -> it.or( it.famousPersonEqual("Brian May"))),
+                named("attributeExists",
+                        CountryRepository.LogicalExpressionBuilder::famousPersonExists),
+                named("attributeDoNotExists",
+                        CountryRepository.LogicalExpressionBuilder::headOfStateNotExists),
+                named("attributeExists - using generated enum",
+                        it -> it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN)),
+                named("attributeDoNotExists - using generated enum",
+                        it-> it.attributeNotExists(HEAD_OF_STATE)
+                        )
         );
     }
 

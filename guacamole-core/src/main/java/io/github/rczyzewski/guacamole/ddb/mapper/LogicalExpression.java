@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
-import lombok.Value;
 import lombok.With;
-import lombok.experimental.NonFinal;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Collection;
@@ -48,19 +46,19 @@ public interface LogicalExpression<T>{
 
     @Builder
     @AllArgsConstructor
-    @Value
-    @NonFinal
     class FixedExpression<T> implements  LogicalExpression<T>{
-        String expression;
+        final String expression;
 
+        @Getter
         @Singular("value")
         Map<String, AttributeValue> valuesMap;
 
+        @Getter
         @Singular("attribute")
-        Map<String, String> attributesMap = Collections.emptyMap();
+        Map<String, String> attributesMap;
         @Override
         public String serialize(){
-            return this.getExpression();
+            return this.expression;
         }
 
         @Override
@@ -71,11 +69,11 @@ public interface LogicalExpression<T>{
 
     @AllArgsConstructor
     @RequiredArgsConstructor
-    @With
     class AttributeExists<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
         final String fieldName;
+        @With
         String fieldCode;
 
         @Override
@@ -91,9 +89,6 @@ public interface LogicalExpression<T>{
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
 
-            if(fieldCode != null) {
-                return this;
-            }
             String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
             return this.withFieldCode("#" + sk);
         }
@@ -110,11 +105,11 @@ public interface LogicalExpression<T>{
     }
     @RequiredArgsConstructor
     @AllArgsConstructor
-    @With
     class AttributeType<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
         final String fieldName;
+        @With
         String fieldShortCode;
 
         @Override
@@ -162,7 +157,6 @@ public interface LogicalExpression<T>{
 
         private final String symbol;
     }
-    @With
     @Builder
     @RequiredArgsConstructor
     @AllArgsConstructor
@@ -170,7 +164,9 @@ public interface LogicalExpression<T>{
         final String fieldName;
         final ComparisonOperator operator;
         final String otherFieldName;
+        @With
         String otherFieldCode;
+        @With
         String fieldCode;
         @Override
         public String serialize(){
@@ -206,7 +202,6 @@ public interface LogicalExpression<T>{
         }
     }
 
-    @With
     @Builder
     @AllArgsConstructor
     @RequiredArgsConstructor
@@ -214,8 +209,11 @@ public interface LogicalExpression<T>{
         final String fieldName;
         final ComparisonOperator operator;
         final AttributeValue dynamoDBEncodedValue;
+
+        @With
         String shortValueCode;
 
+        @With
         String fieldCode;
 
         @Override

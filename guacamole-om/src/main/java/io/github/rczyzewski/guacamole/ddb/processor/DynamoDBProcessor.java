@@ -127,7 +127,7 @@ public class DynamoDBProcessor extends AbstractProcessor
         fieldDescriptions.forEach(it -> enumBuilder.addEnumConstant(TypoUtils.toSnakeCase(it.getName()),
                                                                     TypeSpec.anonymousClassBuilder(String.format(
                                                                                     "\"%s\"",
-                                                                                    it.getName()))
+                                                                                    it.getAttribute()))
                                                                             .build()));
         return enumBuilder.build();
     }
