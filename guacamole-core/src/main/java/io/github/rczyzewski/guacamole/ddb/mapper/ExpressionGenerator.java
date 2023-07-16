@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
-
 import io.github.rczyzewski.guacamole.ddb.path.Path;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -8,70 +7,88 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class ExpressionGenerator<T, E >
-{
+public class ExpressionGenerator<T, E> {
     protected E e;
 
-    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op , Path<T> path2){
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
         return LogicalExpression.ComparisonToReference.<T>builder()
                 .otherFieldName(path2.serialize())
                 .fieldName(path1.serialize())
                 .operator(op)
                 .build();
     }
-    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Double value){
-        //TODO: This doesn't work
-        return LogicalExpression.FixedExpression.<T>builder().build();
-    }
-    public LogicalExpression<T> compare(Path<T > path1, LogicalExpression.ComparisonOperator op, Integer value){
 
-        //TODO: This doesn't work
-        return LogicalExpression.FixedExpression.<T>builder().build();
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Double value) {
+        return this.compare(path1, op, AttributeValue.fromN(Double.toString(value)));
     }
-    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value){
 
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Long value) {
+        return this.compare(path1, op, AttributeValue.fromN(Long.toString(value)));
+    }
+
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Float value) {
+        return this.compare(path1, op, AttributeValue.fromN(Float.toString(value)));
+    }
+
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Integer value) {
+        return this.compare(path1, op, AttributeValue.fromN(Integer.toString(value)));
+    }
+
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, AttributeValue value) {
+        return LogicalExpression.ComparisonToValue.<T>builder()
+                .dynamoDBEncodedValue(value)
+                .fieldName(path1.serialize())
+                .operator(op)
+                .build();
+    }
+
+    public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value) {
         return LogicalExpression.ComparisonToValue.<T>builder()
                 .dynamoDBEncodedValue(AttributeValue.fromS(value))
                 .fieldName(path1.serialize())
                 .operator(op)
                 .build();
     }
-    public LogicalExpression<T> and(List<LogicalExpression<T>> l1){
-        return new LogicalExpression.AndExpression<>(l1);
 
+    public LogicalExpression<T> and(List<LogicalExpression<T>> l1) {
+        return new LogicalExpression.AndExpression<>(l1);
     }
-    public LogicalExpression<T> and(LogicalExpression<T> l1){
+
+    public LogicalExpression<T> and(LogicalExpression<T> l1) {
         return and(Collections.singletonList(l1));
     }
-    public LogicalExpression<T> and(LogicalExpression<T> l1, LogicalExpression<T> l2){
+
+    public LogicalExpression<T> and(LogicalExpression<T> l1, LogicalExpression<T> l2) {
         return and(Arrays.asList(l1, l2));
     }
+
     public LogicalExpression<T> and(LogicalExpression<T> l1,
                                     LogicalExpression<T> l2,
-                                    LogicalExpression<T> l3){
+                                    LogicalExpression<T> l3) {
         return and(Arrays.asList(l1, l2, l3));
     }
 
-
-    public LogicalExpression<T> or(List<LogicalExpression<T>> l1){
+    public LogicalExpression<T> or(List<LogicalExpression<T>> l1) {
         return new LogicalExpression.OrExpression<>(l1);
 
     }
-    public LogicalExpression<T> or(LogicalExpression<T> l1){
+
+    public LogicalExpression<T> or(LogicalExpression<T> l1) {
         return or(Collections.singletonList(l1));
     }
-    public LogicalExpression<T> or(LogicalExpression<T> l1, LogicalExpression<T> l2){
+
+    public LogicalExpression<T> or(LogicalExpression<T> l1, LogicalExpression<T> l2) {
         return or(Arrays.asList(l1, l2));
     }
+
     public LogicalExpression<T> or(LogicalExpression<T> l1,
-                                    LogicalExpression<T> l2,
-                                    LogicalExpression<T> l3){
+                                   LogicalExpression<T> l2,
+                                   LogicalExpression<T> l3) {
         return or(Arrays.asList(l1, l2, l3));
     }
 
-    public LogicalExpression<T> not(LogicalExpression<T> arg){
+    public LogicalExpression<T> not(LogicalExpression<T> arg) {
         return LogicalExpression.NotExpression.build(arg);
     }
-
 
 }

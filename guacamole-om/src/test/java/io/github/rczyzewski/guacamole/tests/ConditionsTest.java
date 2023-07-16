@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER_OR_EQUAL;
+import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
@@ -108,7 +109,7 @@ class ConditionsTest {
                 named("most famous person is Brian May(NOT_EQUAL)",
                         it -> it.compare(path.selectFamousPerson(), NOT_EQUAL, "Brian May")),
                 named("most famous person is less famous as Brian May(LESS)",
-                        it -> it.compare(path.selectFamousPerson(), LogicalExpression.ComparisonOperator.LESS, "Brian May")),
+                        it -> it.compare(path.selectFamousPerson(), LESS, "Brian May")),
                 named("most famous person is less famous as Brian May(not)",
                         it -> it.not(it.compare(path.selectFamousPerson(), GREATER_OR_EQUAL, "Brian May"))),
                 named("most famous person is no more famous than Brian May(GREATER)",
@@ -207,7 +208,23 @@ class ConditionsTest {
                                         it.famousPersonEqual("Brian May"),
                                         it.nameEqual("United Kingdom"))),
                                 it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)
-                        ))
+                        )),
+                named("comparing String EQUAL Integer",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1)),
+                named("comparing String EQUAL Long",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1L)),
+                named("comparing String LESS Integer",
+                        it -> it.compare(path.selectFamousPerson(), LESS,  1)),
+                named("comparing String LESS Long",
+                        it -> it.compare(path.selectFamousPerson(), LESS,  1L)),
+                named("comparing String EQUAL Double",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1D)),
+                named("comparing String EQUAL Float",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1F)),
+                named("comparing String LESS Double",
+                        it -> it.compare(path.selectFamousPerson(), LESS,  1D)),
+                named("comparing String LESS Float",
+                        it -> it.compare(path.selectFamousPerson(), LESS,  1F))
         );
     }
 
@@ -263,7 +280,9 @@ class ConditionsTest {
                                 it.famousPersonEqual("Brian May"),
                                 it.nameEqual("United Kingdom"),
                                 it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
-                        ))
+                        )),
+                named("when famous person is Brian May OR name is United Kingdom OR NOT Head of State exists",
+                        it -> it.or( it.famousPersonEqual("Brian May")))
         );
     }
 

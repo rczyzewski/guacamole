@@ -90,9 +90,10 @@ public interface LogicalExpression<T>{
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            //There is nothing to prepare
-            if(fieldCode != null)
+
+            if(fieldCode != null) {
                 return this;
+            }
             String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
             return this.withFieldCode("#" + sk);
         }
@@ -118,15 +119,11 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize(){
-            if ( shouldExists ) {
-                return String.format("attribute_not_exists(%s)" , this.fieldShortCode);
-            }
-            return String.format("attribute_exists(%s)" , this.fieldShortCode);
+            throw new RuntimeException("This is not implemented");
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            //There is nothing to prepare
             String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
             return this.withFieldShortCode("#" + sk);
         }
@@ -209,14 +206,12 @@ public interface LogicalExpression<T>{
         }
     }
 
-    @RequiredArgsConstructor
-    @AllArgsConstructor
-    @Builder
     @With
+    @Builder
+    @AllArgsConstructor
+    @RequiredArgsConstructor
     class ComparisonToValue<K> implements LogicalExpression<K>{
         final String fieldName;
-
-
         final ComparisonOperator operator;
         final AttributeValue dynamoDBEncodedValue;
         String shortValueCode;
