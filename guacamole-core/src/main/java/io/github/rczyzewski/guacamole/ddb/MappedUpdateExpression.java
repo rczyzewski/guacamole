@@ -6,8 +6,6 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Value;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
@@ -22,18 +20,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-@Value
-@Builder(toBuilder = true)
 @AllArgsConstructor
-public class MappedUpdateExpression<T, G extends ExpressionGenerator<T, G>>
+public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 {
 
-    G generator;
-    String tableName;
-    Map<String, AttributeValue> keys;
-    LogicalExpression<T> condition;
-    List<UpdateExpression.SetExpression> setExpressions;
-    LiveMappingDescription<T> liveMappingDescription;
+    private final G generator;
+    private final String tableName;
+    private final Map<String, AttributeValue> keys;
+    private final LogicalExpression<T> condition;
+    private final List<UpdateExpression.SetExpression> setExpressions;
+    private final LiveMappingDescription<T> liveMappingDescription;
 
     public UpdateItemRequest asUpdateItemRequest()
     {

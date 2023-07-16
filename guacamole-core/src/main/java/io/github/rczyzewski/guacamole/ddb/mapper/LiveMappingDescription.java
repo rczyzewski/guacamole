@@ -4,9 +4,7 @@ import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.SetExpression;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import software.amazon.awssdk.services.dynamodb.model.AttributeAction;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValueUpdate;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +32,7 @@ public class LiveMappingDescription<T>
 
     }
 
-    public <G extends ExpressionGenerator<T,G>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)
+    public <G extends ExpressionGenerator<T>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)
     {
         ConsecutiveIdGenerator a = ConsecutiveIdGenerator.builder().base("abcde").build();
         List<SetExpression> setExpressions = fields.stream()
@@ -101,24 +99,6 @@ public class LiveMappingDescription<T>
                      .collect(Collectors.toMap(Map.Entry::getKey, it -> it.getValue().get()));
 
     }
-
-    public Map<String, AttributeValueUpdate> exportUpdate(T object)
-    {
-        return fields.stream()
-                     .filter(it -> !it.isKeyValue())
-                     .collect(
-                         Collectors.toMap(FieldMappingDescription::getDdbName, it -> it.getExport().apply(object)))
-                     .entrySet()
-                     .stream()
-                     .filter(it -> it.getValue().isPresent())
-                     .collect(Collectors.toMap(Map.Entry::getKey,
-                                               it -> AttributeValueUpdate.builder()
-                                                                         .action(AttributeAction.PUT)
-                                                                         .value(it.getValue().get())
-                                                                         .build()));
-
-    }
-
 }
 
 

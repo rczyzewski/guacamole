@@ -7,8 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class ExpressionGenerator<T, E> {
-    protected E e;
+public class ExpressionGenerator<T> {
 
     public LogicalExpression<T> exists(Path<T> path){
         return new LogicalExpression.AttributeExists<>(true, path.serialize());

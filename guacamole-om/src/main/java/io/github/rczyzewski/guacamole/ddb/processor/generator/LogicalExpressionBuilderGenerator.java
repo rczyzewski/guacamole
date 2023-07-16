@@ -1,7 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -12,8 +11,6 @@ import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
-import lombok.AllArgsConstructor;
-import lombok.With;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -38,15 +35,11 @@ public class LogicalExpressionBuilderGenerator
                                                        baseBean);
 
         ParameterizedTypeName superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
-                                                       baseBean, customSearchAF);
+                                                       baseBean);
 
         TypeSpec.Builder queryClass = TypeSpec.classBuilder(customSearchAF)
                                               .addModifiers(PUBLIC, FINAL, STATIC)
-                                              .superclass(superInterface)
-                                              .addAnnotation(With.class)
-
-                                              .addAnnotation(AllArgsConstructor.class)
-            .addInitializerBlock(CodeBlock.of("this.e = this;"));
+                                              .superclass(superInterface);
 
         MethodSpec fieldExists = MethodSpec.methodBuilder("attributeExists")
                 .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")

@@ -50,7 +50,7 @@ class UpdateRecordIT{
         StepVerifier.create(rxDynamo.search(repo.getAll())
                                     .map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
                     .expectNext(item).verifyComplete();
-        rxDynamo.update(repo.update(item.withPayload(null))).block();
+        rxDynamo.update(repo.updateWithExpression(item.withPayload(null)).asUpdateItemRequest()).block();
         StepVerifier.create(rxDynamo.search(repo.getAll())
                                     .map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
                     .expectNext(item).verifyComplete();

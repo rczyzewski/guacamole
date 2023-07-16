@@ -28,7 +28,6 @@ import software.amazon.awssdk.services.dynamodb.model.Condition;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -139,6 +138,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         ClassName repositoryClazz = ClassName.get(classDescription.getPackageName(),
                                                   classDescription.getName() + "Repository");
+
         ClassName updateClazzName = ClassName.get(classDescription.getPackageName(),
                                                   classDescription.getName() + "Repository",
                                                  "LogicalExpressionBuilder");
@@ -147,7 +147,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         TypeSpec.Builder navigatorClass = TypeSpec
             .classBuilder(repositoryClazz)
-            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz))
+            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
@@ -182,25 +182,6 @@ public class DynamoDBProcessor extends AbstractProcessor
                            })
                            .collect(Collectors.toCollection(ArrayDeque::new))
             )
-            .addMethod(MethodSpec.methodBuilder("update")
-                           .addModifiers(PUBLIC)
-                           .addParameter(ParameterSpec.builder(clazz, "someName").build())
-                           .addCode(CodeBlock.builder()
-                                        .indent()
-                                        .add(
-                                            CodeBlock.builder().indent()
-                                                .add(" return $T.builder()\n", UpdateItemRequest.class)
-                                                .add(".tableName(tableName)\n")
-                                                .add(".attributeUpdates($L.exportUpdate(someName))\n", mainMapperName)
-                                                .add(".key($L.exportKeys(someName))", mainMapperName)
-                                                .add(".build();")
-                                                .unindent()
-                                                .build())
-                                        .unindent()
-                                        .build())
-
-                           .returns(get(UpdateItemRequest.class))
-                           .build())
             .addMethod(MethodSpec.methodBuilder("updateWithExpression")
                                  .addModifiers(PUBLIC)
                                  .addParameter(ParameterSpec.builder(clazz, "bean").build())
@@ -211,7 +192,6 @@ public class DynamoDBProcessor extends AbstractProcessor
                                               .add("return $L.generateUpdateExpression(bean, gen, this.tableName);", mainMapperName )
                                               .unindent()
                                               .build())
-                                 //.returns(updateClazzName)
                                  .returns(ParameterizedTypeName.get(ClassName.get(MappedUpdateExpression.class),clazz,
                                                                     updateClazzName))
                            .build())
