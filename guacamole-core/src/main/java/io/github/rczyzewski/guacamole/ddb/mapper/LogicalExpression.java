@@ -44,28 +44,6 @@ public interface LogicalExpression<T>{
     Map<String, AttributeValue> getValuesMap();
     Map<String, String> getAttributesMap();
 
-    @Builder
-    @AllArgsConstructor
-    class FixedExpression<T> implements  LogicalExpression<T>{
-        final String expression;
-
-        @Getter
-        @Singular("value")
-        Map<String, AttributeValue> valuesMap;
-
-        @Getter
-        @Singular("attribute")
-        Map<String, String> attributesMap;
-        @Override
-        public String serialize(){
-            return this.expression;
-        }
-
-        @Override
-        public LogicalExpression<T> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<T> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            return this;
-        }
-    }
 
     @AllArgsConstructor
     @RequiredArgsConstructor
@@ -107,30 +85,34 @@ public interface LogicalExpression<T>{
     @AllArgsConstructor
     class AttributeType<K> implements LogicalExpression<K>{
 
-        final boolean shouldExists;
-        final String fieldName;
+        final String path;
+        final ExpressionGenerator.AttributeType type;
+
         @With
         String fieldShortCode;
+        @With
+        String valueCode;
 
         @Override
         public String serialize(){
-            throw new RuntimeException("This is not implemented");
+            return String.format("attribute_type( %s , %s )",  fieldShortCode, valueCode );
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
-            return this.withFieldShortCode("#" + sk);
+            String sk = liveMappingDescription.getDict().get(path).getShortCode();
+            String vk = idGenerator.get();
+            return this.withFieldShortCode("#" + sk).withValueCode(":"+vk);
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
-            return Collections.emptyMap();
+            return Collections.singletonMap(this.valueCode, AttributeValue.fromS(type.getType()));
         }
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(fieldShortCode, fieldName);
+            return Collections.singletonMap(fieldShortCode, path);
         }
     }
 

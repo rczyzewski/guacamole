@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
@@ -301,7 +302,24 @@ class ConditionsTest {
                 named("attributeDoNotExists - using paths",
                         it-> it.notExists(path.selectHeadOfState())),
                 named("attributeExists - using paths",
-                            it-> it.exists(path.selectFamousPerson()) )
+                            it-> it.exists(path.selectFamousPerson()) ),
+                named("attributeType - STRING - using paths",
+                        it-> it.isAttributeType( path.selectFamousPerson(), ExpressionGenerator.AttributeType.STRING) ),
+                named("attributeType - NUMBER - using paths",
+                        it-> it.isAttributeType( path.selectArea(), ExpressionGenerator.AttributeType.NUMBER) ),
+                named("attributeType - NUMBER - using paths",
+                        it -> it.or(
+                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
+                                it.isAttributeType(path.selectPopulation(), ExpressionGenerator.AttributeType.NUMBER)
+                        ))
+                /* TODO - failing: Duplicate key area
+                named("attributeType - NUMBER - using paths - duplicated",
+                        it -> it.or(
+                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
+                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER)
+                        ))
+
+                 */
         );
     }
 

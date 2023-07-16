@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import io.github.rczyzewski.guacamole.ddb.path.Path;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.Arrays;
@@ -8,6 +10,21 @@ import java.util.Collections;
 import java.util.List;
 
 public class ExpressionGenerator<T> {
+    @Getter
+    @AllArgsConstructor
+    public enum AttributeType {
+        STRING("S"),
+        NUMBER("N"),
+        LIST("L"),
+        MAP("M"),
+        OBJECT("M"),
+        SET("S");
+        String type;
+    }
+    public LogicalExpression<T> isAttributeType(Path<T> path, AttributeType type){
+
+        return new LogicalExpression.AttributeType<>(path.serialize(), type);
+    }
 
     public LogicalExpression<T> exists(Path<T> path){
         return new LogicalExpression.AttributeExists<>(true, path.serialize());

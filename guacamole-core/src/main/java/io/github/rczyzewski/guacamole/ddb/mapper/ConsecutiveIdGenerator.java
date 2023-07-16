@@ -8,10 +8,10 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-@Value
 @Builder
 public class ConsecutiveIdGenerator implements Supplier<String>
 {
+
 
     @Builder.Default
     AtomicInteger position = new AtomicInteger(0);

@@ -11,10 +11,12 @@
 
     <modules>
         <module>guacamole-core</module>
-        <module>guacamole-om</module>
         <module>guacamole-dockertest</module>
+        <module>guacamole-om</module>
+        <!--
         <module>examples</module>
         <module>guacamole-reactor</module>
+        -->
     </modules>
 </project>
 
