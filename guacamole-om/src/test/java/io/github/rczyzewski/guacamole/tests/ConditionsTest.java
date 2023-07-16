@@ -235,8 +235,12 @@ class ConditionsTest {
                 named("attributeDoNotExists - using negation and logical expression builder",
                         it-> it.not(it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN))) ,
                 named("attributeDoNotExists - using 'NotExist' method from logical expression builder",
-                        it-> it.attributeNotExists(CountryRepository.AllFields.FAMOUS_MUSICIAN))
-        );
+                        it-> it.attributeNotExists(CountryRepository.AllFields.FAMOUS_MUSICIAN)),
+                named("attributeDoNotExists - using paths",
+                        it-> it.exists(path.selectHeadOfState())),
+                    named("attributeExists - using paths",
+                                it-> it.notExists(path.selectFamousPerson())
+        ));
     }
 
     private static Stream<Arguments> matchesUnitedKingdom() {
@@ -301,8 +305,11 @@ class ConditionsTest {
                 named("attributeExists - using generated enum",
                         it -> it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN)),
                 named("attributeDoNotExists - using generated enum",
-                        it-> it.attributeNotExists(HEAD_OF_STATE)
-                        )
+                        it-> it.attributeNotExists(HEAD_OF_STATE)),
+                named("attributeDoNotExists - using paths",
+                        it-> it.notExists(path.selectHeadOfState())),
+                named("attributeExists - using paths",
+                            it-> it.exists(path.selectFamousPerson()) )
         );
     }
 

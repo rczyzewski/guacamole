@@ -10,6 +10,12 @@ import java.util.List;
 public class ExpressionGenerator<T, E> {
     protected E e;
 
+    public LogicalExpression<T> exists(Path<T> path){
+        return new LogicalExpression.AttributeExists<>(true, path.serialize());
+    }
+    public LogicalExpression<T> notExists(Path<T> path){
+        return new LogicalExpression.AttributeExists<>(false, path.serialize());
+    }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
         return LogicalExpression.ComparisonToReference.<T>builder()
                 .otherFieldName(path2.serialize())
