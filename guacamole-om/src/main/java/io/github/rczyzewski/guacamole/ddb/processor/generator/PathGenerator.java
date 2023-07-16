@@ -90,6 +90,8 @@ public class PathGenerator{
                 String a = fd.getTypeArguments().get(0);
 
                 if(primitives.contains(a)){
+                    ParameterizedTypeName returnType =
+                            ParameterizedTypeName.get(ClassName.get(ListPath.class), majorBean, ParameterizedTypeName.get(ClassName.get(TerminalElement.class), majorBean));
                     method = MethodSpec
                             .methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                             .addModifiers(PUBLIC)
@@ -104,7 +106,7 @@ public class PathGenerator{
                                      baseBean,
                                      TerminalElement.class,
                                      fd.getAttribute())
-                            .returns(parentPath)
+                            .returns(returnType)
                             .build();
                 }else if(fd.getSourandingClasses().containsKey(a)){
 
@@ -149,7 +151,7 @@ public class PathGenerator{
                         .methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                         .addModifiers(PUBLIC)
                         .addCode("$T<$T> element = $T.<$T>builder()" +
-                                         ".parent(this).selectedElement(\"$L\").build();",
+                                         ".parent(this).selectedElement(\"$L\").build();\n",
                                PrimitiveElement.class, baseBean,  PrimitiveElement.class, baseBean, fd.getAttribute())
                         .addCode("  return $T.builder().parent(element).build();" , beanPathClass )
                         .returns(beanPathClass)
@@ -163,7 +165,7 @@ public class PathGenerator{
                 .addField(FieldSpec.builder(parentPath, "parent", PRIVATE).build())
                 .addMethod(MethodSpec.methodBuilder("serialize").returns(String.class)
                                      .addAnnotation(Override.class)
-                                     .addCode("return Optional.ofNullable(parent)")
+                                     .addCode("return Optional.ofNullable(parent)\n")
                                      .addCode(".map(it -> parent.serialize()).orElse(null);")
                                      .addModifiers(PUBLIC).build())
                 .build();

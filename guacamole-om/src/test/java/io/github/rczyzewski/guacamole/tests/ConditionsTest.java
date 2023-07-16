@@ -4,7 +4,6 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,12 +89,6 @@ class ConditionsTest {
         ddbClient.putItem(repo.create(UNITED_KINGDOM)).get();
     }
 
-    @AfterEach
-    @SneakyThrows
-    void afterEach() {
-        //ddbClient.deleteItem(repo.delete(POLAND)).get();
-        //ddbClient.deleteItem(repo.delete(UNITED_KINGDOM)).get();
-    }
 
     interface CountryCondition extends Function<CountryRepository.LogicalExpressionBuilder, LogicalExpression<Country>> {
     }
@@ -108,10 +101,10 @@ class ConditionsTest {
         return Stream.of(
                 named("when id is not defined",
                         it -> it.not(it.attributeExists(CountryRepository.AllFields.ID))),
-                //String attribute exists - Enum approach
                 named("has not a famous person",
                         it -> it.not(it.attributeExists(FAMOUS_PERSON))),
-                //String to String comparison -> Path approach
+                named("has not a famous person - without ",
+                        it -> it.attributeNotExists(FAMOUS_PERSON)),
                 named("most famous person is not Brian May(not operator)",
                         it -> it.not( it.compare(path.selectFamousPerson(), EQUAL, "Brian May"))),
                 named("most famous person is Brian May(NOT_EQUAL)",
@@ -124,26 +117,20 @@ class ConditionsTest {
                         it -> it.compare(path.selectFamousPerson(), GREATER, "Brian May")),
                 named("most famous person is no more famous than Brian May(not)",
                         it -> it.not(it.compare(path.selectFamousPerson(), LESS_OR_EQUAL, "Brian May"))),
-                //TODO: whe there is not it.fullNameExists()
-                //named("has a string property setup", (CountryCondition) it -> it.fullNameE ),
-                //String attribute greater/equal/less
+                named("has a string property setup",
+                        CountryRepository.LogicalExpressionBuilder::headOfStateExists),
                 named(  "when most famous person is not a Queen guitarist",
                         it -> it.famousPersonNotEqual("Brian May")),
-
                 named(  "when most famous person is not a Queen guitarist(not)",
                         it -> it.not(it.famousPersonEqual("Brian May"))),
-
                 named(  "when the most famous person is less famous than Brian",
                         it -> it.famousPersonLess( "Brian May")),
-
                 named(  "when the most famous person is less famous than Brian(not)",
                         it -> it.not(it.famousPersonGreaterOrEqual( "Brian May"))),
-
                 named("when famous person is less famous than Brian(less)",
                         it -> it.famousPersonLess("Brian May")),
                 named("when famous person is less famous than Brian(NOT)",
                         it -> it.not(it.famousPersonGreaterOrEqual("Brian May"))),
-
                 named("because he is  dictator(NOT)",
                         it -> it.not(it.famousPersonNotEqual( "Sacha Noam Baron Cohen"))),
                 named("because he is dictator(EQUAL)",
@@ -151,7 +138,6 @@ class ConditionsTest {
                 // the third way of making the same conditions
                 named("when most famous person is a Queen guitarist",
                         it -> it.famousPersonNotEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
-
                 named("when most famous person is a Queen guitarist",
                         it -> it.not(it.famousPersonEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
 
@@ -186,9 +172,8 @@ class ConditionsTest {
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectHeadOfState())),
                 named("when famous person is Brian May, (written with AND)",
                         it -> it.and(it.famousPersonNotEqual("Brian May")) ),
-               //TODO: take care about the parenthesis
-               // named("when famous person is Brian May, (written with AND)",
-               //         it -> it.not(it.and(it.famousPersonEqual("Brian May"))) ),
+                named(" when famous person is Brian May, (written with AND)",
+                        it -> it.not(it.and(it.famousPersonEqual("Brian May"))) ),
                 named("it's not Brian May and name is United Kingdom",
                         it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameEqual("United Kingdom")) ),
                 named("it's not Brian May and it's not United Kingdom",
@@ -201,9 +186,8 @@ class ConditionsTest {
                                 it.not(it.nameEqual("United Kingdom")),
                                 it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
                         ) ),
-                //TODO: take care about the parenthesis
-                //named("when famous person is Brian May, (written with AND)",
-                //         it -> it.not(it.or(it.famousPersonEqual("Brian May"))) ),
+                named(" when famous person is Brian May, (written with AND)",
+                         it -> it.not(it.or(it.famousPersonEqual("Brian May"))) ),
                 named("it's Brian May and  UK and head of state exists",
                         it -> it.or(
                                 it.famousPersonNotEqual("Brian May"),
@@ -255,7 +239,8 @@ class ConditionsTest {
         return Stream.of(
                 named("when id is defined",
                         it -> it.attributeExists(CountryRepository.AllFields.ID)),
-                //TODO: why there is no  List & String attributes?
+                named("when some id is defined - with fluent query",
+                        CountryRepository.LogicalExpressionBuilder::idExists),
                 //String attribute exists - Enum approach
                 named("has a famous person",
                         it -> it.attributeExists(FAMOUS_PERSON)),
@@ -268,8 +253,8 @@ class ConditionsTest {
                         it -> it.compare(path.selectFamousPerson(), LESS_OR_EQUAL, "Brian May")),
                 named("because is different than dictator",
                         it -> it.compare(path.selectFamousPerson(), NOT_EQUAL, "Sacha Noam Baron Cohen")),
-                //TODO: whe there is not it.fullNameExists()
-                //named("has a string property setup", (CountryCondition) it -> it.fullNameE ),
+                named("has a string property setup",
+                        CountryRepository.LogicalExpressionBuilder::fullNameExists),
                 //String attribute greater/equal/less
                 named(  "when most famous person is a Queen guitarist",
                         it -> it.famousPersonEqual("Brian May")),

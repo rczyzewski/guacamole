@@ -251,10 +251,14 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize() {
-            return args.stream()
-                    .map(LogicalExpression::serialize)
-                    .map(it -> String.format("( %s )", it))
-                    .collect(Collectors.joining(" or "));
+            if( args.size() == 1 ) {
+                return String.format( "%s " , args.get(0).serialize());
+            } else {
+                return args.stream()
+                        .map(LogicalExpression::serialize)
+                        .map(it -> String.format(" %s ", it))
+                        .collect(Collectors.joining(" or ", "(", ")"));
+            }
         }
 
         @Override
@@ -290,10 +294,14 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize(){
-            return args.stream()
-                       .map(LogicalExpression::serialize)
-                       .map(it -> String.format("( %s )", it))
-                       .collect(Collectors.joining(" and "));
+            if( args.size() == 1 ) {
+               return String.format( "%s " , args.get(0).serialize());
+            } else {
+                return args.stream()
+                        .map(LogicalExpression::serialize)
+                        .map(it -> String.format(" %s ", it))
+                        .collect(Collectors.joining(" and ", "(", ")"));
+            }
         }
 
         public Map<String, AttributeValue> getValuesMap(){
@@ -330,7 +338,7 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize(){
-            return String.format("NOT (%s)", arg.serialize());
+            return String.format("NOT %s", arg.serialize());
 
         }
 
