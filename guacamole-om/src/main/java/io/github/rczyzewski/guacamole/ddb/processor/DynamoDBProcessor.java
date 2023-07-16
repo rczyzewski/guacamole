@@ -182,7 +182,7 @@ public class DynamoDBProcessor extends AbstractProcessor
                            })
                            .collect(Collectors.toCollection(ArrayDeque::new))
             )
-            .addMethod(MethodSpec.methodBuilder("updateWithExpression")
+            .addMethod(MethodSpec.methodBuilder("update")
                                  .addModifiers(PUBLIC)
                                  .addParameter(ParameterSpec.builder(clazz, "bean").build())
                                  .addCode(

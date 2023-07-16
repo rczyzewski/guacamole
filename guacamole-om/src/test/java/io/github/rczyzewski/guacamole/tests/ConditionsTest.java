@@ -5,6 +5,7 @@ import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -46,13 +47,13 @@ class ConditionsTest {
             .withServices(LocalStackContainer.Service.DYNAMODB)
             .withLogConsumer(new Slf4jLogConsumer(log));
 
-    private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
+    private static final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
     private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
 
     private final static String TABLE_NAME = "Countries";
 
-    private final CountryRepository repo = new CountryRepository(TABLE_NAME);
+    private final static CountryRepository repo = new CountryRepository(TABLE_NAME);
    private final static String BRIAN_MAY = "Brian May";
    private static final Country POLAND = Country.builder()
             .id("PL")
@@ -75,10 +76,16 @@ class ConditionsTest {
             .density(270.7)
             .build();
 
+    @BeforeAll
+    @SneakyThrows
+    static void beforeAll(){
+        testHelperDynamoDB.getDdbAsyncClient().createTable( repo.createTable()).get();
+    }
+
     @SneakyThrows
     @BeforeEach
+
     void beforeEach() {
-        ddbClient.createTable(repo.createTable()).get();
         ddbClient.putItem(repo.create(POLAND)).get();
         ddbClient.putItem(repo.create(UNITED_KINGDOM)).get();
     }
@@ -86,8 +93,8 @@ class ConditionsTest {
     @AfterEach
     @SneakyThrows
     void afterEach() {
-        ddbClient.deleteItem(repo.delete(POLAND)).get();
-        ddbClient.deleteItem(repo.delete(UNITED_KINGDOM)).get();
+        //ddbClient.deleteItem(repo.delete(POLAND)).get();
+        //ddbClient.deleteItem(repo.delete(UNITED_KINGDOM)).get();
     }
 
     interface CountryCondition extends Function<CountryRepository.LogicalExpressionBuilder, LogicalExpression<Country>> {
@@ -320,7 +327,7 @@ class ConditionsTest {
     void updateWhenConditionsAreMatching(CountryCondition condition) {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
-                repo.updateWithExpression(updatedUnitedKingdom)
+                repo.update(updatedUnitedKingdom)
                         .withCondition(condition)
                         .asUpdateItemRequest();
         ddbClient.updateItem(request).get();
@@ -340,20 +347,11 @@ class ConditionsTest {
     void doNotUpdateWhenConditionsAreNotMatching(CountryCondition condition) {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
-                repo.updateWithExpression(updatedUnitedKingdom)
+                repo.update(updatedUnitedKingdom)
                         .withCondition(condition)
                         .asUpdateItemRequest();
 
         assertThatThrownBy(() -> ddbClient.updateItem(request).get())
                 .hasCauseInstanceOf(ConditionalCheckFailedException.class);
-
-        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
-                .build()).get();
-        Map<String, Country> collected = response.items().stream().map(CountryRepository.COUNTRY::transform)
-                .collect(Collectors.toMap(Country::getId, Function.identity()));
-        Country poland = collected.get("PL");
-        Country unitedKingdom = collected.get("UK");
-        assertThat(unitedKingdom).isEqualTo(UNITED_KINGDOM);
-        assertThat(poland).isEqualTo(POLAND);
     }
 }

@@ -12,7 +12,7 @@ public interface BaseRepository<T, G extends ExpressionGenerator<T>>
     PutItemRequest create(T item);
     DeleteItemRequest delete(T item);
 
-    MappedUpdateExpression<T, G> updateWithExpression(T data);
+    MappedUpdateExpression<T, G> update(T data);
 
     DynamoSearch getAll();
     CreateTableRequest createTable();

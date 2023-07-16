@@ -85,7 +85,7 @@ class ConditionalUpdateIT{
     }
     @Test
     void testingIfListContainsElement(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it -> FixedExpression.
                                                   <Product>builder()
                                           .expression(" contains(tags, :value) ")
@@ -99,7 +99,7 @@ class ConditionalUpdateIT{
     }
     @Test
     void testingIfListContainsElementString(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it -> FixedExpression
                                           .<Product>builder()
                                           .expression(" contains(description, :value) ")
@@ -113,7 +113,7 @@ class ConditionalUpdateIT{
     }
     @Test
     void testingIfListContainsElementList(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it -> FixedExpression
                                           .<Product>builder()
                                           .expression(" contains(color, :value)  ")
@@ -130,7 +130,7 @@ class ConditionalUpdateIT{
     @Test
     void comparingSizeFunctionResultsAndConstant(){
 
-        UpdateItemRequest n = repo.updateWithExpression(product
+        UpdateItemRequest n = repo.update(product
                                                                 //.withColors(Arrays.asList("red", "red", "wine"))
                                                                 .withCost(8_815)
                                                                 )
@@ -146,7 +146,7 @@ class ConditionalUpdateIT{
     }
     @Test
     void comparingSizeFunctionResultsAndConstant2(){
-        UpdateItemRequest n = repo.updateWithExpression(product
+        UpdateItemRequest n = repo.update(product
                                                                 //.withColors(Arrays.asList("red", "red", "wine"))
                                                                 .withCost(8_815)
                                                        )
@@ -164,7 +164,7 @@ class ConditionalUpdateIT{
 
     @Test
     void testingSizeOfTheArrayExpression(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it -> FixedExpression.<Product>builder()
                                                                  .expression(" size(color)   > :valueOfTheList ")
                                               .value(":valueOfTheList", AttributeValue.fromN("5"))
@@ -178,7 +178,7 @@ class ConditionalUpdateIT{
 
     @Test
     void veryFirstTestForConditionalUpdate(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it -> it.and(it.nameEqual("RedCar"),
                                                               it.or(it.priceLessOrEqual(100),
                                                                     it.piecesAvailableGreaterOrEqual(4))))
@@ -191,7 +191,7 @@ class ConditionalUpdateIT{
     @Test
     @SneakyThrows
     void checkUpdateWhenFieldIsDefined(){
-        UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
+        UpdateItemRequest n = repo.update(product.withCost(8_815))
                                   .withCondition(it-> it.attributeExists(ProductRepository.AllFields.DESCRIPTION))
                                   .asUpdateItemRequest();
 
@@ -205,7 +205,7 @@ class ConditionalUpdateIT{
     void checkUpdateWhenFieldIsDefined2(){
 
         UpdateItemRequest n =
-                repo.updateWithExpression(product.withCost(8_815))
+                repo.update(product.withCost(8_815))
                     .withCondition(it -> new LogicalExpression.AttributeExists<>(true, "test", "#TESTCODE"))
                     .asUpdateItemRequest();
 

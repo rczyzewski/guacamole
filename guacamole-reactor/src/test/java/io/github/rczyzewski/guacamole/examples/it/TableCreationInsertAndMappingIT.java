@@ -82,7 +82,7 @@ class TableCreationInsertAndMappingIT
         HashPrimaryIndexTable newItem = item.withPayload("newPayload");
 
         StepVerifier.create(
-                        rxDynamo.update(repo.updateWithExpression(newItem)
+                        rxDynamo.update(repo.update(newItem)
                                         .asUpdateItemRequest())
                                 .thenReturn(repo)
                                 .map(HashPrimaryIndexTableRepository::getAll)
@@ -96,7 +96,7 @@ class TableCreationInsertAndMappingIT
         HashPrimaryIndexTable newNullItem = item.withPayload(null);
 
         StepVerifier.create(
-                        rxDynamo.update(repo.updateWithExpression(newNullItem).asUpdateItemRequest())
+                        rxDynamo.update(repo.update(newNullItem).asUpdateItemRequest())
                                 .thenReturn(repo)
                                 .map(HashPrimaryIndexTableRepository::getAll)
                                 .flatMapMany(rxDynamo::search)
