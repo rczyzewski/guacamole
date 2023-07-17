@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.tests;
 
-import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
@@ -26,12 +25,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.LIST;
+import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.NUMBER;
+import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.STRING;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
+import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.AREA;
+import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_MUSICIAN;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.HEAD_OF_STATE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -225,14 +229,33 @@ class ConditionsTest {
                 named("attributeDoNotExists - using logical expression builder",
                         CountryRepository.LogicalExpressionBuilder::famousMusicianNotExists),
                 named("attributeDoNotExists - using negation and logical expression builder",
-                        it-> it.not(it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN))) ,
+                        it-> it.not(it.attributeExists(FAMOUS_MUSICIAN))) ,
                 named("attributeDoNotExists - using 'NotExist' method from logical expression builder",
-                        it-> it.attributeNotExists(CountryRepository.AllFields.FAMOUS_MUSICIAN)),
+                        it-> it.attributeNotExists(FAMOUS_MUSICIAN)),
                 named("attributeDoNotExists - using paths",
                         it-> it.exists(path.selectHeadOfState())),
                     named("attributeExists - using paths",
-                                it-> it.notExists(path.selectFamousPerson())
-        ));
+                                it-> it.notExists(path.selectFamousPerson())),
+                named("attributeType - STRING - using paths",
+                        it-> it.isAttributeType( path.selectFamousPerson(), NUMBER) ),
+                named("attributeType - NUMBER - using paths",
+                        it-> it.isAttributeType( path.selectArea(), STRING) ),
+                named("attributeType - NUMBER - using paths",
+                        it -> it.and( it.isAttributeType(path.selectArea(), NUMBER),
+                                it.isAttributeType(path.selectPopulation(), STRING))),
+                named("attributeType - NUMBER - using Enums",
+                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
+                                it.isAttributeType(AREA, NUMBER))),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
+                                it.isAttributeType(AREA, NUMBER))),
+                named("attributeType - STRING - using fluent expressions",
+                        it -> it.famousMusicianIsAttributeType(NUMBER)),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.areaIsAttributeType(STRING)),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.areaIsAttributeType(LIST))
+        );
     }
 
     private static Stream<Arguments> matchesUnitedKingdom() {
@@ -296,7 +319,7 @@ class ConditionsTest {
                 named("attributeDoNotExists",
                         CountryRepository.LogicalExpressionBuilder::headOfStateNotExists),
                 named("attributeExists - using generated enum",
-                        it -> it.attributeExists(CountryRepository.AllFields.FAMOUS_MUSICIAN)),
+                        it -> it.attributeExists(FAMOUS_MUSICIAN)),
                 named("attributeDoNotExists - using generated enum",
                         it-> it.attributeNotExists(HEAD_OF_STATE)),
                 named("attributeDoNotExists - using paths",
@@ -304,14 +327,22 @@ class ConditionsTest {
                 named("attributeExists - using paths",
                             it-> it.exists(path.selectFamousPerson()) ),
                 named("attributeType - STRING - using paths",
-                        it-> it.isAttributeType( path.selectFamousPerson(), ExpressionGenerator.AttributeType.STRING) ),
+                        it-> it.isAttributeType( path.selectFamousPerson(), STRING) ),
                 named("attributeType - NUMBER - using paths",
-                        it-> it.isAttributeType( path.selectArea(), ExpressionGenerator.AttributeType.NUMBER) ),
+                        it-> it.isAttributeType( path.selectArea(), NUMBER) ),
                 named("attributeType - NUMBER - using paths",
-                        it -> it.or(
-                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
-                                it.isAttributeType(path.selectPopulation(), ExpressionGenerator.AttributeType.NUMBER)
-                        ))
+                        it -> it.or( it.isAttributeType(path.selectArea(), NUMBER),
+                                it.isAttributeType(path.selectPopulation(), NUMBER))),
+                named("attributeType - NUMBER - using Enums",
+                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
+                                it.isAttributeType(AREA, NUMBER))),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
+                                it.isAttributeType(AREA, NUMBER))),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.famousMusicianIsAttributeType(STRING)),
+                named("attributeType - NUMBER - using fluent expressions",
+                        it -> it.areaIsAttributeType(NUMBER))
                 /* TODO - failing: Duplicate key area
                 named("attributeType - NUMBER - using paths - duplicated",
                         it -> it.or(

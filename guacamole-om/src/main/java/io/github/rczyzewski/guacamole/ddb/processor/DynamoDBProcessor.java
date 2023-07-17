@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.ddb.processor;
 import com.google.auto.service.AutoService;
 import io.github.rczyzewski.guacamole.ddb.BaseRepository;
 import io.github.rczyzewski.guacamole.ddb.DynamoSearch;
+import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
@@ -220,18 +221,31 @@ public class DynamoDBProcessor extends AbstractProcessor
                                                    .build())
                                  .returns(DynamoSearch.class)
                            .build())
-            .addMethod(MethodSpec.methodBuilder("delete")
+                .addMethod(MethodSpec.methodBuilder("delete")
+                        .addModifiers(PUBLIC)
+                        .addAnnotation(Override.class)
+                        .addParameter(ParameterSpec.builder(clazz, "item").build())
+                        .addCode(
+                                CodeBlock.builder().indent()
+                                        .add("return $T.builder()" +
+                                                        "\n.key($L.exportKeys(item)).tableName(this.tableName)\n.build();",
+                                                DeleteItemRequest.class, mainMapperName)
+                                        .unindent()
+                                        .build())
+                        .returns(DeleteItemRequest.class)
+                        .build())
+            .addMethod(MethodSpec.methodBuilder("deleteWithExtraConditions")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addParameter(ParameterSpec.builder(clazz, "item").build())
                            .addCode(
-                                             CodeBlock.builder().indent()
-                                                 .add("return $T.builder()" +
-                                                              "\n.key($L.exportKeys(item)).tableName(this.tableName)\n.build();",
-                                                      DeleteItemRequest.class, mainMapperName)
-                                                 .unindent()
-                                                 .build())
-                           .returns(DeleteItemRequest.class)
+                                   CodeBlock.builder().indent()
+                                           //.add(" return new $T<$T>();", MappedDeleteExpression.class)// mainMapperName)
+                                           .add("return null;")
+                                           .unindent()
+                                           .build())
+                    .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class),clazz,
+                            updateClazzName))
                            .build())
             .addMethod(MethodSpec.methodBuilder("createTable")
                            .addModifiers(PUBLIC)

@@ -11,6 +11,7 @@ public interface BaseRepository<T, G extends ExpressionGenerator<T>>
 
     PutItemRequest create(T item);
     DeleteItemRequest delete(T item);
+    MappedDeleteExpression<T, G> deleteWithExtraConditions(T item);
 
     MappedUpdateExpression<T, G> update(T data);
 

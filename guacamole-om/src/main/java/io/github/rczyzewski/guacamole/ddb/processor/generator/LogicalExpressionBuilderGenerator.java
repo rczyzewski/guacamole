@@ -57,6 +57,16 @@ public class LogicalExpressionBuilderGenerator
                 .returns(returnExpressionType)
                 .build();
         queryClass.addMethod(fieldDoesntExists);
+        MethodSpec isAttributeType = MethodSpec.methodBuilder("isAttributeType")
+                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
+                        .build())
+                .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
+                        .build())
+                .addModifiers(PUBLIC)
+                .addCode(" return new LogicalExpression.AttributeType<>(value.getDdbField(), type); \n")
+                .returns(returnExpressionType)
+                .build();
+        queryClass.addMethod(isAttributeType);
 
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
@@ -75,6 +85,15 @@ public class LogicalExpressionBuilderGenerator
                             .addCode("return new LogicalExpression.AttributeExists<>(false, $S); \n", fd.getAttribute())
                             .returns(returnExpressionType)
                             .build());
+
+            queryClass.addMethod( MethodSpec.methodBuilder(fd.getName() + "IsAttributeType")
+                    .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
+                            .build())
+                    .addModifiers(PUBLIC)
+                    .addCode("return new LogicalExpression.AttributeType<>($S, type); \n", fd.getAttribute())
+                    .returns(returnExpressionType)
+                    .build());
+
             if(fd.getDdbType() == DDBType.STRING){
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
