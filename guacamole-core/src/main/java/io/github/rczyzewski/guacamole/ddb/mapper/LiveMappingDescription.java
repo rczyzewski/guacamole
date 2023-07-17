@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
+import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.SetExpression;
 import lombok.Getter;
@@ -30,6 +31,12 @@ public class LiveMappingDescription<T>
         dict = fields.stream()
                      .collect(Collectors.toMap(FieldMappingDescription::getDdbName, Function.identity()));
 
+    }
+
+    public <G extends ExpressionGenerator<T>> MappedDeleteExpression<T,G> generateDeleteExpression (T object , G generator, String table)
+    {
+        Map<String, AttributeValue> keys = this.exportKeys(object);
+        return new MappedDeleteExpression<>(generator, table, keys, null, this);
     }
 
     public <G extends ExpressionGenerator<T>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)
@@ -81,10 +88,7 @@ public class LiveMappingDescription<T>
                      .entrySet()
                      .stream()
                      .filter(it -> it.getValue().isPresent())
-                     .collect(Collectors.toMap(Map.Entry::getKey, it -> it.getValue().get()))
-
-            ;
-
+                     .collect(Collectors.toMap(Map.Entry::getKey, it -> it.getValue().get())) ;
     }
 
     public Map<String, AttributeValue> exportKeys(T object)

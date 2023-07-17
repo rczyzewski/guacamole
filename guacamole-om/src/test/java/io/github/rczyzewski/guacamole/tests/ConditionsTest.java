@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
@@ -353,6 +354,22 @@ class ConditionsTest {
                  */
         );
     }
+    @ParameterizedTest
+    @MethodSource("matchesUnitedKingdom")
+    @DisplayName("Delete happens only when conditions are matching")
+    @SneakyThrows
+    void deleteWhenConditionsAreMatching(CountryCondition condition) {
+        DeleteItemRequest request = repo.delete(UNITED_KINGDOM)
+                .withCondition(condition)
+                .asDeleteItemRequest();
+
+        ddbClient.deleteItem(request).get();
+
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        assertThat(response.items()).hasSize(1);
+
+    }
 
     @ParameterizedTest
     @MethodSource("matchesUnitedKingdom")
@@ -373,6 +390,20 @@ class ConditionsTest {
         Country unitedKingdom = abc.get("UK");
         assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
         assertThat(poland).isEqualTo(POLAND);
+    }
+    @ParameterizedTest
+    @MethodSource("notMatchUnitedKingdom")
+    @DisplayName("Delete does not happen when conditions are not matching")
+    @SneakyThrows
+    void doNotDeleteWhenConditionsAreNotMatching(CountryCondition condition) {
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
+        DeleteItemRequest request =
+                repo.delete(updatedUnitedKingdom)
+                        .withCondition(condition)
+                        .asDeleteItemRequest();
+
+        assertThatThrownBy(() -> ddbClient.deleteItem(request).get())
+                .hasCauseInstanceOf(ConditionalCheckFailedException.class);
     }
     @ParameterizedTest
     @MethodSource("notMatchUnitedKingdom")

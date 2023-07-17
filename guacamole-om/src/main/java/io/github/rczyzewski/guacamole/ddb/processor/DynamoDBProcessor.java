@@ -27,7 +27,6 @@ import lombok.*;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.dynamodb.model.Condition;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -210,40 +209,27 @@ public class DynamoDBProcessor extends AbstractProcessor
                                                  .build())
                            .returns(PutItemRequest.class)
                            .build())
-            .addMethod(MethodSpec.methodBuilder("getAll")
-                                 .addModifiers(PUBLIC)
-                                 .addAnnotation(Override.class)
-                                     .addCode(
-                                          CodeBlock.builder()
-                                                   .add("return $T.builder()\n", DynamoSearch.class)
-                                                   .add(".tableName(tableName)\n")
-                                                   .add(".build();\n")
-                                                   .build())
-                                 .returns(DynamoSearch.class)
-                           .build())
-                .addMethod(MethodSpec.methodBuilder("delete")
+                .addMethod(MethodSpec.methodBuilder("getAll")
                         .addModifiers(PUBLIC)
                         .addAnnotation(Override.class)
-                        .addParameter(ParameterSpec.builder(clazz, "item").build())
                         .addCode(
-                                CodeBlock.builder().indent()
-                                        .add("return $T.builder()" +
-                                                        "\n.key($L.exportKeys(item)).tableName(this.tableName)\n.build();",
-                                                DeleteItemRequest.class, mainMapperName)
-                                        .unindent()
+                                CodeBlock.builder()
+                                        .add("return $T.builder()\n", DynamoSearch.class)
+                                        .add(".tableName(tableName)\n")
+                                        .add(".build();\n")
                                         .build())
-                        .returns(DeleteItemRequest.class)
+                        .returns(DynamoSearch.class)
                         .build())
-            .addMethod(MethodSpec.methodBuilder("deleteWithExtraConditions")
+            .addMethod(MethodSpec.methodBuilder("delete")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addParameter(ParameterSpec.builder(clazz, "item").build())
-                           .addCode(
-                                   CodeBlock.builder().indent()
-                                           //.add(" return new $T<$T>();", MappedDeleteExpression.class)// mainMapperName)
-                                           .add("return null;")
-                                           .unindent()
-                                           .build())
+                    .addCode(CodeBlock.builder()
+                            .indent()
+                            .add("$T gen = new $T() ;  \n" , updateClazzName, updateClazzName)
+                            .add("return $L.generateDeleteExpression(item, gen, this.tableName);", mainMapperName)
+                            .unindent()
+                            .build())
                     .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class),clazz,
                             updateClazzName))
                            .build())
