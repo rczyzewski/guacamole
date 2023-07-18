@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBAttribute;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import lombok.Builder;
@@ -27,4 +28,14 @@ class Country {
     Float area;
     @EqualsAndHashCode.Exclude
     Double density;
+
+    Capital capital;
+    @With
+    @Value
+    @Builder
+    @DynamoDBDocument
+    public static class Capital{
+        String name;
+        Long  population;
+    }
 }

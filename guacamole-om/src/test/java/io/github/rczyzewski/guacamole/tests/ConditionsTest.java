@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
@@ -79,6 +80,10 @@ class ConditionsTest {
             .area(242495F)
             .population(6813848)
             .density(270.7)
+            .capital(Country.Capital.builder()
+                    .name("London")
+                    .population(9000000000L)
+                    .build())
             .build();
 
     @BeforeAll
@@ -343,14 +348,20 @@ class ConditionsTest {
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.famousMusicianIsAttributeType(STRING)),
                 named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.areaIsAttributeType(NUMBER))
-                /* TODO - failing: Duplicate key area
+                        it -> it.areaIsAttributeType(NUMBER)),
                 named("attributeType - NUMBER - using paths - duplicated",
                         it -> it.or(
                                 it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
                                 it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER)
+                        )),
+                named("attributeType - NUMBER - using paths - duplicated",
+                        it -> it.and(
+                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
+                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER)
                         ))
-
+                /* Path parts should go to Attribute Map as a separate elements
+                named("attributeType - NUMBER - using complex paths",
+                        it -> it.isAttributeType(path.selectCapital(), ExpressionGenerator.AttributeType.MAP))
                  */
         );
     }

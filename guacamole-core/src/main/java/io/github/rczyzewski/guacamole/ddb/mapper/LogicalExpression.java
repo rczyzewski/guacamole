@@ -99,10 +99,19 @@ public interface LogicalExpression<T>{
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict().get(path).getShortCode();
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String, String> shortCodeAccumulator) {
+            if (liveMappingDescription.getDict().containsKey(path)) {
+                String sk = liveMappingDescription.getDict().get(path).getShortCode();
+                String vk = idGenerator.get();
+                return this.withFieldShortCode("#" + sk).withValueCode(":" + vk);
+
+            } else if (!shortCodeAccumulator.containsKey(path)) {
+                String kk = idGenerator.get();
+                shortCodeAccumulator.put(path, kk);
+            }
+            String sk = shortCodeAccumulator.get(path);
             String vk = idGenerator.get();
-            return this.withFieldShortCode("#" + sk).withValueCode(":"+vk);
+            return this.withFieldShortCode("#" + sk).withValueCode(":" + vk);
         }
 
         @Override
@@ -245,7 +254,8 @@ public interface LogicalExpression<T>{
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
-                                            LiveMappingDescription<K> liveMappingDescription, Map<String, String> shortCodeAccumulator) {
+                                            LiveMappingDescription<K> liveMappingDescription,
+                                            Map<String, String> shortCodeAccumulator) {
             return this.withArgs(args.stream().map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator))
                     .collect(Collectors.toList()));
         }
@@ -265,7 +275,7 @@ public interface LogicalExpression<T>{
                     .map(LogicalExpression::getAttributesMap)
                     .map(Map::entrySet)
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (s, s2) -> s));
         }
     }
 
@@ -300,7 +310,7 @@ public interface LogicalExpression<T>{
                        .map(LogicalExpression::getAttributesMap)
                        .map(Map::entrySet)
                        .flatMap(Collection::stream)
-                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (s, s2)-> s));
         }
 
         @Override

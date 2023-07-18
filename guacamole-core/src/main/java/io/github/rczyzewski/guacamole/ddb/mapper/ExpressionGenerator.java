@@ -23,6 +23,7 @@ public class ExpressionGenerator<T> {
     }
     public LogicalExpression<T> isAttributeType(Path<T> path, AttributeType type){
 
+        //TODO:  AttributeType must take Path as an argument, not a string
         return new LogicalExpression.AttributeType<>(path.serialize(), type);
     }
 
@@ -33,6 +34,7 @@ public class ExpressionGenerator<T> {
         return new LogicalExpression.AttributeExists<>(false, path.serialize());
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
+        //TODO: it must take Path<>
         return LogicalExpression.ComparisonToReference.<T>builder()
                 .otherFieldName(path2.serialize())
                 .fieldName(path1.serialize())
