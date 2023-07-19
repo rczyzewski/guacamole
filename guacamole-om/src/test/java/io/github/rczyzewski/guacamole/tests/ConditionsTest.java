@@ -108,7 +108,7 @@ class ConditionsTest {
         return Arguments.of(of(s, c));
     }
     private static Stream<Arguments> notMatchUnitedKingdom() {
-        CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
         return Stream.of(
                 named("when id is not defined",
                         it -> it.not(it.attributeExists(CountryRepository.AllFields.ID))),
@@ -265,7 +265,7 @@ class ConditionsTest {
     }
 
     private static Stream<Arguments> matchesUnitedKingdom() {
-        CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
         return Stream.of(
                 named("when id is defined",
                         it -> it.attributeExists(CountryRepository.AllFields.ID)),

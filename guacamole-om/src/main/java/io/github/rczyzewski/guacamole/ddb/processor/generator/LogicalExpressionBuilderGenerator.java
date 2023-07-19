@@ -63,7 +63,8 @@ public class LogicalExpressionBuilderGenerator
                 .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
                         .build())
                 .addModifiers(PUBLIC)
-                .addCode(" return new LogicalExpression.AttributeType<>(value.getDdbField(), type); \n")
+                .addCode("return null;")
+                //TODO: .addCode(" return new LogicalExpression.AttributeType<>(value.getDdbField(), type); \n")
                 .returns(returnExpressionType)
                 .build();
         queryClass.addMethod(isAttributeType);
@@ -90,7 +91,9 @@ public class LogicalExpressionBuilderGenerator
                     .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
                             .build())
                     .addModifiers(PUBLIC)
-                    .addCode("return new LogicalExpression.AttributeType<>($S, type); \n", fd.getAttribute())
+                    .addCode("return null;")
+                    //TODO: adjust .addCode("return new LogicalExpression.AttributeType<>($S, type); \n", fd.getAttribute())
+
                     .returns(returnExpressionType)
                     .build());
 

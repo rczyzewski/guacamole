@@ -22,9 +22,7 @@ public class ExpressionGenerator<T> {
         String type;
     }
     public LogicalExpression<T> isAttributeType(Path<T> path, AttributeType type){
-
-        //TODO:  AttributeType must take Path as an argument, not a string
-        return new LogicalExpression.AttributeType<>(path.serialize(), type);
+        return new LogicalExpression.AttributeType<>(path, type);
     }
 
     public LogicalExpression<T> exists(Path<T> path){
