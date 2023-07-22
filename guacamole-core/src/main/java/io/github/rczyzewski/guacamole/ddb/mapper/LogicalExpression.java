@@ -51,25 +51,27 @@ public interface LogicalExpression<T>{
     class AttributeExists<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
-        final String fieldName;
+        final Path<K> path;
         @With
-        String fieldCode;
+        Map<String, String> shortCodeAccumulator;
 
         @Override
         public String serialize(){
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
             if ( shouldExists ) {
-             return String.format("attribute_exists(%s)" , this.fieldCode);
+             return String.format("attribute_exists(%s)" , serializedPath);
 
             }
-            return String.format("attribute_not_exists(%s)" , this.fieldCode);
+            return String.format("attribute_not_exists(%s)" , serializedPath);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
 
-            String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
-            return this.withFieldCode("#" + sk);
+            return this.withShortCodeAccumulator(shortCodeAccumulator);
         }
 
         @Override
@@ -79,9 +81,12 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(fieldCode, fieldName);
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
+
     @RequiredArgsConstructor
     @AllArgsConstructor
     class AttributeType<K> implements LogicalExpression<K>{

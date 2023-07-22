@@ -41,42 +41,14 @@ public class LogicalExpressionBuilderGenerator
                                               .addModifiers(PUBLIC, FINAL, STATIC)
                                               .superclass(superInterface);
 
-        MethodSpec fieldExists = MethodSpec.methodBuilder("attributeExists")
-                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
-                        .build())
-                .addModifiers(PUBLIC)
-                .addCode("return new LogicalExpression.AttributeExists<>(true, value.getDdbField()); \n")
-                .returns(returnExpressionType)
-                .build();
-        queryClass.addMethod(fieldExists);
-        MethodSpec fieldDoesntExists = MethodSpec.methodBuilder("attributeNotExists")
-                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
-                        .build())
-                .addModifiers(PUBLIC)
-                .addCode("return new LogicalExpression.AttributeExists<>(false, value.getDdbField()); \n")
-                .returns(returnExpressionType)
-                .build();
-        queryClass.addMethod(fieldDoesntExists);
-
-       /*  MethodSpec isAttributeType = MethodSpec.methodBuilder("isAttributeType")
-                .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
-                        .build())
-                .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
-                        .build())
-                .addModifiers(PUBLIC)
-                .addCode("return null;")
-                //TODO: .addCode(" return new LogicalExpression.AttributeType<>(value.getDdbField(), type); \n")
-                .returns(returnExpressionType)
-                .build();
-        queryClass.addMethod(isAttributeType);
-      */
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
             queryClass .addMethod(
                      MethodSpec
                             .methodBuilder(fd.getName() + "Exists")
                             .addModifiers(PUBLIC)
-                             .addCode("return new LogicalExpression.AttributeExists<>(true, $S); \n", fd.getAttribute())
+                             .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                             .addCode("return new LogicalExpression.AttributeExists<>(true, path); \n", fd.getAttribute())
                             .returns(returnExpressionType)
                             .build());
 
@@ -84,7 +56,8 @@ public class LogicalExpressionBuilderGenerator
                     MethodSpec
                             .methodBuilder(fd.getName() + "NotExists")
                             .addModifiers(PUBLIC)
-                            .addCode("return new LogicalExpression.AttributeExists<>(false, $S); \n", fd.getAttribute())
+                            .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                            .addCode("return new LogicalExpression.AttributeExists<>(false, path); \n")
                             .returns(returnExpressionType)
                             .build());
 

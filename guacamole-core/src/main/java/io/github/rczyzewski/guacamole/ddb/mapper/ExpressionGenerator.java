@@ -19,17 +19,17 @@ public class ExpressionGenerator<T> {
         MAP("M"),
         OBJECT("M"),
         SET("S");
-        String type;
+        final String type;
     }
     public LogicalExpression<T> isAttributeType(Path<T> path, AttributeType type){
         return new LogicalExpression.AttributeType<>(path, type);
     }
 
     public LogicalExpression<T> exists(Path<T> path){
-        return new LogicalExpression.AttributeExists<>(true, path.serialize());
+        return new LogicalExpression.AttributeExists<>(true, path);
     }
     public LogicalExpression<T> notExists(Path<T> path){
-        return new LogicalExpression.AttributeExists<>(false, path.serialize());
+        return new LogicalExpression.AttributeExists<>(false, path);
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
         //TODO: it must take Path<>
