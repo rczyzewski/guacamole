@@ -36,8 +36,8 @@ public class MappedDeleteExpression<T, G extends ExpressionGenerator<T>>{
     }
     public DeleteItemRequest asDeleteItemRequest(){
 
-
-        Map<String, String>  shortCodeAccumulator = new HashMap<>();
+        Map<String, String> shortCodeAccumulator = new HashMap<>();
+        this.liveMappingDescription.getDict().forEach((k, v )-> shortCodeAccumulator.put(k,"#" + v.getShortCode()));
 
         Optional<LogicalExpression<T>> preparedConditionExpression =
                 Optional.ofNullable(this.condition)

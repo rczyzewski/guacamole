@@ -31,7 +31,6 @@ public class ListElement<E> implements Path<E>{
         return parent.getPartsName();
     }
 
-    /*
     @Override
     public String serializeAsPartExpression(Map<String, String> shortCodeAccumulator) {
         return Optional.of(parent)
@@ -39,5 +38,4 @@ public class ListElement<E> implements Path<E>{
                 .map(it -> it + String.format("[%s]", t))
                 .orElseThrow(() -> new IllegalArgumentException("DDB list element must be a part of the list") );
     }
-    */
 }

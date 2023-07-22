@@ -36,7 +36,6 @@ import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.Compar
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
-import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.AREA;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_MUSICIAN;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
 import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.HEAD_OF_STATE;
@@ -249,13 +248,7 @@ class ConditionsTest {
                 named("attributeType - NUMBER - using paths",
                         it -> it.and( it.isAttributeType(path.selectArea(), NUMBER),
                                 it.isAttributeType(path.selectPopulation(), STRING))),
-                named("attributeType - NUMBER - using Enums",
-                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - STRING - using fluent expressions",
+                named("[FAILING] attributeType - STRING - using fluent expressions",
                         it -> it.famousMusicianIsAttributeType(NUMBER)),
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.areaIsAttributeType(STRING)),
@@ -332,19 +325,13 @@ class ConditionsTest {
                         it-> it.notExists(path.selectHeadOfState())),
                 named("attributeExists - using paths",
                             it-> it.exists(path.selectFamousPerson()) ),
-                named("attributeType - STRING - using paths",
+                named(" attributeType - STRING - using paths",
                         it-> it.isAttributeType( path.selectFamousPerson(), STRING) ),
                 named("attributeType - NUMBER - using paths",
                         it-> it.isAttributeType( path.selectArea(), NUMBER) ),
                 named("attributeType - NUMBER - using paths",
                         it -> it.or( it.isAttributeType(path.selectArea(), NUMBER),
                                 it.isAttributeType(path.selectPopulation(), NUMBER))),
-                named("attributeType - NUMBER - using Enums",
-                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.famousMusicianIsAttributeType(STRING)),
                 named("attributeType - NUMBER - using fluent expressions",

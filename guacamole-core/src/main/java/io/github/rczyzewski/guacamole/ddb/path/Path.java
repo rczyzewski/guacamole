@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.path;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -14,12 +15,12 @@ public interface Path<K>{
                   .orElseGet(HashSet::new);
       }
 
-   //  String serializeAsPartExpression(Map<String, String> shortCodeAccumulator);
-    /* {
-        //TODO: make a ROOT path in generated class, that can produce Paths, but it's not a path itself
-        throw new RuntimeException("temporary fix");
+    default String serializeAsPartExpression(Map<String, String> shortCodeAccumulator)
+    {
+        return Optional.ofNullable(getParent())
+                .map(it -> it.serializeAsPartExpression(shortCodeAccumulator))
+                .orElseThrow(RuntimeException::new);
 
     }
-     */
 }
 

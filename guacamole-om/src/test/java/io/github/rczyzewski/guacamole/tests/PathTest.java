@@ -1,11 +1,20 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 
+@Slf4j
 class PathTest{
-    EmployeeRepository.Paths.EmployeePath pathCreator = EmployeeRepository.Paths.EmployeePath.builder().build();
+
+    EmployeeRepository.Paths.Root pathCreator = new EmployeeRepository.Paths.Root();
     @Test
     void validatingPaths(){
 
@@ -23,7 +32,6 @@ class PathTest{
 
        assertThat( pathCreator.selectDepartment().selectManager().selectEmployees().at(0).selectName().serialize())
                .isEqualTo("department.manager.employees[0].name");
-
     }
     @Test
     void validatingPathsWithATopLevelFields(){
@@ -79,7 +87,23 @@ class PathTest{
         assertThat(pathCreator.selectEmployees().at(5).selectName().serialize()).isEqualTo("employees[5].name");
     }
 
+    @Test
+    void ensureThatPathPartsAreGeneratedCorrectly(){
+        Path<Employee> path = pathCreator.selectEmployees().at(5).selectName();
 
+        Set<String> parts = path.getPartsName();
+        assertThat(parts).hasSize(2);
+        ConsecutiveIdGenerator csi = ConsecutiveIdGenerator.builder().build();
+        Map<String, String> stringMap = new HashMap<>();
+        parts.forEach(it->  stringMap.computeIfAbsent(it,$ -> csi.get()));
+
+        String dd = path.serializeAsPartExpression(stringMap);
+
+        log.info(dd);
+        log.info(stringMap.toString());
+
+
+    }
     @Test
     void selectRecursiveElement(){
         assertThat(pathCreator.selectEmployees().at(5).selectId().serialize()).isEqualTo("employees[5].id");

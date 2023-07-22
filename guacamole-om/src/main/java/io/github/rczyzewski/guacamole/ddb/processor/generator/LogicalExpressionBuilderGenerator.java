@@ -57,7 +57,8 @@ public class LogicalExpressionBuilderGenerator
                 .returns(returnExpressionType)
                 .build();
         queryClass.addMethod(fieldDoesntExists);
-        MethodSpec isAttributeType = MethodSpec.methodBuilder("isAttributeType")
+
+       /*  MethodSpec isAttributeType = MethodSpec.methodBuilder("isAttributeType")
                 .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllFields"), "value")
                         .build())
                 .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
@@ -68,7 +69,7 @@ public class LogicalExpressionBuilderGenerator
                 .returns(returnExpressionType)
                 .build();
         queryClass.addMethod(isAttributeType);
-
+      */
 
         for (FieldDescription fd : classDescription.getFieldDescriptions()) {
             queryClass .addMethod(
@@ -87,13 +88,11 @@ public class LogicalExpressionBuilderGenerator
                             .returns(returnExpressionType)
                             .build());
 
-            queryClass.addMethod( MethodSpec.methodBuilder(fd.getName() + "IsAttributeType")
-                    .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type")
-                            .build())
+            queryClass.addMethod(MethodSpec.methodBuilder(fd.getName() + "IsAttributeType")
+                    .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type").build())
                     .addModifiers(PUBLIC)
-                    .addCode("return null;")
-                    //TODO: adjust .addCode("return new LogicalExpression.AttributeType<>($S, type); \n", fd.getAttribute())
-
+                    .addCode("Path<$T> path = (new Paths.Root()).select$L();", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                    .addCode("return new LogicalExpression.AttributeType<>(path, type); \n", fd.getAttribute())
                     .returns(returnExpressionType)
                     .build());
 

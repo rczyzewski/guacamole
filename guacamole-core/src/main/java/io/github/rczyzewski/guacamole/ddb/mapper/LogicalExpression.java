@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Singular;
 import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -97,7 +96,8 @@ public interface LogicalExpression<T>{
 
         @Override
         public String serialize(){
-            return String.format("attribute_type( %s , %s )",  valueCode, valueCode );
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format("attribute_type( %s , %s )",  serializedPath, valueCode );
         }
 
         @Override
@@ -120,7 +120,7 @@ public interface LogicalExpression<T>{
         public Map<String, String> getAttributesMap(){
             Set<String> parts = path.getPartsName();
             return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 

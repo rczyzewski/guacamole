@@ -36,12 +36,16 @@ public class ListPath<E, T> implements Path<E>{
         return accumulator;
     }
 
-    /*
     @Override
     public String serializeAsPartExpression(Map<String, String> shortCodeAccumulator) {
-        return null;
+
+        String suffix = shortCodeAccumulator.get(selectedField);
+
+        return Optional.ofNullable(parent)
+                .map(it-> it.serializeAsPartExpression(shortCodeAccumulator))
+                .map(it -> it + "." + suffix)
+                .orElse(suffix);
     }
-     */
 
     public T at(int num){
         Path<E> p = ListElement.<E>builder().parent(this).t(num).build();

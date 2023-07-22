@@ -35,10 +35,12 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     {
         ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
         Map<String, String>  shortCodeAccumulator = new HashMap<>();
+        this.liveMappingDescription.getDict().forEach((k, v )-> shortCodeAccumulator.put(k,"#" + v.getShortCode()));
 
         Optional<LogicalExpression<T>> preparedConditionExpression =
                 Optional.ofNullable(this.condition)
                         .map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator));
+
 
         Map<String, AttributeValue> values = setExpressions
             .stream()
@@ -64,13 +66,13 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
                         UpdateExpression.SetExpression::getFieldDdbName));
 
-        Map<String, String> ddd = preparedConditionExpression
+        Map<String, String> attributesFromConditions = preparedConditionExpression
                 .map(LogicalExpression::getAttributesMap)
                 .orElse(Collections.emptyMap());
 
         Map<String, String> allAttributesName =
-                new  HashMap<>(attributeNames);
-                       allAttributesName.putAll(ddd);
+                new HashMap<>(attributeNames);
+        allAttributesName.putAll(attributesFromConditions);
 
 
         return UpdateItemRequest.builder()

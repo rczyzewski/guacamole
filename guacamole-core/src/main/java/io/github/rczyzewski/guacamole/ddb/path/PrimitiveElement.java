@@ -35,16 +35,13 @@ public class PrimitiveElement<E> implements Path<E>{
        return  parentSet;
     }
 
-    /*
     @Override
-    public String serializeAsPartExpression(Map shortCodeAccumulator) {
-        Map<String, String> n = shortCodeAccumulator;
-        String shortValue =(String) shortCodeAccumulator.get(selectedElement);
+    public String serializeAsPartExpression(Map<String, String> shortCodeAccumulator) {
+        String shortValue = shortCodeAccumulator.get(selectedElement);
         return Optional.ofNullable(parent)
-                .map(it -> it.serializeAsPartExpression(n))
+                .map(it -> it.serializeAsPartExpression(shortCodeAccumulator))
                 .map(it -> it + "." + shortValue)
                 .orElse(shortValue);
 
     }
-*/
 }
