@@ -402,7 +402,7 @@ class ConditionsTest {
     @SneakyThrows
     void deleteWhenConditionsAreMatching(CountryCondition condition) {
         DeleteItemRequest request = repo.delete(UNITED_KINGDOM)
-                .withCondition(condition)
+                .condition(condition)
                 .asDeleteItemRequest();
 
         ddbClient.deleteItem(request).get();
@@ -431,7 +431,7 @@ class ConditionsTest {
     @SneakyThrows
     void scanAllTheTableCheckIfOneResultIsReturned(CountryCondition condition) {
         ScanRequest request = repo.scan()
-                .withCondition(condition)
+                .condition(condition)
                 .asScanItemRequest();
         ScanResponse response = ddbClient.scan(request).get();
 
@@ -457,7 +457,7 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
                 repo.update(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asUpdateItemRequest();
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
@@ -478,7 +478,7 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         DeleteItemRequest request =
                 repo.delete(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asDeleteItemRequest();
 
         assertThatThrownBy(() -> ddbClient.deleteItem(request).get())
@@ -493,7 +493,7 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
                 repo.update(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asUpdateItemRequest();
 
         assertThatThrownBy(() -> ddbClient.updateItem(request).get())
