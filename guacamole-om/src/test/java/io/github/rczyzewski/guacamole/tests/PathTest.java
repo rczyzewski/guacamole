@@ -1,11 +1,19 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 
+@Slf4j
 class PathTest{
-    EmployeeRepository.Paths.EmployeePath pathCreator = EmployeeRepository.Paths.EmployeePath.builder().build();
+
+    EmployeeRepository.Paths.Root pathCreator = new EmployeeRepository.Paths.Root();
     @Test
     void validatingPaths(){
 
@@ -23,7 +31,6 @@ class PathTest{
 
        assertThat( pathCreator.selectDepartment().selectManager().selectEmployees().at(0).selectName().serialize())
                .isEqualTo("department.manager.employees[0].name");
-
     }
     @Test
     void validatingPathsWithATopLevelFields(){
@@ -79,6 +86,20 @@ class PathTest{
         assertThat(pathCreator.selectEmployees().at(5).selectName().serialize()).isEqualTo("employees[5].name");
     }
 
+    @Test
+    void ensureThatPathPartsAreGeneratedCorrectly(){
+        Path<Employee> path = pathCreator.selectEmployees().at(5).selectName();
+
+        Set<String> parts = path.getPartsName();
+        assertThat(parts).contains("employees", "name");
+
+        Map<String, String> stringMap = new HashMap<>();
+        stringMap.put("employees", "A");
+        stringMap.put("name", "B");
+
+        String result = path.serializeAsPartExpression(stringMap);
+        assertThat(result).isEqualTo("A[5].B");
+    }
 
     @Test
     void selectRecursiveElement(){

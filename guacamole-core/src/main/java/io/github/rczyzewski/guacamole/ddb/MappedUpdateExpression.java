@@ -1,11 +1,11 @@
 package io.github.rczyzewski.guacamole.ddb;
 
-import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
 import lombok.AllArgsConstructor;
+import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
@@ -19,6 +19,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.github.rczyzewski.guacamole.ddb.MappedExpressionUtils.prepare;
+
 
 @AllArgsConstructor
 public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
@@ -27,18 +29,14 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private final G generator;
     private final String tableName;
     private final Map<String, AttributeValue> keys;
+    @With
     private final LogicalExpression<T> condition;
     private final List<UpdateExpression.SetExpression> setExpressions;
     private final LiveMappingDescription<T> liveMappingDescription;
-
     public UpdateItemRequest asUpdateItemRequest()
     {
-        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
-        Map<String, String>  shortCodeAccumulator = new HashMap<>();
-
-        Optional<LogicalExpression<T>> preparedConditionExpression =
-                Optional.ofNullable(this.condition)
-                        .map(it -> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator));
+        Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
+                prepare(liveMappingDescription, condition);
 
         Map<String, AttributeValue> values = setExpressions
             .stream()
@@ -49,7 +47,9 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         Map<String, AttributeValue> allValues = Stream.of(values,
-                        preparedConditionExpression.map(LogicalExpression::getValuesMap).orElse(Collections.emptyMap()))
+                        preparedConditionExpression
+                                .map(MappedExpressionUtils.ResolvedExpression::getValues)
+                                .orElse(Collections.emptyMap()))
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -64,36 +64,30 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
                         UpdateExpression.SetExpression::getFieldDdbName));
 
-        Map<String, String> ddd = preparedConditionExpression
-                .map(LogicalExpression::getAttributesMap)
+        Map<String, String> attributesFromConditions = preparedConditionExpression
+                .map(MappedExpressionUtils.ResolvedExpression::getAttributes)
                 .orElse(Collections.emptyMap());
 
         Map<String, String> allAttributesName =
-                new  HashMap<>(attributeNames);
-                       allAttributesName.putAll(ddd);
+                new HashMap<>(attributeNames);
+        allAttributesName.putAll(attributesFromConditions);
 
 
         return UpdateItemRequest.builder()
-                                .key(keys)
-                                .expressionAttributeValues(allValues)
-                                .updateExpression("SET " + updateExpression)
-                                .expressionAttributeNames(allAttributesName)
-                                .conditionExpression(preparedConditionExpression.map(LogicalExpression::serialize)
-                                                                                .orElse(null))
-                                .tableName(tableName)
-                                .build();
+                .key(keys)
+                .expressionAttributeValues(allValues)
+                .updateExpression("SET " + updateExpression)
+                .expressionAttributeNames(allAttributesName)
+                .conditionExpression(preparedConditionExpression.map(MappedExpressionUtils.ResolvedExpression::getExpression)
+                        .map(LogicalExpression::serialize)
+                        .orElse(null))
+                .tableName(tableName)
+                .build();
     }
 
-    public MappedUpdateExpression<T, G> withCondition(Function<G, LogicalExpression<T>> condition)
+    public MappedUpdateExpression<T, G> condition(Function<G, LogicalExpression<T>> condition)
     {
-
-        return this.condition != null ? this : new MappedUpdateExpression<>(
-            generator,
-            this.tableName, this.keys,
-            condition.apply(generator),
-            this.setExpressions,
-            liveMappingDescription
-        );
+        return this.withCondition( condition.apply(generator));
     }
 
 }

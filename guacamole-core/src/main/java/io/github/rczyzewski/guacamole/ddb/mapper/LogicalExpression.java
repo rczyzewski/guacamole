@@ -1,18 +1,14 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
+import io.github.rczyzewski.guacamole.ddb.path.Path;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Singular;
 import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -50,25 +46,27 @@ public interface LogicalExpression<T>{
     class AttributeExists<K> implements LogicalExpression<K>{
 
         final boolean shouldExists;
-        final String fieldName;
+        final Path<K> path;
         @With
-        String fieldCode;
+        Map<String, String> shortCodeAccumulator;
 
         @Override
         public String serialize(){
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
             if ( shouldExists ) {
-             return String.format("attribute_exists(%s)" , this.fieldCode);
+             return String.format("attribute_exists(%s)" , serializedPath);
 
             }
-            return String.format("attribute_not_exists(%s)" , this.fieldCode);
+            return String.format("attribute_not_exists(%s)" , serializedPath);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
 
-            String sk = liveMappingDescription.getDict().get(fieldName).getShortCode();
-            return this.withFieldCode("#" + sk);
+            return this.withShortCodeAccumulator(shortCodeAccumulator);
         }
 
         @Override
@@ -78,40 +76,39 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(fieldCode, fieldName);
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
+
     @RequiredArgsConstructor
     @AllArgsConstructor
     class AttributeType<K> implements LogicalExpression<K>{
 
-        final String path;
+        final Path<K> path;
         final ExpressionGenerator.AttributeType type;
 
         @With
-        String fieldShortCode;
+        Map<String, String> shortCodeAccumulator;
         @With
         String valueCode;
 
         @Override
         public String serialize(){
-            return String.format("attribute_type( %s , %s )",  fieldShortCode, valueCode );
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format("attribute_type( %s , %s )",  serializedPath, valueCode );
         }
 
         @Override
-        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String, String> shortCodeAccumulator) {
-            if (liveMappingDescription.getDict().containsKey(path)) {
-                String sk = liveMappingDescription.getDict().get(path).getShortCode();
-                String vk = idGenerator.get();
-                return this.withFieldShortCode("#" + sk).withValueCode(":" + vk);
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
+                                            LiveMappingDescription<K> liveMappingDescription,
+                                            Map<String, String> shortCodeAccumulator) {
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
 
-            } else if (!shortCodeAccumulator.containsKey(path)) {
-                String kk = idGenerator.get();
-                shortCodeAccumulator.put(path, kk);
-            }
-            String sk = shortCodeAccumulator.get(path);
-            String vk = idGenerator.get();
-            return this.withFieldShortCode("#" + sk).withValueCode(":" + vk);
+            return this.withValueCode(":" + idGenerator.get())
+                    .withShortCodeAccumulator(shortCodeAccumulator);
         }
 
         @Override
@@ -121,7 +118,9 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(fieldShortCode, path);
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 
@@ -152,31 +151,31 @@ public interface LogicalExpression<T>{
     @RequiredArgsConstructor
     @AllArgsConstructor
     class ComparisonToReference<K> implements LogicalExpression<K>{
-        final String fieldName;
+        final Path<K> path;
         final ComparisonOperator operator;
-        final String otherFieldName;
+        final Path<K> otherPath;
+
         @With
-        String otherFieldCode;
-        @With
-        String fieldCode;
+        Map<String, String> shortCodeAccumulator;
+
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldCode, operator.getSymbol(),  otherFieldCode);
+
+            String path1 = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            String path2 = otherPath.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" %s %s %s", path1, operator.getSymbol(),  path2);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription,
                                             Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict()
-                    .get(fieldName)
-                    .getShortCode();
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            otherPath.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
 
-            String sk2 = liveMappingDescription.getDict()
-                    .get(otherFieldName)
-                    .getShortCode();
-
-            return this.withFieldCode("#" + sk).withOtherFieldCode("#" + sk2);
+            return this.withShortCodeAccumulator(shortCodeAccumulator);
         }
 
         @Override
@@ -186,10 +185,12 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            HashMap<String, String> returnValue = new HashMap<>();
-            returnValue.put(this.fieldCode, this.fieldName);
-            returnValue.put(this.otherFieldCode, this.otherFieldName);
-            return returnValue;
+            Set<String> parts = new HashSet<>();
+            parts.addAll(path.getPartsName());
+            parts.addAll(otherPath.getPartsName());
+
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 
@@ -197,29 +198,29 @@ public interface LogicalExpression<T>{
     @AllArgsConstructor
     @RequiredArgsConstructor
     class ComparisonToValue<K> implements LogicalExpression<K>{
-        final String fieldName;
+        final Path<K> path ;
         final ComparisonOperator operator;
         final AttributeValue dynamoDBEncodedValue;
+        @With
+        Map<String, String> shortCodeAccumulator;
 
         @With
         String shortValueCode;
 
-        @With
-        String fieldCode;
 
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldCode, operator.getSymbol(), shortValueCode);
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" %s %s %s", serializedPath, operator.getSymbol(), shortValueCode);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict()
-                                              .get(fieldName)
-                                              .getShortCode();
-            return this.withShortValueCode(":" + idGenerator.get())
-                    .withFieldCode("#" + sk);
 
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            return this.withShortCodeAccumulator(shortCodeAccumulator)
+                            .withShortValueCode(":" + idGenerator.get());
         }
 
         @Override
@@ -229,9 +230,9 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(this.fieldCode, this.fieldName);
-
-
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 

@@ -19,25 +19,22 @@ public class ExpressionGenerator<T> {
         MAP("M"),
         OBJECT("M"),
         SET("S");
-        String type;
+        final String type;
     }
     public LogicalExpression<T> isAttributeType(Path<T> path, AttributeType type){
-
-        //TODO:  AttributeType must take Path as an argument, not a string
-        return new LogicalExpression.AttributeType<>(path.serialize(), type);
+        return new LogicalExpression.AttributeType<>(path, type);
     }
 
     public LogicalExpression<T> exists(Path<T> path){
-        return new LogicalExpression.AttributeExists<>(true, path.serialize());
+        return new LogicalExpression.AttributeExists<>(true, path);
     }
     public LogicalExpression<T> notExists(Path<T> path){
-        return new LogicalExpression.AttributeExists<>(false, path.serialize());
+        return new LogicalExpression.AttributeExists<>(false, path);
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
-        //TODO: it must take Path<>
         return LogicalExpression.ComparisonToReference.<T>builder()
-                .otherFieldName(path2.serialize())
-                .fieldName(path1.serialize())
+                .otherPath(path2)
+                .path(path1)
                 .operator(op)
                 .build();
     }
@@ -61,7 +58,7 @@ public class ExpressionGenerator<T> {
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, AttributeValue value) {
         return LogicalExpression.ComparisonToValue.<T>builder()
                 .dynamoDBEncodedValue(value)
-                .fieldName(path1.serialize())
+                .path(path1)
                 .operator(op)
                 .build();
     }
@@ -69,7 +66,7 @@ public class ExpressionGenerator<T> {
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value) {
         return LogicalExpression.ComparisonToValue.<T>builder()
                 .dynamoDBEncodedValue(AttributeValue.fromS(value))
-                .fieldName(path1.serialize())
+                .path(path1)
                 .operator(op)
                 .build();
     }

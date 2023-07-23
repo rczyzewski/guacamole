@@ -12,6 +12,8 @@ public interface BaseRepository<T, G extends ExpressionGenerator<T>>
 
     MappedUpdateExpression<T, G> update(T data);
 
+    MappedScanExpression<T, G> scan();
+
     DynamoSearch getAll();
 
     CreateTableRequest createTable();

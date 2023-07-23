@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.mapper;
 
 import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
+import io.github.rczyzewski.guacamole.ddb.MappedScanExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.SetExpression;
 import lombok.Getter;
@@ -37,6 +38,10 @@ public class LiveMappingDescription<T>
     {
         Map<String, AttributeValue> keys = this.exportKeys(object);
         return new MappedDeleteExpression<>(generator, table, keys, null, this);
+    }
+    public <G extends ExpressionGenerator<T>> MappedScanExpression<T,G> generateScanExpression (G generator, String table)
+    {
+        return new MappedScanExpression<>(generator, table, null, this);
     }
 
     public <G extends ExpressionGenerator<T>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)

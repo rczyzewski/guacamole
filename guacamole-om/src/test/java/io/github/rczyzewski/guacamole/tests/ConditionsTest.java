@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.tests;
 
-import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
@@ -19,10 +18,13 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,16 +32,13 @@ import java.util.stream.Stream;
 import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.LIST;
 import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.NUMBER;
 import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.STRING;
+import static io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator.AttributeType.MAP;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.GREATER_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.LESS_OR_EQUAL;
 import static io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator.NOT_EQUAL;
-import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.AREA;
-import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_MUSICIAN;
-import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.FAMOUS_PERSON;
-import static io.github.rczyzewski.guacamole.tests.CountryRepository.AllFields.HEAD_OF_STATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Named.of;
@@ -60,8 +59,8 @@ class ConditionsTest {
     private final static String TABLE_NAME = "Countries";
 
     private final static CountryRepository repo = new CountryRepository(TABLE_NAME);
-   private final static String BRIAN_MAY = "Brian May";
-   private static final Country POLAND = Country.builder()
+    private final static String BRIAN_MAY = "Brian May";
+    private static final Country POLAND = Country.builder()
             .id("PL")
             .name("Poland")
             .fullName("Republic of Poland")
@@ -84,17 +83,23 @@ class ConditionsTest {
                     .name("London")
                     .population(9000000000L)
                     .build())
+            .regionList(Collections.singletonList(Country.Region.builder().capital(
+                            Country.Capital.builder()
+                                    .name("London")
+                                    .population(9000000000L)
+                                    .build())
+                    .name("London Greater Area")
+                    .population(2 * 9000000000L).build()))
             .build();
 
     @BeforeAll
     @SneakyThrows
-    static void beforeAll(){
-        testHelperDynamoDB.getDdbAsyncClient().createTable( repo.createTable()).get();
+    static void beforeAll() {
+        testHelperDynamoDB.getDdbAsyncClient().createTable(repo.createTable()).get();
     }
 
     @SneakyThrows
     @BeforeEach
-
     void beforeEach() {
         ddbClient.putItem(repo.create(POLAND)).get();
         ddbClient.putItem(repo.create(UNITED_KINGDOM)).get();
@@ -107,17 +112,18 @@ class ConditionsTest {
     public static Arguments named(String s, CountryCondition c) {
         return Arguments.of(of(s, c));
     }
+
     private static Stream<Arguments> notMatchUnitedKingdom() {
-        CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
         return Stream.of(
                 named("when id is not defined",
-                        it -> it.not(it.attributeExists(CountryRepository.AllFields.ID))),
+                        it -> it.not(it.idExists())),
                 named("has not a famous person",
-                        it -> it.not(it.attributeExists(FAMOUS_PERSON))),
+                        it -> it.not(it.famousPersonExists())),
                 named("has not a famous person - without ",
-                        it -> it.attributeNotExists(FAMOUS_PERSON)),
+                        CountryRepository.LogicalExpressionBuilder::famousPersonNotExists),
                 named("most famous person is not Brian May(not operator)",
-                        it -> it.not( it.compare(path.selectFamousPerson(), EQUAL, "Brian May"))),
+                        it -> it.not(it.compare(path.selectFamousPerson(), EQUAL, "Brian May"))),
                 named("most famous person is Brian May(NOT_EQUAL)",
                         it -> it.compare(path.selectFamousPerson(), NOT_EQUAL, "Brian May")),
                 named("most famous person is less famous as Brian May(LESS)",
@@ -130,37 +136,37 @@ class ConditionsTest {
                         it -> it.not(it.compare(path.selectFamousPerson(), LESS_OR_EQUAL, "Brian May"))),
                 named("has a string property setup",
                         CountryRepository.LogicalExpressionBuilder::headOfStateExists),
-                named(  "when most famous person is not a Queen guitarist",
+                named("when most famous person is not a Queen guitarist",
                         it -> it.famousPersonNotEqual("Brian May")),
-                named(  "when most famous person is not a Queen guitarist(not)",
+                named("when most famous person is not a Queen guitarist(not)",
                         it -> it.not(it.famousPersonEqual("Brian May"))),
-                named(  "when the most famous person is less famous than Brian",
-                        it -> it.famousPersonLess( "Brian May")),
-                named(  "when the most famous person is less famous than Brian(not)",
-                        it -> it.not(it.famousPersonGreaterOrEqual( "Brian May"))),
+                named("when the most famous person is less famous than Brian",
+                        it -> it.famousPersonLess("Brian May")),
+                named("when the most famous person is less famous than Brian(not)",
+                        it -> it.not(it.famousPersonGreaterOrEqual("Brian May"))),
                 named("when famous person is less famous than Brian(less)",
                         it -> it.famousPersonLess("Brian May")),
                 named("when famous person is less famous than Brian(NOT)",
                         it -> it.not(it.famousPersonGreaterOrEqual("Brian May"))),
                 named("because he is  dictator(NOT)",
-                        it -> it.not(it.famousPersonNotEqual( "Sacha Noam Baron Cohen"))),
+                        it -> it.not(it.famousPersonNotEqual("Sacha Noam Baron Cohen"))),
                 named("because he is dictator(EQUAL)",
-                        it -> it.famousPersonEqual( "Sacha Noam Baron Cohen")),
+                        it -> it.famousPersonEqual("Sacha Noam Baron Cohen")),
                 // the third way of making the same conditions
                 named("when most famous person is a Queen guitarist",
-                        it -> it.famousPersonNotEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonNotEqual(path.selectFamousMusician())),
                 named("when most famous person is a Queen guitarist",
-                        it -> it.not(it.famousPersonEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+                        it -> it.not(it.famousPersonEqual(path.selectFamousMusician()))),
 
                 named("when the most famous person is not at least as famous as Brian",
-                        it -> it.famousPersonLess(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonLess(path.selectFamousMusician())),
                 named("when the most famous person is not at least as famous as Brian",
-                        it -> it.not(it.famousPersonGreaterOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+                        it -> it.not(it.famousPersonGreaterOrEqual(path.selectFamousMusician()))),
 
                 named("when famous person is no more famous than Brian",
-                        it -> it.not(it.famousPersonLessOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN))),
+                        it -> it.not(it.famousPersonLessOrEqual(path.selectFamousMusician()))),
                 named("when famous person is no more famous than Brian",
-                        it -> it.famousPersonGreater(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonGreater(path.selectFamousMusician())),
 
                 named("there should be someone more famous than the head of state(NOT)",
                         it -> it.not(it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))),
@@ -182,101 +188,121 @@ class ConditionsTest {
                 named("compares to BrianMay(including not setup)",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectHeadOfState())),
                 named("when famous person is Brian May, (written with AND)",
-                        it -> it.and(it.famousPersonNotEqual("Brian May")) ),
+                        it -> it.and(it.famousPersonNotEqual("Brian May"))),
                 named(" when famous person is Brian May, (written with AND)",
-                        it -> it.not(it.and(it.famousPersonEqual("Brian May"))) ),
+                        it -> it.not(it.and(it.famousPersonEqual("Brian May")))),
                 named("it's not Brian May and name is United Kingdom",
-                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameEqual("United Kingdom")) ),
+                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameEqual("United Kingdom"))),
                 named("it's not Brian May and it's not United Kingdom",
-                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameNotEqual("United Kingdom")) ),
+                        it -> it.and(it.famousPersonNotEqual("Brian May"), it.nameNotEqual("United Kingdom"))),
                 named("it's not (Brian May and Untied Kingdom)",
-                        it -> it.not(it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom")) )),
+                        it -> it.not(it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom")))),
                 named("it's Brian May and not UK and not(head of state exists)",
                         it -> it.and(
                                 it.famousPersonEqual("Brian May"),
                                 it.not(it.nameEqual("United Kingdom")),
-                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
-                        ) ),
+                                it.not(it.headOfStateExists())
+                        )),
                 named(" when famous person is Brian May, (written with AND)",
-                         it -> it.not(it.or(it.famousPersonEqual("Brian May"))) ),
+                        it -> it.not(it.or(it.famousPersonEqual("Brian May")))),
                 named("it's Brian May and  UK and head of state exists",
                         it -> it.or(
                                 it.famousPersonNotEqual("Brian May"),
                                 it.nameNotEqual("United Kingdom"),
-                                it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)
-                        ) ),
+                                it.headOfStateExists()
+                        )),
                 named("(it's Brian May and  UK) or head of state exists",
                         it -> it.or(
                                 it.not(it.and(
                                         it.famousPersonEqual("Brian May"),
                                         it.nameEqual("United Kingdom"))),
-                                it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)
+                                it.headOfStateExists()
                         )),
                 named("comparing String EQUAL Integer",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1)),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, 1)),
                 named("comparing String EQUAL Long",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1L)),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, 1L)),
                 named("comparing String LESS Integer",
-                        it -> it.compare(path.selectFamousPerson(), LESS,  1)),
+                        it -> it.compare(path.selectFamousPerson(), LESS, 1)),
                 named("comparing String LESS Long",
-                        it -> it.compare(path.selectFamousPerson(), LESS,  1L)),
+                        it -> it.compare(path.selectFamousPerson(), LESS, 1L)),
                 named("comparing String EQUAL Double",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1D)),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, 1D)),
                 named("comparing String EQUAL Float",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL,  1F)),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, 1F)),
                 named("comparing String LESS Double",
-                        it -> it.compare(path.selectFamousPerson(), LESS,  1D)),
+                        it -> it.compare(path.selectFamousPerson(), LESS, 1D)),
                 named("comparing String LESS Float",
-                        it -> it.compare(path.selectFamousPerson(), LESS,  1F)),
+                        it -> it.compare(path.selectFamousPerson(), LESS, 1F)),
                 named("attributeExists - using logical expression builder",
                         CountryRepository.LogicalExpressionBuilder::headOfStateExists),
                 named("attributeExists - using enum reference",
-                        it-> it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE)),
+                        CountryRepository.LogicalExpressionBuilder::headOfStateExists),
                 named("attributeDoNotExists - using logical expression builder",
                         CountryRepository.LogicalExpressionBuilder::famousMusicianNotExists),
                 named("attributeDoNotExists - using negation and logical expression builder",
-                        it-> it.not(it.attributeExists(FAMOUS_MUSICIAN))) ,
+                        it -> it.not(it.famousMusicianExists())),
                 named("attributeDoNotExists - using 'NotExist' method from logical expression builder",
-                        it-> it.attributeNotExists(FAMOUS_MUSICIAN)),
+                        CountryRepository.LogicalExpressionBuilder::famousMusicianNotExists),
                 named("attributeDoNotExists - using paths",
-                        it-> it.exists(path.selectHeadOfState())),
-                    named("attributeExists - using paths",
-                                it-> it.notExists(path.selectFamousPerson())),
+                        it -> it.exists(path.selectHeadOfState())),
+                named("attributeExists - using paths",
+                        it -> it.notExists(path.selectFamousPerson())),
                 named("attributeType - STRING - using paths",
-                        it-> it.isAttributeType( path.selectFamousPerson(), NUMBER) ),
+                        it -> it.isAttributeType(path.selectFamousPerson(), NUMBER)),
                 named("attributeType - NUMBER - using paths",
-                        it-> it.isAttributeType( path.selectArea(), STRING) ),
+                        it -> it.isAttributeType(path.selectArea(), STRING)),
                 named("attributeType - NUMBER - using paths",
-                        it -> it.and( it.isAttributeType(path.selectArea(), NUMBER),
+                        it -> it.and(it.isAttributeType(path.selectArea(), NUMBER),
                                 it.isAttributeType(path.selectPopulation(), STRING))),
-                named("attributeType - NUMBER - using Enums",
-                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.and( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - STRING - using fluent expressions",
+                named("[FAILING] attributeType - STRING - using fluent expressions",
                         it -> it.famousMusicianIsAttributeType(NUMBER)),
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.areaIsAttributeType(STRING)),
                 named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.areaIsAttributeType(LIST))
+                        it -> it.areaIsAttributeType(LIST)),
+                named("attributeType - Map - using complex paths",
+                        it -> it.isAttributeType(path.selectCapital(), STRING)),
+                named("attributeType - String - using complex paths",
+                        it -> it.isAttributeType(path.selectCapital().selectName(), NUMBER)),
+                named("attributeType - NUMBER - using complex paths ",
+                        it -> it.isAttributeType(path.selectCapital().selectPopulation(), STRING)),
+                named("attributeType - LIST - using complex paths",
+                        it -> it.not(it.isAttributeType(path.selectRegionList(), LIST))),
+                named("attributeType - LIST element - using complex paths",
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0), MAP ))),
+                named("attributeType - MAP - using complex paths",
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP ))),
+                named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), NUMBER )),
+                named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), STRING)),
+                named("attributeType - STRING - using complex paths - with LIST",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectName(), NUMBER)),
+                named("attributeType - NUMBER - using complex paths - with LIST",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), STRING)),
+                named("attributeType - NUMBER(java Float)",
+                        it -> it.not(it.isAttributeType(path.selectArea(), NUMBER))),
+                named("attributeType - NUMBER(java Double)",
+                        it -> it.not(it.isAttributeType(path.selectDensity(), NUMBER))),
+                named("attributeType - NUMBER(java Long)",
+                        it -> it.not(it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER)))
         );
     }
 
     private static Stream<Arguments> matchesUnitedKingdom() {
-        CountryRepository.Paths.CountryPath path = CountryRepository.Paths.CountryPath.builder().build();
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
         return Stream.of(
                 named("when id is defined",
-                        it -> it.attributeExists(CountryRepository.AllFields.ID)),
+                        CountryRepository.LogicalExpressionBuilder::idExists),
                 named("when some id is defined - with fluent query",
                         CountryRepository.LogicalExpressionBuilder::idExists),
                 //String attribute exists - Enum approach
                 named("has a famous person",
-                        it -> it.attributeExists(FAMOUS_PERSON)),
+                        CountryRepository.LogicalExpressionBuilder::famousPersonExists),
                 //String to String comparison -> Path approach
                 named("most famous person is Brian May",
-                        it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY )),
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY)),
                 named("most famous person is at least as famous as Brian May",
                         it -> it.compare(path.selectFamousPerson(), GREATER_OR_EQUAL, "Brian May")),
                 named("most famous person is no more famous than Brian May",
@@ -286,92 +312,109 @@ class ConditionsTest {
                 named("has a string property setup",
                         CountryRepository.LogicalExpressionBuilder::fullNameExists),
                 //String attribute greater/equal/less
-                named(  "when most famous person is a Queen guitarist",
+                named("when most famous person is a Queen guitarist",
                         it -> it.famousPersonEqual("Brian May")),
-                named(  "when the most famous person is at least as famous as Brian",
-                        it -> it.famousPersonGreaterOrEqual( "Brian May")),
+                named("when the most famous person is at least as famous as Brian",
+                        it -> it.famousPersonGreaterOrEqual("Brian May")),
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonLessOrEqual("Brian May")),
-                 named("because he is dictator", it -> it.famousPersonNotEqual( "Sacha Noam Baron Cohen")),
+                named("because he is dictator", it -> it.famousPersonNotEqual("Sacha Noam Baron Cohen")),
                 // the third way of making the same conditions
                 named("when most famous person is a Queen guitarist",
-                        it -> it.famousPersonEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonEqual(path.selectFamousMusician())),
                 named("when the most famous person is at least as famous as Brian",
-                        it -> it.famousPersonGreaterOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonGreaterOrEqual(path.selectFamousMusician())),
                 named("when famous person is no more famous than Brian",
-                        it -> it.famousPersonLessOrEqual(CountryRepository.AllStrings.FAMOUS_MUSICIAN)),
+                        it -> it.famousPersonLessOrEqual(path.selectFamousMusician())),
                 named("there should be someone more famous than the head of state",
                         it -> it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name())),
                 named("when famous person is Brian May, (written with AND)",
-                        it -> it.and(it.famousPersonEqual("Brian May")) ),
+                        it -> it.and(it.famousPersonEqual("Brian May"))),
                 named("when famous person is Brian May, and name is United Kingdom",
-                        it -> it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom")) ),
+                        it -> it.and(it.famousPersonEqual("Brian May"), it.nameEqual("United Kingdom"))),
                 named("when famous person is Brian May, and name is United Kingdom",
                         it -> it.and(
                                 it.famousPersonEqual("Brian May"),
                                 it.nameEqual("United Kingdom"),
-                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
-                                )),
+                                it.not(it.headOfStateExists())
+                        )),
                 named("when famous person is Brian May OR name is United Kingdom OR NOT Head of State exists",
                         it -> it.or(
                                 it.famousPersonEqual("Brian May"),
                                 it.nameEqual("United Kingdom"),
-                                it.not(it.attributeExists(CountryRepository.AllFields.HEAD_OF_STATE))
+                                it.not(it.headOfStateExists())
                         )),
                 named("when famous person is Brian May OR name is United Kingdom OR NOT Head of State exists",
-                        it -> it.or( it.famousPersonEqual("Brian May"))),
+                        it -> it.or(it.famousPersonEqual("Brian May"))),
                 named("attributeExists",
                         CountryRepository.LogicalExpressionBuilder::famousPersonExists),
                 named("attributeDoNotExists",
                         CountryRepository.LogicalExpressionBuilder::headOfStateNotExists),
-                named("attributeExists - using generated enum",
-                        it -> it.attributeExists(FAMOUS_MUSICIAN)),
-                named("attributeDoNotExists - using generated enum",
-                        it-> it.attributeNotExists(HEAD_OF_STATE)),
+                named("attributeExists - using fluent expression",
+                        CountryRepository.LogicalExpressionBuilder::famousMusicianExists),
+                named("attributeDoNotExists - using fluent expression",
+                        CountryRepository.LogicalExpressionBuilder::headOfStateNotExists),
                 named("attributeDoNotExists - using paths",
-                        it-> it.notExists(path.selectHeadOfState())),
+                        it -> it.notExists(path.selectHeadOfState())),
                 named("attributeExists - using paths",
-                            it-> it.exists(path.selectFamousPerson()) ),
-                named("attributeType - STRING - using paths",
-                        it-> it.isAttributeType( path.selectFamousPerson(), STRING) ),
+                        it -> it.exists(path.selectFamousPerson())),
+                named(" attributeType - STRING - using paths",
+                        it -> it.isAttributeType(path.selectFamousPerson(), STRING)),
                 named("attributeType - NUMBER - using paths",
-                        it-> it.isAttributeType( path.selectArea(), NUMBER) ),
+                        it -> it.isAttributeType(path.selectArea(), NUMBER)),
                 named("attributeType - NUMBER - using paths",
-                        it -> it.or( it.isAttributeType(path.selectArea(), NUMBER),
+                        it -> it.or(it.isAttributeType(path.selectArea(), NUMBER),
                                 it.isAttributeType(path.selectPopulation(), NUMBER))),
-                named("attributeType - NUMBER - using Enums",
-                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
-                named("attributeType - NUMBER - using fluent expressions",
-                        it -> it.or( it.isAttributeType(FAMOUS_MUSICIAN, NUMBER),
-                                it.isAttributeType(AREA, NUMBER))),
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.famousMusicianIsAttributeType(STRING)),
                 named("attributeType - NUMBER - using fluent expressions",
                         it -> it.areaIsAttributeType(NUMBER)),
                 named("attributeType - NUMBER - using paths - duplicated",
                         it -> it.or(
-                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
-                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER)
+                                it.isAttributeType(path.selectArea(), NUMBER),
+                                it.isAttributeType(path.selectArea(), NUMBER)
                         )),
                 named("attributeType - NUMBER - using paths - duplicated",
                         it -> it.and(
-                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER),
-                                it.isAttributeType(path.selectArea(), ExpressionGenerator.AttributeType.NUMBER)
-                        ))
-                /* Path parts should go to Attribute Map as a separate elements
-                named("attributeType - NUMBER - using complex paths",
-                        it -> it.isAttributeType(path.selectCapital(), ExpressionGenerator.AttributeType.MAP))
-                 */
+                                it.isAttributeType(path.selectArea(), NUMBER),
+                                it.isAttributeType(path.selectArea(), NUMBER)
+                        )),
+                named("attributeType - Map - using complex paths",
+                        it -> it.isAttributeType(path.selectCapital(), MAP)),
+                named("attributeType - String - using complex paths",
+                        it -> it.isAttributeType(path.selectCapital().selectName(), STRING)),
+                named("attributeType - NUMBER - using complex paths ",
+                        it -> it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER)),
+                named("attributeType - LIST - using complex paths",
+                        it -> it.isAttributeType(path.selectRegionList(), LIST)),
+                named("attributeType - LIST element - using complex paths",
+                        it -> it.isAttributeType(path.selectRegionList().at(0), MAP )),
+                named("attributeType - MAP - using complex paths",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP )),
+                named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), STRING )),
+                named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), NUMBER)),
+                named("attributeType - STRING - using complex paths - with LIST",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectName(), STRING)),
+                named("attributeType - NUMBER - using complex paths - with LIST",
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), NUMBER)),
+                named("attributeType - NUMBER(java Float)",
+                        it -> it.isAttributeType(path.selectArea(), NUMBER)),
+                named("attributeType - NUMBER(java Double)",
+                        it -> it.isAttributeType(path.selectDensity(), NUMBER)),
+                named("attributeType - NUMBER(java Long)",
+                        it -> it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER))
         );
     }
+
     @ParameterizedTest
     @MethodSource("matchesUnitedKingdom")
     @DisplayName("Delete happens only when conditions are matching")
     @SneakyThrows
     void deleteWhenConditionsAreMatching(CountryCondition condition) {
         DeleteItemRequest request = repo.delete(UNITED_KINGDOM)
-                .withCondition(condition)
+                .condition(condition)
                 .asDeleteItemRequest();
 
         ddbClient.deleteItem(request).get();
@@ -379,6 +422,42 @@ class ConditionsTest {
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
                 .build()).get();
         assertThat(response.items()).hasSize(1);
+
+    }
+    private static Stream<Arguments> matchesOnlyUnitedKingdom() {
+
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        return Stream.of(
+                named("do have a famous musician",
+                        CountryRepository.LogicalExpressionBuilder::famousMusicianExists),
+                named("most famous person is Brian May",
+                        it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY)),
+                named("capitol of the first region name is London",
+                        it -> it.compare(path.selectRegionList().at(0).selectCapital().selectName(), EQUAL, "London")));
+
+    }
+
+    @ParameterizedTest
+    @MethodSource("matchesOnlyUnitedKingdom")
+    @DisplayName("Scan whole table and filter results on ddb side")
+    @SneakyThrows
+    void scanAllTheTableCheckIfOneResultIsReturned(CountryCondition condition) {
+        ScanRequest request = repo.scan()
+                .condition(condition)
+                .asScanItemRequest();
+        ScanResponse response = ddbClient.scan(request).get();
+
+        assertThat(response.items()).hasSize(1);
+
+        Country uk = ddbClient.scan(request)
+                .get()
+                .items()
+                .stream()
+                .map(CountryRepository.COUNTRY::transform)
+                .findFirst()
+                .orElseThrow(NoSuchElementException::new);
+
+        assertThat(uk).isEqualTo(UNITED_KINGDOM);
 
     }
 
@@ -390,7 +469,7 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
                 repo.update(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asUpdateItemRequest();
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
@@ -402,6 +481,7 @@ class ConditionsTest {
         assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
         assertThat(poland).isEqualTo(POLAND);
     }
+
     @ParameterizedTest
     @MethodSource("notMatchUnitedKingdom")
     @DisplayName("Delete does not happen when conditions are not matching")
@@ -410,12 +490,13 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         DeleteItemRequest request =
                 repo.delete(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asDeleteItemRequest();
 
         assertThatThrownBy(() -> ddbClient.deleteItem(request).get())
                 .hasCauseInstanceOf(ConditionalCheckFailedException.class);
     }
+
     @ParameterizedTest
     @MethodSource("notMatchUnitedKingdom")
     @DisplayName("Update does not happen when conditions are not matching")
@@ -424,7 +505,7 @@ class ConditionsTest {
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
         UpdateItemRequest request =
                 repo.update(updatedUnitedKingdom)
-                        .withCondition(condition)
+                        .condition(condition)
                         .asUpdateItemRequest();
 
         assertThatThrownBy(() -> ddbClient.updateItem(request).get())
