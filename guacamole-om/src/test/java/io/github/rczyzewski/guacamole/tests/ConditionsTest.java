@@ -280,7 +280,13 @@ class ConditionsTest {
                 named("attributeType - STRING - using complex paths - with LIST",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectName(), NUMBER)),
                 named("attributeType - NUMBER - using complex paths - with LIST",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), STRING))
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), STRING)),
+                named("attributeType - NUMBER(java Float)",
+                        it -> it.not(it.isAttributeType(path.selectArea(), NUMBER))),
+                named("attributeType - NUMBER(java Double)",
+                        it -> it.not(it.isAttributeType(path.selectDensity(), NUMBER))),
+                named("attributeType - NUMBER(java Long)",
+                        it -> it.not(it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER)))
         );
     }
 
@@ -392,7 +398,13 @@ class ConditionsTest {
                 named("attributeType - STRING - using complex paths - with LIST",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectName(), STRING)),
                 named("attributeType - NUMBER - using complex paths - with LIST",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), NUMBER))
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectPopulation(), NUMBER)),
+                named("attributeType - NUMBER(java Float)",
+                        it -> it.isAttributeType(path.selectArea(), NUMBER)),
+                named("attributeType - NUMBER(java Double)",
+                        it -> it.isAttributeType(path.selectDensity(), NUMBER)),
+                named("attributeType - NUMBER(java Long)",
+                        it -> it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER))
         );
     }
 

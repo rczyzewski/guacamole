@@ -14,6 +14,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
@@ -97,11 +98,8 @@ public class LogicalExpressionBuilderGenerator
                           )
                       .forEach(queryClass::addMethod);
 
-            } else if (fd.getDdbType() == DDBType.INTEGER ||
-                    fd.getDdbType() == DDBType.DOUBLE ||
-                    fd.getDdbType() == DDBType.FLOAT ||
-                    fd.getDdbType() == DDBType.LONG
-            )  {
+            } else if (Objects.equals(fd.getDdbType().getSymbol(), "n"))  {
+
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
                               .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
@@ -129,9 +127,7 @@ public class LogicalExpressionBuilderGenerator
                           )
                       .forEach(queryClass::addMethod);
             }
-
         }
-
         return queryClass.build();
     }
 }
