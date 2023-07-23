@@ -8,12 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -156,31 +151,31 @@ public interface LogicalExpression<T>{
     @RequiredArgsConstructor
     @AllArgsConstructor
     class ComparisonToReference<K> implements LogicalExpression<K>{
-        final String fieldName;
+        final Path<K> path;
         final ComparisonOperator operator;
-        final String otherFieldName;
+        final Path<K> otherPath;
+
         @With
-        String otherFieldCode;
-        @With
-        String fieldCode;
+        Map<String, String> shortCodeAccumulator;
+
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldCode, operator.getSymbol(),  otherFieldCode);
+
+            String path1 = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            String path2 = otherPath.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" %s %s %s", path1, operator.getSymbol(),  path2);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator,
                                             LiveMappingDescription<K> liveMappingDescription,
                                             Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict()
-                    .get(fieldName)
-                    .getShortCode();
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            otherPath.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
 
-            String sk2 = liveMappingDescription.getDict()
-                    .get(otherFieldName)
-                    .getShortCode();
-
-            return this.withFieldCode("#" + sk).withOtherFieldCode("#" + sk2);
+            return this.withShortCodeAccumulator(shortCodeAccumulator);
         }
 
         @Override
@@ -190,10 +185,12 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            HashMap<String, String> returnValue = new HashMap<>();
-            returnValue.put(this.fieldCode, this.fieldName);
-            returnValue.put(this.otherFieldCode, this.otherFieldName);
-            return returnValue;
+            Set<String> parts = new HashSet<>();
+            parts.addAll(path.getPartsName());
+            parts.addAll(otherPath.getPartsName());
+
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 

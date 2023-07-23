@@ -7,6 +7,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
@@ -34,8 +35,9 @@ public class LogicalExpressionBuilderGenerator
 
         ParameterizedTypeName returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
                                                        baseBean);
+        ParameterizedTypeName pathOfBean  = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
 
-        ParameterizedTypeName superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
+                ParameterizedTypeName superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
                                                        baseBean);
 
         TypeSpec.Builder queryClass = TypeSpec.classBuilder(customSearchAF)
@@ -88,11 +90,11 @@ public class LogicalExpressionBuilderGenerator
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
                               .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
-                              .addParameter(ParameterSpec.builder(ClassName.bestGuess("AllStrings"), "value")
-                                                         .build())
+                              .addParameter(ParameterSpec.builder(pathOfBean, "referencePath").build())
                               .addModifiers(PUBLIC)
-                              .addCode("return new LogicalExpression.ComparisonToReference<>($S,  $T.$L, value.getDdbField());\n",
-                                       fd.getAttribute(), LogicalExpression.ComparisonOperator.class, it)
+                              .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                              .addCode("return new LogicalExpression.ComparisonToReference<>(path,  $T.$L, referencePath);\n",
+                                        LogicalExpression.ComparisonOperator.class, it)
                               .returns(returnExpressionType)
                               .build()
                           )
@@ -117,11 +119,11 @@ public class LogicalExpressionBuilderGenerator
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
                               .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
-                              .addParameter(ParameterSpec.builder(ClassName.bestGuess("FieldAllNumbers"), "value")
-                                                         .build())
+                              .addParameter(ParameterSpec.builder(pathOfBean, "referencePath").build())
                               .addModifiers(PUBLIC)
-                              .addCode("return new LogicalExpression.ComparisonToReference<>($S,  $T.$L, value.getDdbField());\n",
-                                       fd.getAttribute(), LogicalExpression.ComparisonOperator.class, it)
+                              .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                              .addCode("return new LogicalExpression.ComparisonToReference<>(path,  $T.$L, referencePath);\n",
+                                       LogicalExpression.ComparisonOperator.class, it)
                               .returns(returnExpressionType)
                               .build()
                           )

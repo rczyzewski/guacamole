@@ -32,10 +32,9 @@ public class ExpressionGenerator<T> {
         return new LogicalExpression.AttributeExists<>(false, path);
     }
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, Path<T> path2) {
-        //TODO: it must take Path<>
         return LogicalExpression.ComparisonToReference.<T>builder()
-                .otherFieldName(path2.serialize())
-                .fieldName(path1.serialize())
+                .otherPath(path2)
+                .path(path1)
                 .operator(op)
                 .build();
     }
