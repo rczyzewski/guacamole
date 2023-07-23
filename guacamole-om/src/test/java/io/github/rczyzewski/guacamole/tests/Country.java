@@ -9,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.With;
 
+import java.util.List;
+
 @Value
 @Builder
 @DynamoDBTable
@@ -28,8 +30,8 @@ class Country {
     Float area;
     @EqualsAndHashCode.Exclude
     Double density;
-
     Capital capital;
+    List<Region> regionList;
     @With
     @Value
     @Builder
@@ -37,5 +39,14 @@ class Country {
     public static class Capital{
         String name;
         Long  population;
+    }
+    @With
+    @Value
+    @Builder
+    @DynamoDBDocument
+    public static class Region{
+        String name;
+        Long  population;
+        Capital capital;
     }
 }

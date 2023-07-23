@@ -3,6 +3,7 @@ package io.github.rczyzewski.guacamole.ddb.processor;
 import com.google.auto.service.AutoService;
 import io.github.rczyzewski.guacamole.ddb.BaseRepository;
 import io.github.rczyzewski.guacamole.ddb.DynamoSearch;
+import io.github.rczyzewski.guacamole.ddb.MappedScanExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
@@ -219,6 +220,18 @@ public class DynamoDBProcessor extends AbstractProcessor
                                         .add(".build();\n")
                                         .build())
                         .returns(DynamoSearch.class)
+                        .build())
+                .addMethod(MethodSpec.methodBuilder("scan")
+                        .addModifiers(PUBLIC)
+                        .addAnnotation(Override.class)
+                        .addCode(CodeBlock.builder()
+                                .indent()
+                                .add("$T gen = new $T() ;  \n" , updateClazzName, updateClazzName)
+                                .add("return $L.generateScanExpression(gen, this.tableName);", mainMapperName)
+                                .unindent()
+                                .build())
+                        .returns(ParameterizedTypeName.get(ClassName.get(MappedScanExpression.class),clazz,
+                                updateClazzName))
                         .build())
             .addMethod(MethodSpec.methodBuilder("delete")
                            .addModifiers(PUBLIC)
