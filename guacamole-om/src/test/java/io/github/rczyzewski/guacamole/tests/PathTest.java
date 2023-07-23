@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.tests;
 
-import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.path.Path;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -92,18 +91,16 @@ class PathTest{
         Path<Employee> path = pathCreator.selectEmployees().at(5).selectName();
 
         Set<String> parts = path.getPartsName();
-        assertThat(parts).hasSize(2);
-        ConsecutiveIdGenerator csi = ConsecutiveIdGenerator.builder().build();
+        assertThat(parts).contains("employees", "name");
+
         Map<String, String> stringMap = new HashMap<>();
-        parts.forEach(it->  stringMap.computeIfAbsent(it,$ -> csi.get()));
+        stringMap.put("employees", "A");
+        stringMap.put("name", "B");
 
-        String dd = path.serializeAsPartExpression(stringMap);
-
-        log.info(dd);
-        log.info(stringMap.toString());
-
-
+        String result = path.serializeAsPartExpression(stringMap);
+        assertThat(result).isEqualTo("A[5].B");
     }
+
     @Test
     void selectRecursiveElement(){
         assertThat(pathCreator.selectEmployees().at(5).selectId().serialize()).isEqualTo("employees[5].id");
