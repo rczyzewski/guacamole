@@ -76,8 +76,9 @@ public class LogicalExpressionBuilderGenerator
                               .addParameter(String.class, "value")
                               .addModifiers(PUBLIC)
                               .addCode("AttributeValue av =  AttributeValue.fromS(value);\n")
-                              .addCode("return new LogicalExpression.ComparisonToValue<>($S,  $T.$L, av);\n",
-                                       fd.getAttribute(), LogicalExpression.ComparisonOperator.class, it)
+                              .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                              .addCode("return new LogicalExpression.ComparisonToValue<>(path,  $T.$L, av);\n",
+                                        LogicalExpression.ComparisonOperator.class, it)
                               .returns(returnExpressionType)
                               .build()
                           )
@@ -95,16 +96,21 @@ public class LogicalExpressionBuilderGenerator
                               .build()
                           )
                       .forEach(queryClass::addMethod);
-            } else if (fd.getDdbType() == DDBType.INTEGER) {
 
+            } else if (fd.getDdbType() == DDBType.INTEGER ||
+                    fd.getDdbType() == DDBType.DOUBLE ||
+                    fd.getDdbType() == DDBType.FLOAT ||
+                    fd.getDdbType() == DDBType.LONG
+            )  {
                 Arrays.stream(LogicalExpression.ComparisonOperator.values())
                       .map(it -> MethodSpec
                               .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
                               .addParameter(Integer.class, "value")
                               .addModifiers(PUBLIC)
-                              .addCode("AttributeValue av =  AttributeValue.fromN(Integer.toString(value));\n")
-                              .addCode("return new LogicalExpression.ComparisonToValue<>($S,  $T.$L, av);\n",
-                                       fd.getAttribute(), LogicalExpression.ComparisonOperator.class, it)
+                              .addCode("AttributeValue av =  AttributeValue.fromN($T.toString(value));\n", fd.getDdbType().getClazz())
+                              .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                              .addCode("return new LogicalExpression.ComparisonToValue<>(path,  $T.$L, av);\n",
+                                        LogicalExpression.ComparisonOperator.class, it)
                               .returns(returnExpressionType)
                               .build()
                           )
@@ -122,8 +128,6 @@ public class LogicalExpressionBuilderGenerator
                               .build()
                           )
                       .forEach(queryClass::addMethod);
-
-
             }
 
         }
@@ -131,3 +135,4 @@ public class LogicalExpressionBuilderGenerator
         return queryClass.build();
     }
 }
+

@@ -59,7 +59,7 @@ public class ExpressionGenerator<T> {
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, AttributeValue value) {
         return LogicalExpression.ComparisonToValue.<T>builder()
                 .dynamoDBEncodedValue(value)
-                .fieldName(path1.serialize())
+                .path(path1)
                 .operator(op)
                 .build();
     }
@@ -67,7 +67,7 @@ public class ExpressionGenerator<T> {
     public LogicalExpression<T> compare(Path<T> path1, LogicalExpression.ComparisonOperator op, String value) {
         return LogicalExpression.ComparisonToValue.<T>builder()
                 .dynamoDBEncodedValue(AttributeValue.fromS(value))
-                .fieldName(path1.serialize())
+                .path(path1)
                 .operator(op)
                 .build();
     }

@@ -201,29 +201,29 @@ public interface LogicalExpression<T>{
     @AllArgsConstructor
     @RequiredArgsConstructor
     class ComparisonToValue<K> implements LogicalExpression<K>{
-        final String fieldName;
+        final Path<K> path ;
         final ComparisonOperator operator;
         final AttributeValue dynamoDBEncodedValue;
+        @With
+        Map<String, String> shortCodeAccumulator;
 
         @With
         String shortValueCode;
 
-        @With
-        String fieldCode;
 
         @Override
         public String serialize(){
-            return String.format(" %s %s %s", fieldCode, operator.getSymbol(), shortValueCode);
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" %s %s %s", serializedPath, operator.getSymbol(), shortValueCode);
         }
 
         @Override
         public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
-            String sk = liveMappingDescription.getDict()
-                                              .get(fieldName)
-                                              .getShortCode();
-            return this.withShortValueCode(":" + idGenerator.get())
-                    .withFieldCode("#" + sk);
 
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            return this.withShortCodeAccumulator(shortCodeAccumulator)
+                            .withShortValueCode(":" + idGenerator.get());
         }
 
         @Override
@@ -233,9 +233,9 @@ public interface LogicalExpression<T>{
 
         @Override
         public Map<String, String> getAttributesMap(){
-            return Collections.singletonMap(this.fieldCode, this.fieldName);
-
-
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }
     }
 
