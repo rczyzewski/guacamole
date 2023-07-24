@@ -4,8 +4,8 @@ import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
-import lombok.AllArgsConstructor;
-import lombok.With;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+import lombok.*;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
@@ -22,6 +22,9 @@ import java.util.stream.Stream;
 import static io.github.rczyzewski.guacamole.ddb.MappedExpressionUtils.prepare;
 
 
+
+@Builder(toBuilder = true)
+@RequiredArgsConstructor
 @AllArgsConstructor
 public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 {
@@ -32,6 +35,16 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     @With
     private final LogicalExpression<T> condition;
     private final List<UpdateExpression.SetExpression> setExpressions;
+
+    @Singular(value="set")
+    private  Map<Path<T> , AttributeValue> extraSetExpressions;
+    @Singular(value="add")
+    private  Map<Path<T> , AttributeValue> addExpressions;
+    @Singular(value="remove")
+    private  List<Path<T>> remove;
+    @Singular(value="delete")
+    private  Map<Path<T>, UpdateExpression.AssignableValue> deleteExpressions;
+
     private final LiveMappingDescription<T> liveMappingDescription;
     public UpdateItemRequest asUpdateItemRequest()
     {

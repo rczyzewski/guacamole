@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -16,11 +17,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
-import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.Collections;
 import java.util.Map;
@@ -408,6 +405,35 @@ class ConditionsTest {
         );
     }
 
+    @Test
+    @SneakyThrows
+    void testRemovalOfAttribute(){
+        //TODO: make it better API, much better
+
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+
+        UpdateItemRequest request =
+                repo.update(updatedUnitedKingdom)
+                        .toBuilder()
+                        .remove(path.selectFullName()) // There will be
+                        //.delete(path.selectFamousPerson()) TODO: need to make set suported first
+                        .set(path.selectRegionList().at(0).selectName(), AttributeValue.fromS("Londek"))
+                        .add(path.selectPopulation(), AttributeValue.fromN("43"))
+                        .build()
+                        .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
+        assertThat(poland).isEqualTo(POLAND);
+
+    }
     @ParameterizedTest
     @MethodSource("matchesUnitedKingdom")
     @DisplayName("Delete happens only when conditions are matching")
