@@ -26,7 +26,6 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private final Map<String, AttributeValue> keys;
     @With
     private final LogicalExpression<T> condition;
-    //private final List<UpdateExpression.SetExpression> setExpressions;
 
     @Builder.Default
     private  final List<UpdateStatement<T>> extraSetExpressions = new ArrayList<>();
@@ -49,7 +48,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     }
     @Builder
     @With
-    public final static class UpdateStatement<T>{
+    public static final  class UpdateStatement<T>{
        Path<T>  path;
         RczSetExpression<T> value;
         @Builder.Default
@@ -57,6 +56,17 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
         public String serialize(Map<String,String > shortCodeAccumulator) {
             return path.serializeAsPartExpression(shortCodeAccumulator) + " = " + value.serialize();
+        }
+         Map<String, String> getAttributes(Map<String, String> shortCodeAccumulator){
+
+             Set<String> parts = path.getPartsName();
+             Map<String, String> fromPath = shortCodeAccumulator.entrySet().stream().filter(it -> parts.contains(it.getKey()))
+                     .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+
+           return Stream.of(fromPath, value.getAttributes())
+                    .map(Map::entrySet)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
     }
 
@@ -85,8 +95,11 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
 
 
-        Map<String, String> attributes = shortCodeAccumulator.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        Map<String, String> attributes = preparedExpessions.stream()
+                        .map(it->it.getAttributes(shortCodeAccumulator))
+                        .map(Map::entrySet)
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b)-> a));
 
         Map<String, String> attributesFromConditions = preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getAttributes)
@@ -101,7 +114,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
         Map<String, AttributeValue> ddd = preparedExpessions.stream()
                 .map(it -> it.value)
-                .map(RczSetExpression::getAttributes)
+                .map(RczSetExpression::getValues)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -123,7 +136,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
         return UpdateItemRequest.builder()
                 .key(keys)
-                .expressionAttributeValues(toatlnieAllValues)
+                .expressionAttributeValues(toatlnieAllValues.isEmpty() ? null : toatlnieAllValues)
           .updateExpression("SET " + setExpr)
                .expressionAttributeNames(totalAttributesAll)
                 .conditionExpression(preparedConditionExpression.map(MappedExpressionUtils.ResolvedExpression::getExpression)
@@ -169,7 +182,10 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
             throw new RuntimeException("Need to figure it out.");
         }
 
-        default Map<String, AttributeValue> getAttributes(){
+        default Map<String, AttributeValue> getValues(){
+            return Collections.emptyMap();
+        }
+        default Map<String, String> getAttributes(){
             return Collections.emptyMap();
         }
         RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
@@ -189,7 +205,8 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         @With
         Map<String, AttributeValue> shortCodeValueAcumulator;
 
-        public Map<String, AttributeValue> getAttributes(){
+        @Override
+        public Map<String, AttributeValue> getValues(){
             return Collections.singletonMap(shortCodeValue, shortCodeValueAcumulator.get(shortCodeValue));
         }
         @Override
