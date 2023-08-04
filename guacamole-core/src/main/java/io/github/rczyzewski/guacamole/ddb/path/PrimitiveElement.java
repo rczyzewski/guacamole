@@ -12,7 +12,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @Getter
-public class PrimitiveElement<E> implements Path<E>{
+public class PrimitiveElement<E, T> implements TypedPath<E, T>{
     Path<E> parent;
     String selectedElement;
 

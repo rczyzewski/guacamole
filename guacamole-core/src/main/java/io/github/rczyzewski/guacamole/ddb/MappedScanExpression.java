@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
@@ -9,6 +10,7 @@ import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 import software.amazon.awssdk.services.dynamodb.model.Select;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,7 +33,11 @@ public class MappedScanExpression<T, G extends ExpressionGenerator<T>>{
 
     public ScanRequest asScanItemRequest() {
 
-        Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression = prepare(liveMappingDescription, condition);
+        ConsecutiveIdGenerator cid = ConsecutiveIdGenerator.builder().build();
+
+        Map<String, String> shortCodeAccumulator = new HashMap<>();
+        Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
+                prepare(liveMappingDescription, condition, cid, shortCodeAccumulator);
 
         Map<String, String> allAttributeNames = preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getAttributes)

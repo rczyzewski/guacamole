@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.ddb;
 
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
@@ -9,6 +10,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -31,8 +33,10 @@ public class MappedDeleteExpression<T, G extends ExpressionGenerator<T>>{
 
     public DeleteItemRequest asDeleteItemRequest() {
 
+        ConsecutiveIdGenerator cid = ConsecutiveIdGenerator.builder().build();
+        Map<String, String> accumulator = new HashMap<>();
         Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
-                prepare(liveMappingDescription, condition);
+                prepare(liveMappingDescription, condition, cid, accumulator);
 
         Map<String, AttributeValue> allValues =
                         preparedConditionExpression

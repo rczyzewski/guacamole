@@ -407,21 +407,27 @@ class ConditionsTest {
 
     @Test
     @SneakyThrows
-    void testRemovalOfAttribute(){
-        //TODO: make it better API, much better
+    void tesOfSettingAttribute(){
 
-        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III");
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
+                .withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
+                .withFamousPerson("OtherKindOfMagic")
+                .withArea(UNITED_KINGDOM.getPopulation().floatValue() + 42F);
+
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
 
         UpdateItemRequest request =
-                repo.update(updatedUnitedKingdom)
-                        .toBuilder()
-                        .remove(path.selectFullName()) // There will be
-                        //.delete(path.selectFamousPerson()) TODO: need to make set suported first
-                        .set(path.selectRegionList().at(0).selectName(), AttributeValue.fromS("Londek"))
-                        .add(path.selectPopulation(), AttributeValue.fromN("43"))
-                        .build()
+                repo.update(UNITED_KINGDOM)
+                        .set(path.selectHeadOfState(), it->it.just("Charles III"))
+                        .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
+                        .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
+                        .set(path.selectArea(),
+                                it -> it.plus(
+                                        it.just(path.selectPopulation()),
+                                        it.just(AttributeValue.fromN("42"))))
                         .asUpdateItemRequest();
+
+
 
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
@@ -497,7 +503,9 @@ class ConditionsTest {
                 repo.update(updatedUnitedKingdom)
                         .condition(condition)
                         .asUpdateItemRequest();
+
         ddbClient.updateItem(request).get();
+
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
                 .build()).get();
         Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)

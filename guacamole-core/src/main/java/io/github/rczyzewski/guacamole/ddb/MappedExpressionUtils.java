@@ -3,24 +3,23 @@ package io.github.rczyzewski.guacamole.ddb;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
 import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.UtilityClass;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class MappedExpressionUtils {
 
-
     public static <T> Optional<ResolvedExpression<T>> prepare(
             LiveMappingDescription<T> liveMappingDescription,
-            LogicalExpression<T> condition){
-        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDE").build();
-        Map<String, String> shortCodeAccumulator = new HashMap<>();
+            LogicalExpression<T> condition, ConsecutiveIdGenerator idGenerator, Map<String, String > shortCodeAccumulator) {
+
+
         liveMappingDescription.getDict().forEach((k, v )-> shortCodeAccumulator.put(k,"#" + v.getShortCode()));
 
 

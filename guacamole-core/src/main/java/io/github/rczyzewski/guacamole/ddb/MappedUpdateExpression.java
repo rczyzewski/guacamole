@@ -1,20 +1,12 @@
 package io.github.rczyzewski.guacamole.ddb;
 
-import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
-import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
-import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
-import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression;
+import io.github.rczyzewski.guacamole.ddb.mapper.*;
 import io.github.rczyzewski.guacamole.ddb.path.Path;
 import lombok.*;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,63 +26,106 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private final Map<String, AttributeValue> keys;
     @With
     private final LogicalExpression<T> condition;
-    private final List<UpdateExpression.SetExpression> setExpressions;
+    //private final List<UpdateExpression.SetExpression> setExpressions;
 
-    @Singular(value="set")
-    private  Map<Path<T> , AttributeValue> extraSetExpressions;
+    @Builder.Default
+    private  final List<UpdateStatement<T>> extraSetExpressions = new ArrayList<>();
     @Singular(value="add")
     private  Map<Path<T> , AttributeValue> addExpressions;
     @Singular(value="remove")
     private  List<Path<T>> remove;
     @Singular(value="delete")
-    private  Map<Path<T>, UpdateExpression.AssignableValue> deleteExpressions;
+    private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
+
+    public MappedUpdateExpression<T, G> set(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
+        RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<T>();
+
+        extraSetExpressions.add(UpdateStatement.<T>builder()
+                .path(path)
+                .onlyIfExists(false)
+                .value(expr.apply(eg))
+                .build());
+        return this;
+    }
+    @Builder
+    @With
+    public final static class UpdateStatement<T>{
+       Path<T>  path;
+        RczSetExpression<T> value;
+        @Builder.Default
+        Boolean onlyIfExists = false;
+
+        public String serialize(Map<String,String > shortCodeAccumulator) {
+            return path.serializeAsPartExpression(shortCodeAccumulator) + " = " + value.serialize();
+        }
+    }
 
     private final LiveMappingDescription<T> liveMappingDescription;
     public UpdateItemRequest asUpdateItemRequest()
     {
+        ConsecutiveIdGenerator idGenerator = ConsecutiveIdGenerator.builder().base("ABCDEFGH").build();
+
+        Map<String, String> shortCodeAccumulator = new HashMap<>();
+        Map<String, AttributeValue> shortCodeValueAccumulator = new HashMap<>();
+
         Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
-                prepare(liveMappingDescription, condition);
+                prepare(liveMappingDescription, condition, idGenerator, shortCodeAccumulator);
 
-        Map<String, AttributeValue> values = setExpressions
-            .stream()
-            .map(UpdateExpression.SetExpression::getValue)
-            .map(UpdateExpression.ConstantValue::getValues)
-            .map(Map::entrySet)
-            .flatMap(Collection::stream)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        Map<String, AttributeValue> allValues = Stream.of(values,
-                        preparedConditionExpression
-                                .map(MappedExpressionUtils.ResolvedExpression::getValues)
-                                .orElse(Collections.emptyMap()))
-                .map(Map::entrySet)
+
+        extraSetExpressions.stream()
+                .map(it -> it.path)
+                .map(Path::getPartsName)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .forEach(it -> shortCodeAccumulator.computeIfAbsent(it, ignored -> "#"+ idGenerator.get()));
 
-        String updateExpression = setExpressions.stream()
-                .map(it -> String.format(" #%s = %s", it.getFieldCode(),
-                        it.getValue().serialize()))
-                .collect(Collectors.joining(","));
+        List<UpdateStatement<T>> preparedExpessions = extraSetExpressions.stream()
+                .map(it -> it.withValue(it.value.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator)))
+                .collect(Collectors.toList());
 
-        Map<String, String> attributeNames =
-                setExpressions
-                .stream().collect(Collectors.toMap(it -> "#" + it.getFieldCode(),
-                        UpdateExpression.SetExpression::getFieldDdbName));
+
+
+        Map<String, String> attributes = shortCodeAccumulator.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
 
         Map<String, String> attributesFromConditions = preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getAttributes)
                 .orElse(Collections.emptyMap());
 
-        Map<String, String> allAttributesName =
-                new HashMap<>(attributeNames);
-        allAttributesName.putAll(attributesFromConditions);
+        Map<String, String> totalAttributesAll = Stream.of( attributes, attributesFromConditions)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,(  a, b) -> a ));
+
+
+
+        Map<String, AttributeValue> ddd = preparedExpessions.stream()
+                .map(it -> it.value)
+                .map(RczSetExpression::getAttributes)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        Map<String, AttributeValue> allValues =
+                        preparedConditionExpression
+                                .map(MappedExpressionUtils.ResolvedExpression::getValues)
+                                .orElse(Collections.emptyMap());
+
+        Map<String, AttributeValue> toatlnieAllValues = Stream.of(ddd, allValues)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        String setExpr = preparedExpessions.stream()
+                .map(it-> it.serialize(shortCodeAccumulator))
+                .collect(Collectors.joining(","));
 
 
         return UpdateItemRequest.builder()
                 .key(keys)
-                .expressionAttributeValues(allValues)
-                .updateExpression("SET " + updateExpression)
-                .expressionAttributeNames(allAttributesName)
+                .expressionAttributeValues(toatlnieAllValues)
+          .updateExpression("SET " + setExpr)
+               .expressionAttributeNames(totalAttributesAll)
                 .conditionExpression(preparedConditionExpression.map(MappedExpressionUtils.ResolvedExpression::getExpression)
                         .map(LogicalExpression::serialize)
                         .orElse(null))
@@ -103,4 +138,123 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         return this.withCondition( condition.apply(generator));
     }
 
+    public static  class RczSetExpressionGenerator<T> {
+         public RczSetExpression<T> minus(RczSetExpression<T> a, RczSetExpression<T> b) {
+            return new RczMathExpression<T>();
+        }
+
+         public RczSetExpression<T> plus(RczSetExpression<T> a, RczSetExpression<T> b) {
+            return new RczMathExpression<T>();
+        }
+
+        public   RczSetExpression<T> just(Path<T> source) {
+
+            return new RczPathExpression<T>(source);
+        }
+        public   RczSetExpression<T> just(AttributeValue value) {
+            return new RczValueExpression<T>(value);
+        }
+        public   RczSetExpression<T> just(String value) {
+            return new RczValueExpression<T>(AttributeValue.fromS(value));
+        }
+        public   RczSetExpression<T> just(Integer value) {
+            return new RczValueExpression<T>(AttributeValue.fromS(Integer.toString(value)));
+        }
+    }
+
+    public  interface RczSetExpression<T>{
+
+    default String serialize()
+     {
+            throw new RuntimeException("Need to figure it out.");
+        }
+
+        default Map<String, AttributeValue> getAttributes(){
+            return Collections.emptyMap();
+        }
+        RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                          LiveMappingDescription<T> liveMappingDescription,
+                          Map<String,String> shortCodeAccumulator,
+                          Map<String,AttributeValue> shortCodeValueAccumulator
+
+        );
+
+    }
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    public static class RczValueExpression<T> implements RczSetExpression<T> {
+        final AttributeValue attributeValue;
+        @With
+        String shortCodeValue;
+        @With
+        Map<String, AttributeValue> shortCodeValueAcumulator;
+
+        public Map<String, AttributeValue> getAttributes(){
+            return Collections.singletonMap(shortCodeValue, shortCodeValueAcumulator.get(shortCodeValue));
+        }
+        @Override
+        public String serialize() {
+            return  shortCodeValue;
+        }
+
+        @Override
+        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                           LiveMappingDescription<T> liveMappingDescription,
+                                           Map<String, String> shortCodeAccumulator,
+                                           Map<String, AttributeValue> shortCodeValueAccumulatorArg
+
+        ) {
+            String shortCode = ":" +  idGenerator.get();
+
+            shortCodeValueAccumulatorArg.put(shortCode, attributeValue);
+
+            return this.withShortCodeValue(shortCode)
+                    .withShortCodeValueAcumulator(shortCodeValueAccumulatorArg);
+        }
+
+    }
+    @RequiredArgsConstructor
+    public static class RczFunctionExpression<T> implements RczSetExpression<T> {
+        final AttributeValue attributeValue;
+        @Override
+        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                           LiveMappingDescription<T> liveMappingDescription,
+                                           Map<String, String> shortCodeAccumulator,
+                                           Map<String, AttributeValue> shortCodeValueAccumulator
+
+        ) {
+            return this;
+        }
+
+    }
+    @RequiredArgsConstructor
+    @AllArgsConstructor
+    public static class RczPathExpression<T> implements RczSetExpression<T> {
+        final Path<T> path;
+        @With
+        Map<String, String> shortCodeAccumulator;
+        @Override
+        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                           LiveMappingDescription<T> liveMappingDescription,
+                                           Map<String, String> shortCodeAccumulator,
+                                           Map<String, AttributeValue> shortCodeValueAccumulator
+
+        ) {
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+
+            return this.withShortCodeAccumulator(shortCodeAccumulator);
+        }
+    }
+
+    public static class RczMathExpression<T> implements RczSetExpression<T> {
+        @Override
+        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                           LiveMappingDescription<T> liveMappingDescription,
+                                           Map<String, String> shortCodeAccumulator,
+                                           Map<String, AttributeValue> shortCodeValueAccumulator
+        ) {
+            return null;
+        }
+    }
 }
