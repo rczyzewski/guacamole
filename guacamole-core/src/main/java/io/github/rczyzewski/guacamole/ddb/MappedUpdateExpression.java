@@ -81,15 +81,18 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
                 prepare(liveMappingDescription, condition, idGenerator, shortCodeAccumulator);
 
+        TreeMap<String, UpdateStatement<T>> tmp = new TreeMap<>();
+        extraSetExpressions.stream().forEachOrdered(it-> tmp.put(it.path.serialize(), it));
+        Collection<UpdateStatement<T>> deduplicatedSetExpressions = tmp.values();
 
 
-        extraSetExpressions.stream()
+        deduplicatedSetExpressions.stream()
                 .map(it -> it.path)
                 .map(Path::getPartsName)
                 .flatMap(Collection::stream)
                 .forEach(it -> shortCodeAccumulator.computeIfAbsent(it, ignored -> "#"+ idGenerator.get()));
 
-        List<UpdateStatement<T>> preparedExpessions = extraSetExpressions.stream()
+        List<UpdateStatement<T>> preparedExpessions = deduplicatedSetExpressions.stream()
                 .map(it -> it.withValue(it.value.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator)))
                 .collect(Collectors.toList());
 

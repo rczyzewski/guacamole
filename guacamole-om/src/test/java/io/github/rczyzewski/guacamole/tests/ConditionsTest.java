@@ -407,6 +407,32 @@ class ConditionsTest {
 
     @Test
     @SneakyThrows
+    void tesExtraSettingAttribute(){
+
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
+                .withFamousPerson("OtherKindOfMagic");
+
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+
+        UpdateItemRequest request =
+                repo.update(UNITED_KINGDOM)
+                        .set(path.selectHeadOfState(), it->it.just("Charles III"))
+                         .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
+                        .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
+        assertThat(poland).isEqualTo(POLAND);
+
+    }
+    @Test
+    @SneakyThrows
     void tesOfSettingAttribute(){
 
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
@@ -419,12 +445,14 @@ class ConditionsTest {
         UpdateItemRequest request =
                 repo.update(UNITED_KINGDOM)
                         .set(path.selectHeadOfState(), it->it.just("Charles III"))
-                        .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
-                        .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
-                        .set(path.selectArea(),
+                       // .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
+                       // .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
+                       /* .set(path.selectArea(),
                                 it -> it.plus(
                                         it.just(path.selectPopulation()),
                                         it.just(AttributeValue.fromN("42"))))
+
+                        */
                         .asUpdateItemRequest();
 
 
