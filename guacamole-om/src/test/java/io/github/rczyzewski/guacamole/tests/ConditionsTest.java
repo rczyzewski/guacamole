@@ -2,9 +2,12 @@ package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -489,7 +492,7 @@ class ConditionsTest {
     @ParameterizedTest(name = "{index}. {0}")
     @SneakyThrows
     @MethodSource("customSetExpression")
-    void parametrizedTestOfCustomSetExpression(String name, MappedUpdateExpression.UpdateStatement<Country> updateStatement, Country expected) {
+    void parametrizedTestOfCustomSetExpression(String ignored, MappedUpdateExpression.UpdateStatement<Country> updateStatement, Country expected) {
 
         UpdateItemRequest request = (
                 updateStatement.isOverride() ?
@@ -506,6 +509,37 @@ class ConditionsTest {
                 .collect(Collectors.toMap(Country::getId, Function.identity()));
         Country poland = abc.get("PL");
         Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom).isEqualTo(expected);
+        assertThat(poland).isEqualTo(POLAND);
+    }
+
+    private static Stream<Arguments> customAddTestCases() {
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+        return Stream.of(
+                Arguments.of("updateHeadOfState Addting to density 12", path.selectDensity(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)
+                ));
+    }
+
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    @MethodSource("customAddTestCases")
+    void parametrizedTestOfCustomAddExpression(String ignored, TypedPath<Country, Number> path, Number number, Country expected) {
+
+        UpdateItemRequest request =
+                        repo.update(UNITED_KINGDOM)
+                                .add(path, number)
+                                .asUpdateItemRequest();
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom.getDensity()).isEqualTo(expected.getDensity(), Offset.offset(0.001));
+        assertThat(unitedKingdom.getPopulation()).isEqualTo(expected.getPopulation());
+        assertThat(unitedKingdom.getArea()).isEqualTo(expected.getArea(), Offset.offset(1.0f));
         assertThat(unitedKingdom).isEqualTo(expected);
         assertThat(poland).isEqualTo(POLAND);
     }

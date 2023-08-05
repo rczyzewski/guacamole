@@ -2,6 +2,7 @@ package io.github.rczyzewski.guacamole.ddb;
 
 import io.github.rczyzewski.guacamole.ddb.mapper.*;
 import io.github.rczyzewski.guacamole.ddb.path.Path;
+import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import lombok.*;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
@@ -23,17 +24,24 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private final G generator;
     private final String tableName;
     private final Map<String, AttributeValue> keys;
+
     @With
     private final LogicalExpression<T> condition;
 
     @Builder.Default
     private  final List<UpdateStatement<T>> extraSetExpressions = new ArrayList<>();
-    @Singular(value="add")
-    private  Map<Path<T> , AttributeValue> addExpressions;
-    @Singular(value="remove")
-    private  List<Path<T>> remove;
-    @Singular(value="delete")
-    private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
+
+    @Builder.Default
+    private  List<AddStatement<T>> addExpressions = new ArrayList<>();
+
+    @Builder.Default
+    private  List<Path<T>> remove = new ArrayList<>();
+
+    /****
+     * TODO: need to add set support first
+     * @Singular(value="delete")
+     * private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
+     **/
 
     public MappedUpdateExpression<T, G> setIfEmpty(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSimpleExpression<T>> expr) {
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
@@ -45,6 +53,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .build());
         return this;
     }
+
     public MappedUpdateExpression<T, G> set(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
@@ -55,6 +64,23 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .build());
         return this;
     }
+    public MappedUpdateExpression<T, G> add(TypedPath<T, Number> path, Number number) {
+
+        addExpressions.add(AddStatement.<T>builder()
+                .value(AttributeValue.fromN(number.toString()))
+                .path(path)
+                .build());
+        return this;
+    }
+
+    @Builder
+    @With
+    @Getter
+    public static final  class AddStatement<T> {
+        Path<T> path;
+        AttributeValue value;
+    }
+
     @Builder
     @With
     @Getter
@@ -98,8 +124,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 prepare(liveMappingDescription, condition, idGenerator, shortCodeAccumulator);
 
         TreeMap<String, UpdateStatement<T>> tmp = new TreeMap<>();
-        extraSetExpressions.stream()
-                .forEachOrdered(it-> tmp.put(it.path.serialize(), it));
+        extraSetExpressions.forEach(it-> tmp.put(it.path.serialize(), it));
         Collection<UpdateStatement<T>> deduplicatedSetExpressions = tmp.values();
 
 
@@ -247,36 +272,6 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
             return this.withShortCodeValue(shortCode)
                     .withShortCodeValueAcumulator(shortCodeValueAccumulatorArg);
-        }
-
-    }
-    @RequiredArgsConstructor
-    public static class RczFunctionExpression<T> implements RczSetExpression<T> {
-        final AttributeValue attributeValue;
-
-        @Override
-        public String serialize() {
-            return null;
-        }
-
-        @Override
-        public Map<String, AttributeValue> getValues() {
-            return null;
-        }
-
-        @Override
-        public Map<String, String> getAttributes() {
-            return null;
-        }
-
-        @Override
-        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
-                                           LiveMappingDescription<T> liveMappingDescription,
-                                           Map<String, String> shortCodeAccumulator,
-                                           Map<String, AttributeValue> shortCodeValueAccumulator
-
-        ) {
-            return this;
         }
 
     }
