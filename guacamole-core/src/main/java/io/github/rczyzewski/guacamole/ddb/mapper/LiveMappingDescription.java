@@ -53,7 +53,7 @@ public class LiveMappingDescription<T>
                 .map(it -> MappedUpdateExpression.UpdateStatement.<T>builder()
                         //Argument G - is not important
                         .path( PrimitiveElement.<T, G>builder().selectedElement(it.getDdbName()).build())
-                        .onlyIfExists(true)
+                        .override(true)
                         .value(ddd.just(it.getExport().apply(object).orElseThrow(RuntimeException::new)))
                         .build())
                 .collect(Collectors.toList());

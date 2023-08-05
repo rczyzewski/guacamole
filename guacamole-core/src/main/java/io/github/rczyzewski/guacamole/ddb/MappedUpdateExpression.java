@@ -16,7 +16,6 @@ import static io.github.rczyzewski.guacamole.ddb.MappedExpressionUtils.prepare;
 
 
 @Builder(toBuilder = true)
-@RequiredArgsConstructor
 @AllArgsConstructor
 public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 {
@@ -36,12 +35,22 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     @Singular(value="delete")
     private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
 
+    public MappedUpdateExpression<T, G> setIfEmpty(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
+        RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
+
+        extraSetExpressions.add(UpdateStatement.<T>builder()
+                .path(path)
+                .override(false)
+                .value(expr.apply(eg))
+                .build());
+        return this;
+    }
     public MappedUpdateExpression<T, G> set(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
         extraSetExpressions.add(UpdateStatement.<T>builder()
                 .path(path)
-                .onlyIfExists(false)
+                .override(true)
                 .value(expr.apply(eg))
                 .build());
         return this;
@@ -52,11 +61,17 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     public static final  class UpdateStatement<T>{
        Path<T>  path;
         RczSetExpression<T> value;
+
         @Builder.Default
-        Boolean onlyIfExists = false;
+        boolean override = true;
 
         public String serialize(Map<String,String > shortCodeAccumulator) {
-            return path.serializeAsPartExpression(shortCodeAccumulator) + " = " + value.serialize();
+
+            if (override) {
+                return path.serializeAsPartExpression(shortCodeAccumulator) + " = " + value.serialize();
+            }
+            String serializedPath = path.serializeAsPartExpression(shortCodeAccumulator);
+            return String.format(" %s = if_not_exists( %s , %s )", serializedPath, serializedPath, value.serialize());
         }
          Map<String, String> getAttributes(Map<String, String> shortCodeAccumulator){
 
@@ -83,7 +98,8 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 prepare(liveMappingDescription, condition, idGenerator, shortCodeAccumulator);
 
         TreeMap<String, UpdateStatement<T>> tmp = new TreeMap<>();
-        extraSetExpressions.stream().forEachOrdered(it-> tmp.put(it.path.serialize(), it));
+        extraSetExpressions.stream()
+                .forEachOrdered(it-> tmp.put(it.path.serialize(), it));
         Collection<UpdateStatement<T>> deduplicatedSetExpressions = tmp.values();
 
 
@@ -157,15 +173,14 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
     public static  class RczSetExpressionGenerator<T> {
          public RczSetExpression<T> minus(RczSetExpression<T> a, RczSetExpression<T> b) {
-            return new RczMathExpression<>(a, b);
+            return new RczMathExpression<>(a, b, "-");
         }
 
          public RczSetExpression<T> plus(RczSetExpression<T> a, RczSetExpression<T> b) {
-            return new RczMathExpression<>(a ,  b);
+            return new RczMathExpression<>(a ,  b, "+");
         }
 
         public   RczSetExpression<T> just(Path<T> source) {
-
             return new RczPathExpression<>(source);
         }
         public   RczSetExpression<T> just(AttributeValue value) {
@@ -309,10 +324,10 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     public static class RczMathExpression<T> implements RczSetExpression<T> {
         RczSetExpression<T> a;
         RczSetExpression<T> b;
-
+        String operation;
         @Override
         public String serialize() {
-            return  a.serialize()  + " + " + b.serialize();
+            return  String.format(" %s %s %s", a.serialize(),  operation , b.serialize());
         }
 
         @Override

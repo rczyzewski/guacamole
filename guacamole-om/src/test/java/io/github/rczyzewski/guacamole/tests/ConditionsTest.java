@@ -413,15 +413,14 @@ class ConditionsTest {
                 Arguments.of("updateHeadOfState with a new value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
                                 .path(path.selectHeadOfState())
-                                .onlyIfExists(false)
                                 .value(eg.just("Charles III"))
                                 .build(),
                         UNITED_KINGDOM.withHeadOfState("Charles III")
                 ),
+
                 Arguments.of("updateHeadOfState with a new value(direct AttributeValue)",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
                                 .path(path.selectHeadOfState())
-                                .onlyIfExists(false)
                                 .value(eg.just(AttributeValue.fromS("Charles III")))
                                 .build(),
                         UNITED_KINGDOM.withHeadOfState("Charles III")
@@ -429,20 +428,45 @@ class ConditionsTest {
                 Arguments.of("update value to value from another path",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
                                 .path(path.selectDensity())
-                                .onlyIfExists(false)
                                 .value(eg.just(path.selectPopulation()))
                                 .build(),
                         UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
                 ),
-                Arguments.of("update with a compound expression",
+                Arguments.of("update with a compound expression - plus",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
                                 .path(path.selectPopulation())
-                                .onlyIfExists(false)
                                 .value(eg.plus(
                                         eg.just(path.selectPopulation()),
                                         eg.just(path.selectArea())))
                                 .build(),
                         UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() + UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - minus",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectPopulation())
+                                .value(eg.minus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() - UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectPopulation())
+                                .override(true)
+                                .value(eg.plus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() - UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectFamousPerson())
+                                .override(false)
+                                .value(eg.just(path.selectPopulation()))
+                                .build(),
+                        UNITED_KINGDOM
                 )
         );
     }
@@ -452,10 +476,12 @@ class ConditionsTest {
     @MethodSource("customSetExpression")
     void parametrizedTestOfCustomSetExpression(String name, MappedUpdateExpression.UpdateStatement<Country> updateStatement, Country expected) {
 
-        UpdateItemRequest request =
-                repo.update(UNITED_KINGDOM)
-                        .set(updateStatement.getPath(), it-> updateStatement.getValue())
-                        .asUpdateItemRequest();
+        UpdateItemRequest request = (
+                updateStatement.isOverride() ?
+                        repo.update(UNITED_KINGDOM)
+                                .set(updateStatement.getPath(), it -> updateStatement.getValue())
+                        : repo.update(UNITED_KINGDOM)
+                        .setIfEmpty(updateStatement.getPath(), it -> updateStatement.getValue())).asUpdateItemRequest();
 
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
