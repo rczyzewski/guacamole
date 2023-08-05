@@ -35,7 +35,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     @Singular(value="delete")
     private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
 
-    public MappedUpdateExpression<T, G> setIfEmpty(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
+    public MappedUpdateExpression<T, G> setIfEmpty(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSimpleExpression<T>> expr) {
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
         extraSetExpressions.add(UpdateStatement.<T>builder()
@@ -172,15 +172,15 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     }
 
     public static  class RczSetExpressionGenerator<T> {
-         public RczSetExpression<T> minus(RczSetExpression<T> a, RczSetExpression<T> b) {
+         public RczSetExpression<T> minus(RczPathExpression<T> a, RczPathExpression<T> b) {
             return new RczMathExpression<>(a, b, "-");
         }
 
-         public RczSetExpression<T> plus(RczSetExpression<T> a, RczSetExpression<T> b) {
+         public RczSetExpression<T> plus(RczPathExpression<T> a, RczPathExpression<T> b) {
             return new RczMathExpression<>(a ,  b, "+");
         }
 
-        public   RczSetExpression<T> just(Path<T> source) {
+        public   RczPathExpression<T> just(Path<T> source) {
             return new RczPathExpression<>(source);
         }
         public   RczSetExpression<T> just(AttributeValue value) {
@@ -193,6 +193,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
             return new RczValueExpression<>(AttributeValue.fromS(Integer.toString(value)));
         }
     }
+    public  interface RczSimpleExpression<T> extends RczSetExpression<T>{}
 
     public  interface RczSetExpression<T>{
 
@@ -211,7 +212,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     }
     @AllArgsConstructor
     @RequiredArgsConstructor
-    public static class RczValueExpression<T> implements RczSetExpression<T> {
+    public static class RczValueExpression<T> implements RczSimpleExpression<T> {
         final AttributeValue attributeValue;
         @With
         String shortCodeValue;
@@ -281,7 +282,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     }
     @RequiredArgsConstructor
     @AllArgsConstructor
-    public static class RczPathExpression<T> implements RczSetExpression<T> {
+    public static class RczPathExpression<T> implements RczSimpleExpression<T> {
         final Path<T> path;
         @With
         Map<String, String> shortCodeAccumulator;
@@ -297,7 +298,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         }
 
         @Override
-        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+        public RczPathExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                                            LiveMappingDescription<T> liveMappingDescription,
                                            Map<String, String> shortCodeAccumulator,
                                            Map<String, AttributeValue> shortCodeValueAccumulator
@@ -322,8 +323,8 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     @With
     @AllArgsConstructor
     public static class RczMathExpression<T> implements RczSetExpression<T> {
-        RczSetExpression<T> a;
-        RczSetExpression<T> b;
+        RczPathExpression<T> a;
+        RczPathExpression<T> b;
         String operation;
         @Override
         public String serialize() {
@@ -331,7 +332,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         }
 
         @Override
-        public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
+        public RczMathExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                                            LiveMappingDescription<T> liveMappingDescription,
                                            Map<String, String> shortCodeAccumulator,
                                            Map<String, AttributeValue> shortCodeValueAccumulator

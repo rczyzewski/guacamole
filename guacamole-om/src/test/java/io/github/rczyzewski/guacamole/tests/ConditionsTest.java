@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -458,7 +457,7 @@ class ConditionsTest {
                                         eg.just(path.selectPopulation()),
                                         eg.just(path.selectArea())))
                                 .build(),
-                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() - UNITED_KINGDOM.getArea()))
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() + UNITED_KINGDOM.getArea()))
                 ),
                 Arguments.of("update with a compound expression - testing true as override value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
@@ -467,6 +466,22 @@ class ConditionsTest {
                                 .value(eg.just(path.selectPopulation()))
                                 .build(),
                         UNITED_KINGDOM
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectFamousPerson())
+                                .override(false)
+                                .value(eg.just("Ali G."))
+                                .build(),
+                        UNITED_KINGDOM
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectHeadOfState())
+                                .override(true)
+                                .value(eg.just("Ali G."))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Ali G.")
                 )
         );
     }
@@ -481,7 +496,8 @@ class ConditionsTest {
                         repo.update(UNITED_KINGDOM)
                                 .set(updateStatement.getPath(), it -> updateStatement.getValue())
                         : repo.update(UNITED_KINGDOM)
-                        .setIfEmpty(updateStatement.getPath(), it -> updateStatement.getValue())).asUpdateItemRequest();
+                        .setIfEmpty(updateStatement.getPath(), it -> (MappedUpdateExpression.RczSimpleExpression<Country>) updateStatement.getValue()))
+                .asUpdateItemRequest();
 
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
