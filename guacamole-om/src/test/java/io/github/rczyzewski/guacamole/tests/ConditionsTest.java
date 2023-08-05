@@ -1,5 +1,6 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
@@ -404,45 +405,56 @@ class ConditionsTest {
                         it -> it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER))
         );
     }
-
-    @Test
-    @SneakyThrows
-    void tesExtraSettingAttribute() {
-
-        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
-                .withFamousPerson("OtherKindOfMagic");
-
+    private static Stream<Arguments> customSetExpression() {
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
 
-        UpdateItemRequest request =
-                repo.update(UNITED_KINGDOM)
-                        .set(path.selectHeadOfState(), it -> it.just("Charles III"))
-                        .set(path.selectFamousPerson(), it -> it.just(AttributeValue.fromS("OtherKindOfMagic")))
-                        .asUpdateItemRequest();
-
-        ddbClient.updateItem(request).get();
-        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
-                .build()).get();
-        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
-                .collect(Collectors.toMap(Country::getId, Function.identity()));
-        Country poland = abc.get("PL");
-        Country unitedKingdom = abc.get("UK");
-        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
-        assertThat(poland).isEqualTo(POLAND);
-
+        return Stream.of(
+                Arguments.of("updateHeadOfState with a new value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectHeadOfState())
+                                .onlyIfExists(false)
+                                .value(eg.just("Charles III"))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Charles III")
+                ),
+                Arguments.of("updateHeadOfState with a new value(direct AttributeValue)",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectHeadOfState())
+                                .onlyIfExists(false)
+                                .value(eg.just(AttributeValue.fromS("Charles III")))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Charles III")
+                ),
+                Arguments.of("update value to value from another path",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectDensity())
+                                .onlyIfExists(false)
+                                .value(eg.just(path.selectPopulation()))
+                                .build(),
+                        UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
+                ),
+                Arguments.of("update with a compound expression",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(path.selectPopulation())
+                                .onlyIfExists(false)
+                                .value(eg.plus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() + UNITED_KINGDOM.getArea()))
+                )
+        );
     }
 
-    @Test
+    @ParameterizedTest(name = "{index}. {0}")
     @SneakyThrows
-    void tesOfSettingAttributeWithThePath() {
-
-        Country updatedUnitedKingdom = UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue());
-
-        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+    @MethodSource("customSetExpression")
+    void parametrizedTestOfCustomSetExpression(String name, MappedUpdateExpression.UpdateStatement<Country> updateStatement, Country expected) {
 
         UpdateItemRequest request =
                 repo.update(UNITED_KINGDOM)
-                        .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
+                        .set(updateStatement.getPath(), it-> updateStatement.getValue())
                         .asUpdateItemRequest();
 
         ddbClient.updateItem(request).get();
@@ -452,38 +464,8 @@ class ConditionsTest {
                 .collect(Collectors.toMap(Country::getId, Function.identity()));
         Country poland = abc.get("PL");
         Country unitedKingdom = abc.get("UK");
-        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
+        assertThat(unitedKingdom).isEqualTo(expected);
         assertThat(poland).isEqualTo(POLAND);
-
-    }
-
-    @Test
-    @SneakyThrows
-    void tesOfSettingAttributeWithMathematicalExpression() {
-
-        Country updatedUnitedKingdom = UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue());
-
-        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
-
-        UpdateItemRequest request =
-                repo.update(UNITED_KINGDOM)
-                        .set(path.selectArea(),
-                                it -> it.plus(
-                                        it.just(path.selectPopulation()),
-                                        it.just(AttributeValue.fromN("42"))))
-                        .asUpdateItemRequest();
-
-
-        ddbClient.updateItem(request).get();
-        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
-                .build()).get();
-        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
-                .collect(Collectors.toMap(Country::getId, Function.identity()));
-        Country poland = abc.get("PL");
-        Country unitedKingdom = abc.get("UK");
-        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
-        assertThat(poland).isEqualTo(POLAND);
-
     }
 
     @ParameterizedTest

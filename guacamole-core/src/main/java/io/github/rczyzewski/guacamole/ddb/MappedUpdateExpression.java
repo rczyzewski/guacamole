@@ -48,6 +48,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     }
     @Builder
     @With
+    @Getter
     public static final  class UpdateStatement<T>{
        Path<T>  path;
         RczSetExpression<T> value;
@@ -66,7 +67,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
            return Stream.of(fromPath, value.getAttributes())
                     .map(Map::entrySet)
                     .flatMap(Collection::stream)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b )-> a));
         }
     }
 
