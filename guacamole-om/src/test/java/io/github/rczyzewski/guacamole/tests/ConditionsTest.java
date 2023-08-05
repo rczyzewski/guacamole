@@ -267,11 +267,11 @@ class ConditionsTest {
                 named("attributeType - LIST - using complex paths",
                         it -> it.not(it.isAttributeType(path.selectRegionList(), LIST))),
                 named("attributeType - LIST element - using complex paths",
-                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0), MAP ))),
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0), MAP))),
                 named("attributeType - MAP - using complex paths",
-                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP ))),
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP))),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), NUMBER )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), NUMBER)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), STRING)),
                 named("attributeType - STRING - using complex paths - with LIST",
@@ -385,11 +385,11 @@ class ConditionsTest {
                 named("attributeType - LIST - using complex paths",
                         it -> it.isAttributeType(path.selectRegionList(), LIST)),
                 named("attributeType - LIST element - using complex paths",
-                        it -> it.isAttributeType(path.selectRegionList().at(0), MAP )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0), MAP)),
                 named("attributeType - MAP - using complex paths",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), STRING )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), STRING)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), NUMBER)),
                 named("attributeType - STRING - using complex paths - with LIST",
@@ -407,7 +407,7 @@ class ConditionsTest {
 
     @Test
     @SneakyThrows
-    void tesExtraSettingAttribute(){
+    void tesExtraSettingAttribute() {
 
         Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
                 .withFamousPerson("OtherKindOfMagic");
@@ -416,8 +416,8 @@ class ConditionsTest {
 
         UpdateItemRequest request =
                 repo.update(UNITED_KINGDOM)
-                        .set(path.selectHeadOfState(), it->it.just("Charles III"))
-                         .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
+                        .set(path.selectHeadOfState(), it -> it.just("Charles III"))
+                        .set(path.selectFamousPerson(), it -> it.just(AttributeValue.fromS("OtherKindOfMagic")))
                         .asUpdateItemRequest();
 
         ddbClient.updateItem(request).get();
@@ -431,30 +431,47 @@ class ConditionsTest {
         assertThat(poland).isEqualTo(POLAND);
 
     }
+
     @Test
     @SneakyThrows
-    void tesOfSettingAttribute(){
+    void tesOfSettingAttributeWithThePath() {
 
-        Country updatedUnitedKingdom = UNITED_KINGDOM.withHeadOfState("Charles III")
-                .withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
-                .withFamousPerson("OtherKindOfMagic")
-                .withArea(UNITED_KINGDOM.getPopulation().floatValue() + 42F);
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue());
 
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
 
         UpdateItemRequest request =
                 repo.update(UNITED_KINGDOM)
-                        .set(path.selectHeadOfState(), it->it.just("Charles III"))
-                       // .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
-                       // .set(path.selectFamousPerson(), it->it.just(AttributeValue.fromS("OtherKindOfMagic")))
-                       /* .set(path.selectArea(),
+                        .set(path.selectDensity(), it -> it.just(path.selectPopulation()))
+                        .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom).isEqualTo(updatedUnitedKingdom);
+        assertThat(poland).isEqualTo(POLAND);
+
+    }
+
+    @Test
+    @SneakyThrows
+    void tesOfSettingAttributeWithMathematicalExpression() {
+
+        Country updatedUnitedKingdom = UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue());
+
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+
+        UpdateItemRequest request =
+                repo.update(UNITED_KINGDOM)
+                        .set(path.selectArea(),
                                 it -> it.plus(
                                         it.just(path.selectPopulation()),
                                         it.just(AttributeValue.fromN("42"))))
-
-                        */
                         .asUpdateItemRequest();
-
 
 
         ddbClient.updateItem(request).get();
@@ -468,6 +485,7 @@ class ConditionsTest {
         assertThat(poland).isEqualTo(POLAND);
 
     }
+
     @ParameterizedTest
     @MethodSource("matchesUnitedKingdom")
     @DisplayName("Delete happens only when conditions are matching")
@@ -484,6 +502,7 @@ class ConditionsTest {
         assertThat(response.items()).hasSize(1);
 
     }
+
     private static Stream<Arguments> matchesOnlyUnitedKingdom() {
 
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();

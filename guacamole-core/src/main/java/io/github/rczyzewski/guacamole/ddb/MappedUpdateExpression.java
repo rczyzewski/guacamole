@@ -37,7 +37,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private  Map<Path<T>, UpdateExpression.ConstantValue> deleteExpressions;
 
     public MappedUpdateExpression<T, G> set(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
-        RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<T>();
+        RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
         extraSetExpressions.add(UpdateStatement.<T>builder()
                 .path(path)
@@ -156,41 +156,35 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
     public static  class RczSetExpressionGenerator<T> {
          public RczSetExpression<T> minus(RczSetExpression<T> a, RczSetExpression<T> b) {
-            return new RczMathExpression<T>();
+            return new RczMathExpression<>(a, b);
         }
 
          public RczSetExpression<T> plus(RczSetExpression<T> a, RczSetExpression<T> b) {
-            return new RczMathExpression<T>();
+            return new RczMathExpression<>(a ,  b);
         }
 
         public   RczSetExpression<T> just(Path<T> source) {
 
-            return new RczPathExpression<T>(source);
+            return new RczPathExpression<>(source);
         }
         public   RczSetExpression<T> just(AttributeValue value) {
-            return new RczValueExpression<T>(value);
+            return new RczValueExpression<>(value);
         }
         public   RczSetExpression<T> just(String value) {
-            return new RczValueExpression<T>(AttributeValue.fromS(value));
+            return new RczValueExpression<>(AttributeValue.fromS(value));
         }
         public   RczSetExpression<T> just(Integer value) {
-            return new RczValueExpression<T>(AttributeValue.fromS(Integer.toString(value)));
+            return new RczValueExpression<>(AttributeValue.fromS(Integer.toString(value)));
         }
     }
 
     public  interface RczSetExpression<T>{
 
-    default String serialize()
-     {
-            throw new RuntimeException("Need to figure it out.");
-        }
+        String serialize();
 
-        default Map<String, AttributeValue> getValues(){
-            return Collections.emptyMap();
-        }
-        default Map<String, String> getAttributes(){
-            return Collections.emptyMap();
-        }
+        Map<String, AttributeValue> getValues();
+        Map<String, String> getAttributes();
+
         RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                           LiveMappingDescription<T> liveMappingDescription,
                           Map<String,String> shortCodeAccumulator,
@@ -212,6 +206,12 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         public Map<String, AttributeValue> getValues(){
             return Collections.singletonMap(shortCodeValue, shortCodeValueAcumulator.get(shortCodeValue));
         }
+
+        @Override
+        public Map<String, String> getAttributes() {
+            return Collections.emptyMap();
+        }
+
         @Override
         public String serialize() {
             return  shortCodeValue;
@@ -236,6 +236,22 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     @RequiredArgsConstructor
     public static class RczFunctionExpression<T> implements RczSetExpression<T> {
         final AttributeValue attributeValue;
+
+        @Override
+        public String serialize() {
+            return null;
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValues() {
+            return null;
+        }
+
+        @Override
+        public Map<String, String> getAttributes() {
+            return null;
+        }
+
         @Override
         public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                                            LiveMappingDescription<T> liveMappingDescription,
@@ -253,6 +269,17 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         final Path<T> path;
         @With
         Map<String, String> shortCodeAccumulator;
+
+        @Override
+        public String serialize() {
+            return  path.serializeAsPartExpression(shortCodeAccumulator);
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValues() {
+            return Collections.emptyMap();
+        }
+
         @Override
         public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                                            LiveMappingDescription<T> liveMappingDescription,
@@ -265,16 +292,53 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
 
             return this.withShortCodeAccumulator(shortCodeAccumulator);
         }
+
+        @Override
+        public Map<String, String> getAttributes(){
+
+            Set<String> parts = path.getPartsName();
+            return shortCodeAccumulator.entrySet().stream().filter(it -> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        }
+
     }
 
+    @With
+    @AllArgsConstructor
     public static class RczMathExpression<T> implements RczSetExpression<T> {
+        RczSetExpression<T> a;
+        RczSetExpression<T> b;
+
+        @Override
+        public String serialize() {
+            return  a.serialize()  + " + " + b.serialize();
+        }
+
         @Override
         public RczSetExpression<T> prepare(ConsecutiveIdGenerator idGenerator,
                                            LiveMappingDescription<T> liveMappingDescription,
                                            Map<String, String> shortCodeAccumulator,
                                            Map<String, AttributeValue> shortCodeValueAccumulator
         ) {
-            return null;
+          return this.withA(a.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator))
+            .withB(b.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator));
+        }
+        @Override
+        public Map<String, String> getAttributes(){
+
+            return Stream.of(a, b)
+                    .map(RczSetExpression::getAttributes)
+                    .map(Map::entrySet)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,(tmp1, tmp2)-> tmp1 ));
+        }
+        @Override
+        public Map<String, AttributeValue> getValues(){
+            return Stream.of(a,b)
+                    .map(RczSetExpression::getValues)
+                    .map(Map::entrySet)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,(tmp1, tmp2)-> tmp1 ));
         }
     }
 }
