@@ -3,7 +3,7 @@ package io.github.rczyzewski.guacamole.ddb.mapper;
 import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedScanExpression;
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
-import io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.SetExpression;
+import io.github.rczyzewski.guacamole.ddb.path.PrimitiveElement;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -14,7 +14,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.github.rczyzewski.guacamole.ddb.mapper.UpdateExpression.*;
 
 @Slf4j
 @Getter
@@ -46,25 +45,28 @@ public class LiveMappingDescription<T>
 
     public <G extends ExpressionGenerator<T>> MappedUpdateExpression<T,G> generateUpdateExpression (T object , G generator,  String table)
     {
-        ConsecutiveIdGenerator a = ConsecutiveIdGenerator.builder().base("abcde").build();
-        List<SetExpression> setExpressions = fields.stream()
+     MappedUpdateExpression.RczSetExpressionGenerator<T> ddd  = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+
+        List<MappedUpdateExpression.Statement<T>> setExpressions = fields.stream()
                 .filter(it -> !it.isKeyValue())
-                .filter( it -> it.getExport().apply(object).isPresent())
-                .map(it -> {
-                    ConstantValue v = ConstantValue.builder()
-                            .valueCode(a.get())
-                            .attributeValue(it.getExport().apply(object)
-                                    .orElse(AttributeValue.fromNul(true)))
-                            .build();
-                    return SetExpression.builder()
-                            .fieldCode(it.getShortCode())
-                            .fieldDdbName(it.getDdbName())
-                            .value(v).build();
-                })
+                .filter(it -> it.getExport().apply(object).isPresent())
+                .map(it -> MappedUpdateExpression.UpdateStatement.<T>builder()
+                        //Argument G - is not important
+                        .path( new MappedUpdateExpression.RczPathExpression<>( PrimitiveElement.<T, G>builder().selectedElement(it.getDdbName()).build()))
+                        .override(true)
+                        .value(ddd.just(it.getExport().apply(object).orElseThrow(RuntimeException::new)))
+                        .build())
                 .collect(Collectors.toList());
+
         Map<String, AttributeValue> keys = this.exportKeys(object);
 
-        return new MappedUpdateExpression<>(generator, table, keys, null, setExpressions, this);
+        return  MappedUpdateExpression.<T,G>builder()
+                .tableName(table)
+                .generator(generator)
+                .keys(keys)
+                .extraSetAddRemoveExpressions(setExpressions)
+                .liveMappingDescription(this)
+                .build();
     }
 
     public T transform(Map<String, AttributeValue> m)

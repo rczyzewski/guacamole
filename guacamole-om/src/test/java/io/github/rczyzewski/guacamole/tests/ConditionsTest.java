@@ -1,9 +1,12 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
+import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,11 +19,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
-import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.Collections;
 import java.util.Map;
@@ -270,11 +269,11 @@ class ConditionsTest {
                 named("attributeType - LIST - using complex paths",
                         it -> it.not(it.isAttributeType(path.selectRegionList(), LIST))),
                 named("attributeType - LIST element - using complex paths",
-                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0), MAP ))),
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0), MAP))),
                 named("attributeType - MAP - using complex paths",
-                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP ))),
+                        it -> it.not(it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP))),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), NUMBER )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), NUMBER)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), STRING)),
                 named("attributeType - STRING - using complex paths - with LIST",
@@ -388,11 +387,11 @@ class ConditionsTest {
                 named("attributeType - LIST - using complex paths",
                         it -> it.isAttributeType(path.selectRegionList(), LIST)),
                 named("attributeType - LIST element - using complex paths",
-                        it -> it.isAttributeType(path.selectRegionList().at(0), MAP )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0), MAP)),
                 named("attributeType - MAP - using complex paths",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital(), MAP)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
-                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), STRING )),
+                        it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectName(), STRING)),
                 named("attributeType - MAP - using complex paths - with LIST, via multiple Objects",
                         it -> it.isAttributeType(path.selectRegionList().at(0).selectCapital().selectPopulation(), NUMBER)),
                 named("attributeType - STRING - using complex paths - with LIST",
@@ -406,6 +405,173 @@ class ConditionsTest {
                 named("attributeType - NUMBER(java Long)",
                         it -> it.isAttributeType(path.selectCapital().selectPopulation(), NUMBER))
         );
+    }
+    private static Stream<Arguments> customSetExpression() {
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+
+        return Stream.of(
+                Arguments.of("updateHeadOfState with a new value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
+                                .value(eg.just("Charles III"))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Charles III")
+                ),
+
+                Arguments.of("updateHeadOfState with a new value(direct AttributeValue)",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
+                                .value(eg.just(AttributeValue.fromS("Charles III")))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Charles III")
+                ),
+                Arguments.of("update value to value from another path",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectDensity()))
+                                .value(eg.just(path.selectPopulation()))
+                                .build(),
+                        UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
+                ),
+                Arguments.of("update with a compound expression - plus",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
+                                .value(eg.plus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() + UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - minus",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
+                                .value(eg.minus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() - UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
+                                .override(true)
+                                .value(eg.plus(
+                                        eg.just(path.selectPopulation()),
+                                        eg.just(path.selectArea())))
+                                .build(),
+                        UNITED_KINGDOM.withPopulation( (int) (UNITED_KINGDOM.getPopulation() + UNITED_KINGDOM.getArea()))
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectFamousPerson()))
+                                .override(false)
+                                .value(eg.just(path.selectPopulation()))
+                                .build(),
+                        UNITED_KINGDOM
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectFamousPerson()))
+                                .override(false)
+                                .value(eg.just("Ali G."))
+                                .build(),
+                        UNITED_KINGDOM
+                ),
+                Arguments.of("update with a compound expression - testing true as override value",
+                        MappedUpdateExpression.UpdateStatement.<Country>builder()
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
+                                .override(true)
+                                .value(eg.just("Ali G."))
+                                .build(),
+                        UNITED_KINGDOM.withHeadOfState("Ali G.")
+                )
+        );
+    }
+
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    @MethodSource("customSetExpression")
+    void parametrizedTestOfCustomSetExpression(String ignored, MappedUpdateExpression.UpdateStatement<Country> updateStatement, Country expected) {
+
+        UpdateItemRequest request = (
+                updateStatement.isOverride() ?
+                        repo.update(UNITED_KINGDOM)
+                                .set(updateStatement.getPath().getPath(), it -> updateStatement.getValue())
+                        : repo.update(UNITED_KINGDOM)
+                        .setIfEmpty(updateStatement.getPath().getPath(),
+                                it -> (MappedUpdateExpression.RczSimpleExpression<Country>) updateStatement.getValue()))
+                .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+        assertThat(unitedKingdom).isEqualTo(expected);
+        assertThat(poland).isEqualTo(POLAND);
+    }
+
+    private static Stream<Arguments> customAddTestCases() {
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+        return Stream.of(
+                Arguments.of("setting a new density", path.selectDensity(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)),
+                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), 12, UNITED_KINGDOM)
+                );
+    }
+
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    @MethodSource("customAddTestCases")
+    void parametrizedTestOfCustomAddExpression(String ignored, TypedPath<Country, Number> path, Number number, Country expected) {
+
+        UpdateItemRequest request =
+                        repo.update(UNITED_KINGDOM)
+                                .add(path, number)
+                                .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+
+        assertThat(unitedKingdom).isEqualTo(expected);
+        assertThat(poland).isEqualTo(POLAND);
+    }
+
+    private static Stream<Arguments> customRemoveTestCases() {
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+        return Stream.of(
+                Arguments.of("setting a new density", path.selectDensity(),  UNITED_KINGDOM.withDensity(null)),
+                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), UNITED_KINGDOM.withHeadOfState(null))
+        );
+    }
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    @MethodSource("customRemoveTestCases")
+    void parametrizedTestOfCustomRemoveExpression(String ignored, TypedPath<Country, Number> path,  Country expected) {
+
+        UpdateItemRequest request =
+                repo.update(UNITED_KINGDOM)
+                        .remove(path)
+                        .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
+
+        assertThat(unitedKingdom).isEqualTo(expected);
+        assertThat(poland).isEqualTo(POLAND);
     }
 
     @ParameterizedTest
@@ -424,6 +590,7 @@ class ConditionsTest {
         assertThat(response.items()).hasSize(1);
 
     }
+
     private static Stream<Arguments> matchesOnlyUnitedKingdom() {
 
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
@@ -471,7 +638,9 @@ class ConditionsTest {
                 repo.update(updatedUnitedKingdom)
                         .condition(condition)
                         .asUpdateItemRequest();
+
         ddbClient.updateItem(request).get();
+
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
                 .build()).get();
         Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
