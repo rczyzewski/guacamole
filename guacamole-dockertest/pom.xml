@@ -5,11 +5,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>guacamole-dockertest</artifactId>
-  <version>0.1.1-RC1</version>
+  <version>0.1.1-RC2</version>
   <parent>
     <groupId>io.github.rczyzewski</groupId>
     <artifactId>guacamole-parent</artifactId>
-    <version>0.1.1-RC1</version>
+    <version>0.1.1-RC2</version>
     <relativePath>../guacamole-parent</relativePath>
   </parent>
 
