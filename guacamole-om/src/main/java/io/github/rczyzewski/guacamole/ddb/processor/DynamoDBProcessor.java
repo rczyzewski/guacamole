@@ -1,14 +1,9 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.google.auto.service.AutoService;
-import io.github.rczyzewski.guacamole.ddb.BaseRepository;
-import io.github.rczyzewski.guacamole.ddb.DynamoSearch;
-import io.github.rczyzewski.guacamole.ddb.MappedScanExpression;
-import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
-import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
+import io.github.rczyzewski.guacamole.ddb.*;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
-import io.github.rczyzewski.guacamole.ddb.processor.generator.FilterMethodsCreator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionBuilderGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
@@ -25,6 +20,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
 import lombok.*;
+import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.dynamodb.model.Condition;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
@@ -49,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static io.github.rczyzewski.guacamole.ddb.processor.TypoUtils.toSnakeCase;
@@ -144,16 +141,21 @@ public class DynamoDBProcessor extends AbstractProcessor
                                                   classDescription.getName() + "Repository",
                                                  "LogicalExpressionBuilder");
 
+        TypeSpec is = TypeSpec.classBuilder( "IndexSelector").build();
+
+        ClassName isName =  ClassName.get(classDescription.getPackageName(), classDescription.getName() + "Repository", is.name);
+
         String mainMapperName = toSnakeCase(classDescription.getName());
 
         TypeSpec.Builder navigatorClass = TypeSpec
             .classBuilder(repositoryClazz)
-            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName))
+            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName, isName))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
             .addAnnotation(AllArgsConstructor.class)
             .addModifiers(PUBLIC)
+                .addType(is)
             .addField(FieldSpec.builder(get(String.class), "tableName", FINAL, PRIVATE).build())
                 .addTypes(classDescription.getSourandingClasses().values()
                         .stream()
@@ -210,6 +212,18 @@ public class DynamoDBProcessor extends AbstractProcessor
                                                  .build())
                            .returns(PutItemRequest.class)
                            .build())
+                        .addMethod(MethodSpec.methodBuilder("query")
+                               .addModifiers(PUBLIC)
+                                .addParameter(
+                                        ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), isName, ClassName.get(String.class)),"builder")
+                                        .build())
+                               .addAnnotation(Override.class)
+                               .addCode(
+                                       CodeBlock.builder()
+                                               .add("return null;")
+                                               .build())
+                               .returns(ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class),clazz, updateClazzName))
+                               .build())
          /*        .addMethod(MethodSpec.methodBuilder("getAll")
                         .addModifiers(PUBLIC)
                         .addAnnotation(Override.class)
