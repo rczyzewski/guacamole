@@ -2,12 +2,10 @@ package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
-import io.github.rczyzewski.guacamole.ddb.path.Path;
 import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -414,7 +412,7 @@ class ConditionsTest {
         return Stream.of(
                 Arguments.of("updateHeadOfState with a new value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectHeadOfState())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
                                 .value(eg.just("Charles III"))
                                 .build(),
                         UNITED_KINGDOM.withHeadOfState("Charles III")
@@ -422,21 +420,21 @@ class ConditionsTest {
 
                 Arguments.of("updateHeadOfState with a new value(direct AttributeValue)",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectHeadOfState())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
                                 .value(eg.just(AttributeValue.fromS("Charles III")))
                                 .build(),
                         UNITED_KINGDOM.withHeadOfState("Charles III")
                 ),
                 Arguments.of("update value to value from another path",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectDensity())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectDensity()))
                                 .value(eg.just(path.selectPopulation()))
                                 .build(),
                         UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getPopulation().doubleValue())
                 ),
                 Arguments.of("update with a compound expression - plus",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectPopulation())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
                                 .value(eg.plus(
                                         eg.just(path.selectPopulation()),
                                         eg.just(path.selectArea())))
@@ -445,7 +443,7 @@ class ConditionsTest {
                 ),
                 Arguments.of("update with a compound expression - minus",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectPopulation())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
                                 .value(eg.minus(
                                         eg.just(path.selectPopulation()),
                                         eg.just(path.selectArea())))
@@ -454,7 +452,7 @@ class ConditionsTest {
                 ),
                 Arguments.of("update with a compound expression - testing true as override value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectPopulation())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectPopulation()))
                                 .override(true)
                                 .value(eg.plus(
                                         eg.just(path.selectPopulation()),
@@ -464,7 +462,7 @@ class ConditionsTest {
                 ),
                 Arguments.of("update with a compound expression - testing true as override value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectFamousPerson())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectFamousPerson()))
                                 .override(false)
                                 .value(eg.just(path.selectPopulation()))
                                 .build(),
@@ -472,7 +470,7 @@ class ConditionsTest {
                 ),
                 Arguments.of("update with a compound expression - testing true as override value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectFamousPerson())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectFamousPerson()))
                                 .override(false)
                                 .value(eg.just("Ali G."))
                                 .build(),
@@ -480,7 +478,7 @@ class ConditionsTest {
                 ),
                 Arguments.of("update with a compound expression - testing true as override value",
                         MappedUpdateExpression.UpdateStatement.<Country>builder()
-                                .path(path.selectHeadOfState())
+                                .path(new MappedUpdateExpression.RczPathExpression<>(path.selectHeadOfState()))
                                 .override(true)
                                 .value(eg.just("Ali G."))
                                 .build(),
@@ -497,9 +495,10 @@ class ConditionsTest {
         UpdateItemRequest request = (
                 updateStatement.isOverride() ?
                         repo.update(UNITED_KINGDOM)
-                                .set(updateStatement.getPath(), it -> updateStatement.getValue())
+                                .set(updateStatement.getPath().getPath(), it -> updateStatement.getValue())
                         : repo.update(UNITED_KINGDOM)
-                        .setIfEmpty(updateStatement.getPath(), it -> (MappedUpdateExpression.RczSimpleExpression<Country>) updateStatement.getValue()))
+                        .setIfEmpty(updateStatement.getPath().getPath(),
+                                it -> (MappedUpdateExpression.RczSimpleExpression<Country>) updateStatement.getValue()))
                 .asUpdateItemRequest();
 
         ddbClient.updateItem(request).get();
@@ -517,8 +516,9 @@ class ConditionsTest {
         CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
         MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
         return Stream.of(
-                Arguments.of("updateHeadOfState Addting to density 12", path.selectDensity(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)
-                ));
+                Arguments.of("setting a new density", path.selectDensity(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)),
+                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12))
+                );
     }
 
     @ParameterizedTest(name = "{index}. {0}")
@@ -530,6 +530,7 @@ class ConditionsTest {
                         repo.update(UNITED_KINGDOM)
                                 .add(path, number)
                                 .asUpdateItemRequest();
+
         ddbClient.updateItem(request).get();
         ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
                 .build()).get();
@@ -537,9 +538,13 @@ class ConditionsTest {
                 .collect(Collectors.toMap(Country::getId, Function.identity()));
         Country poland = abc.get("PL");
         Country unitedKingdom = abc.get("UK");
-        assertThat(unitedKingdom.getDensity()).isEqualTo(expected.getDensity(), Offset.offset(0.001));
-        assertThat(unitedKingdom.getPopulation()).isEqualTo(expected.getPopulation());
-        assertThat(unitedKingdom.getArea()).isEqualTo(expected.getArea(), Offset.offset(1.0f));
+
+        //assert unitedKingdom.equals(expected);
+        //assertThat(unitedKingdom.getDensity()).isEqualTo(expected.getDensity(), Offset.offset(0.001));
+        //assertThat(unitedKingdom.getPopulation()).isEqualTo(expected.getPopulation());
+        //assertThat(unitedKingdom.getArea()).isEqualTo(expected.getArea(), Offset.offset(1.0f));
+
+
         assertThat(unitedKingdom).isEqualTo(expected);
         assertThat(poland).isEqualTo(POLAND);
     }

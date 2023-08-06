@@ -47,12 +47,12 @@ public class LiveMappingDescription<T>
     {
      MappedUpdateExpression.RczSetExpressionGenerator<T> ddd  = new MappedUpdateExpression.RczSetExpressionGenerator<>();
 
-        List<MappedUpdateExpression.UpdateStatement<T>> setExpressions = fields.stream()
+        List<MappedUpdateExpression.Statement<T>> setExpressions = fields.stream()
                 .filter(it -> !it.isKeyValue())
                 .filter(it -> it.getExport().apply(object).isPresent())
                 .map(it -> MappedUpdateExpression.UpdateStatement.<T>builder()
                         //Argument G - is not important
-                        .path( PrimitiveElement.<T, G>builder().selectedElement(it.getDdbName()).build())
+                        .path( new MappedUpdateExpression.RczPathExpression<>( PrimitiveElement.<T, G>builder().selectedElement(it.getDdbName()).build()))
                         .override(true)
                         .value(ddd.just(it.getExport().apply(object).orElseThrow(RuntimeException::new)))
                         .build())
@@ -64,7 +64,7 @@ public class LiveMappingDescription<T>
                 .tableName(table)
                 .generator(generator)
                 .keys(keys)
-                .extraSetExpressions(setExpressions)
+                .extraSetAddExpressions(setExpressions)
                 .liveMappingDescription(this)
                 .build();
     }
