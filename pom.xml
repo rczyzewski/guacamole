@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>guacamole-parent</module>
         <module>guacamole-core</module>
         <module>guacamole-dockertest</module>
         <module>guacamole-om</module>
