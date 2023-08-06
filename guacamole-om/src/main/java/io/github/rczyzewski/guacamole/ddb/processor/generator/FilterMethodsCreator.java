@@ -40,19 +40,6 @@ public class FilterMethodsCreator
             .collect(Collectors.toList());
     }
 
-    public static List<MethodSpec> createAllFiltersMethod(
-        ClassName className,
-        IndexDescription description)
-    {
-
-        return description.getAttributes().stream()
-            .filter(it -> it.getDdbType() != DDBType.OTHER)
-            .flatMap(field -> Stream.of(Operator.values())
-                .map(op -> op.createMethod(className, field)))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-    }
-
     public static MethodSpec createNoArgMethod(ClassName className, FieldDescription fd, Operator op)
     {
 
