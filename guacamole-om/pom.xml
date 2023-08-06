@@ -89,12 +89,12 @@
     <dependency>
       <groupId>io.github.rczyzewski</groupId>
       <artifactId>guacamole-core</artifactId>
-      <version>0.1.1-RC1</version>
+      <version>0.1.1-RC2</version>
     </dependency>
     <dependency>
       <groupId>io.github.rczyzewski</groupId>
       <artifactId>guacamole-dockertest</artifactId>
-      <version>0.1.1-RC1</version>
+      <version>0.1.1-RC2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
