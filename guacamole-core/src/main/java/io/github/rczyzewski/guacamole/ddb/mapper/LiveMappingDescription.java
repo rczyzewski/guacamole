@@ -64,7 +64,7 @@ public class LiveMappingDescription<T>
                 .tableName(table)
                 .generator(generator)
                 .keys(keys)
-                .extraSetAddExpressions(setExpressions)
+                .extraSetAddRemoveExpressions(setExpressions)
                 .liveMappingDescription(this)
                 .build();
     }

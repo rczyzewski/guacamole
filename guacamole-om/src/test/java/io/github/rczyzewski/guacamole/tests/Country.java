@@ -26,7 +26,10 @@ class Country {
     String famousPerson;
     @DynamoDBAttribute(attributeName = "ROCK_STAR")
     String famousMusician;
+
+    @EqualsAndHashCode.Exclude
     Float area;
+    @EqualsAndHashCode.Exclude
     Double density;
     Capital capital;
     List<Region> regionList;

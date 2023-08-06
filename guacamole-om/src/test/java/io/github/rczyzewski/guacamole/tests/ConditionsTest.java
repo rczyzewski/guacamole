@@ -6,6 +6,7 @@ import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -517,7 +518,7 @@ class ConditionsTest {
         MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
         return Stream.of(
                 Arguments.of("setting a new density", path.selectDensity(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)),
-                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), 12, UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12))
+                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), 12, UNITED_KINGDOM)
                 );
     }
 
@@ -539,11 +540,35 @@ class ConditionsTest {
         Country poland = abc.get("PL");
         Country unitedKingdom = abc.get("UK");
 
-        //assert unitedKingdom.equals(expected);
-        //assertThat(unitedKingdom.getDensity()).isEqualTo(expected.getDensity(), Offset.offset(0.001));
-        //assertThat(unitedKingdom.getPopulation()).isEqualTo(expected.getPopulation());
-        //assertThat(unitedKingdom.getArea()).isEqualTo(expected.getArea(), Offset.offset(1.0f));
+        assertThat(unitedKingdom).isEqualTo(expected);
+        assertThat(poland).isEqualTo(POLAND);
+    }
 
+    private static Stream<Arguments> customRemoveTestCases() {
+        CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
+        MappedUpdateExpression.RczSetExpressionGenerator<Country> eg = new MappedUpdateExpression.RczSetExpressionGenerator<>();
+        return Stream.of(
+                Arguments.of("setting a new density", path.selectDensity(),  UNITED_KINGDOM.withDensity(null)),
+                Arguments.of("set up initialy empty field" , path.selectHeadOfState(), UNITED_KINGDOM.withHeadOfState(null))
+        );
+    }
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    @MethodSource("customRemoveTestCases")
+    void parametrizedTestOfCustomRemoveExpression(String ignored, TypedPath<Country, Number> path,  Country expected) {
+
+        UpdateItemRequest request =
+                repo.update(UNITED_KINGDOM)
+                        .remove(path)
+                        .asUpdateItemRequest();
+
+        ddbClient.updateItem(request).get();
+        ScanResponse response = ddbClient.scan(it -> it.tableName(TABLE_NAME)
+                .build()).get();
+        Map<String, Country> abc = response.items().stream().map(CountryRepository.COUNTRY::transform)
+                .collect(Collectors.toMap(Country::getId, Function.identity()));
+        Country poland = abc.get("PL");
+        Country unitedKingdom = abc.get("UK");
 
         assertThat(unitedKingdom).isEqualTo(expected);
         assertThat(poland).isEqualTo(POLAND);

@@ -29,17 +29,20 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     private final LogicalExpression<T> condition;
 
     @Builder.Default
-    private  final List<Statement<T>> extraSetAddExpressions = new ArrayList<>();
+    private  final List<Statement<T>> extraSetAddRemoveExpressions = new ArrayList<>();
 
 
-    @Builder.Default
-    private  List<Path<T>> remove = new ArrayList<>();
+
+    public MappedUpdateExpression<T, G> remove(Path<T> path) {
+        extraSetAddRemoveExpressions.add(new RemoveStatement<>(new RczPathExpression<>(path)));
+        return this;
+    }
 
     public MappedUpdateExpression<T, G> setIfEmpty(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSimpleExpression<T>> expr) {
 
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
-        extraSetAddExpressions.add(UpdateStatement.<T>builder()
+        extraSetAddRemoveExpressions.add(UpdateStatement.<T>builder()
                 .path(new RczPathExpression<>(path))
                 .override(false)
                 .value(expr.apply(eg))
@@ -50,7 +53,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     public MappedUpdateExpression<T, G> set(Path<T> path, Function<RczSetExpressionGenerator<T>, RczSetExpression<T>> expr) {
         RczSetExpressionGenerator<T> eg = new RczSetExpressionGenerator<>();
 
-        extraSetAddExpressions.add(UpdateStatement.<T>builder()
+        extraSetAddRemoveExpressions.add(UpdateStatement.<T>builder()
                 .path(new RczPathExpression<>(path))
                 .override(true)
                 .value(expr.apply(eg))
@@ -61,7 +64,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
     public MappedUpdateExpression<T, G> add(TypedPath<T, Number> path, Number number) {
         RczValueExpression<T> ddd = new RczValueExpression<>(AttributeValue.fromN(number.toString()));
         RczPathExpression<T> pathExpression = new RczPathExpression<>(path);
-        extraSetAddExpressions.add(AddStatement.<T>builder()
+        extraSetAddRemoveExpressions.add(AddStatement.<T>builder()
                 .value(ddd)
                 .path(pathExpression)
                 .build());
@@ -79,6 +82,29 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         Map<String, String> getAttributes();
          Map<String, AttributeValue> getValues() ;
 
+    }
+    @Builder
+    @With
+    @Getter
+    public static final  class RemoveStatement<T> implements Statement<T>{
+        RczPathExpression<T> path;
+
+        public RemoveStatement<T> prepare(ConsecutiveIdGenerator idGenerator,
+                                       LiveMappingDescription<T> liveMappingDescription,
+                                       Map<String, String> shortCodeAccumulator,
+                                       Map<String, AttributeValue> shortCodeValueAccumulator
+        ) {
+            return  this.withPath(path.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator));
+        }
+        public  Map<String, String> getAttributes(){
+            return path.getAttributes();
+        }
+        public Map<String, AttributeValue> getValues() {
+            return Collections.emptyMap();
+        }
+        public String serialize(){
+            return path.serialize();
+        }
     }
 
     @Builder
@@ -161,10 +187,10 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
         Optional<MappedExpressionUtils.ResolvedExpression<T>> preparedConditionExpression =
                 prepare(liveMappingDescription, condition, idGenerator, shortCodeAccumulator);
 
-
-        List<Statement<T>> temporaryStatements = extraSetAddExpressions.stream()
+        List<Statement<T>> temporaryStatements = extraSetAddRemoveExpressions.stream()
                 .map(it-> it.prepare(idGenerator, liveMappingDescription, shortCodeAccumulator, shortCodeValueAccumulator))
                 .collect(Collectors.toList());
+
 
         TreeMap<String, Statement<T>> deduplicatedStatements = new TreeMap<>();
         temporaryStatements.forEach(it-> deduplicatedStatements.put(it.getPath().serialize(), it));
@@ -177,6 +203,7 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                         .map(Map::entrySet)
                         .flatMap(Collection::stream)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b)-> a));
+
 
         Map<String, String> attributesFromConditions = preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getAttributes)
@@ -209,19 +236,28 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .stream()
                 .filter(UpdateStatement.class::isInstance)
                 .map(Statement::serialize)
-                .collect(Collectors.joining(",", "SET ", " "));
+                .collect(Collectors.joining(" , "));
 
         String addExpr = deduplicatedStatements.values()
                 .stream()
                 .filter(AddStatement.class::isInstance)
                 .map(Statement::serialize)
-                .collect(Collectors.joining(",", "ADD ", " "));
+                .collect(Collectors.joining(" , " ));
+
+        String removeExpr = deduplicatedStatements.values()
+                .stream()
+                .filter(RemoveStatement.class::isInstance)
+                .map(Statement::serialize)
+                .collect(Collectors.joining(" , "));
 
 
         return UpdateItemRequest.builder()
                 .key(keys)
                 .expressionAttributeValues(allValues.isEmpty() ? null : allValues)
-          .updateExpression(setExpr + addExpr)
+          .updateExpression(
+                  serializeEpr("SET" , setExpr ) + " "
+                  + serializeEpr("ADD" , addExpr) + " "
+                  + serializeEpr("REMOVE",  removeExpr))
                .expressionAttributeNames(totalAttributesAll)
                 .conditionExpression(preparedConditionExpression.map(MappedExpressionUtils.ResolvedExpression::getExpression)
                         .map(LogicalExpression::serialize)
@@ -229,7 +265,12 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>>
                 .tableName(tableName)
                 .build();
     }
+    private static String serializeEpr(String name, String value){
+       if( value.isEmpty() )
+           return "";
+       return name + " " + value;
 
+    }
     public MappedUpdateExpression<T, G> condition(Function<G, LogicalExpression<T>> condition)
     {
         return this.withCondition( condition.apply(generator));
