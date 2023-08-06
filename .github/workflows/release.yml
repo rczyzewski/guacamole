@@ -22,7 +22,7 @@ jobs:
           mvn \
             --no-transfer-progress \
             --batch-mode \
-            -pl guacamole-core,guacamole-om  \
+            -pl guacamole-core,guacamole-dockertest,guacamole-om  \
             -P release \
             clean package deploy
         env:
