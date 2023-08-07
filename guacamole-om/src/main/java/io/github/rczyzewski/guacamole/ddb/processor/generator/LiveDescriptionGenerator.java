@@ -47,7 +47,7 @@ public class LiveDescriptionGenerator
     @NotNull
     private static CodeBlock createKeySchema(@NotNull KeyType keyType, @NotNull String attributeName)
     {
-
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()\n", KeySchemaElement.class)
@@ -61,7 +61,7 @@ public class LiveDescriptionGenerator
     @NotNull
     private static CodeBlock createProjection(@NotNull ProjectionType projectionType)
     {
-
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()", Projection.class)
@@ -75,6 +75,7 @@ public class LiveDescriptionGenerator
     private static CodeBlock createThroughput(@NotNull Long writeCapacity, @NotNull Long readCapacity)
     {
 
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()\n", ProvisionedThroughput.class)
@@ -163,6 +164,7 @@ public class LiveDescriptionGenerator
     }
 
     @NotNull
+    //TODO: why it is not us
     public List<ClassDescription> getRequiredMappers(
         @NotNull ClassDescription classDescription,
         @NotNull List<ClassDescription> encountered)
@@ -205,8 +207,10 @@ public class LiveDescriptionGenerator
                             mappedClassName, Arrays.class, indentBlocks);
     }
 
+
     public CodeBlock createTableDefinition(@NotNull ClassUtils utils)
     {
+        //TODO:  only invocation of static method from LiveDescription here
 
         CodeBlock primary = createKeySchema(HASH, utils.getPrimaryHash().getAttribute());
 

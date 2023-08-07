@@ -4,6 +4,7 @@ import com.google.auto.service.AutoService;
 import io.github.rczyzewski.guacamole.ddb.*;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.generator.IndexSelectorGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionBuilderGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
@@ -72,6 +73,7 @@ public class DynamoDBProcessor extends AbstractProcessor
     private LogicalExpressionBuilderGenerator expressionBuilderGenerator;
     private PathGenerator pathGenerator;
     private Types types;
+    private IndexSelectorGenerator indexSelectorGenerator;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment)
@@ -84,6 +86,7 @@ public class DynamoDBProcessor extends AbstractProcessor
         expressionBuilderGenerator = new LogicalExpressionBuilderGenerator();
         pathGenerator = new PathGenerator();
         types = processingEnvironment.getTypeUtils();
+        indexSelectorGenerator = new IndexSelectorGenerator();
 
     }
 
@@ -141,9 +144,9 @@ public class DynamoDBProcessor extends AbstractProcessor
                                                   classDescription.getName() + "Repository",
                                                  "LogicalExpressionBuilder");
 
-        TypeSpec is = TypeSpec.classBuilder( "IndexSelector").build();
+        ClassName isName =  ClassName.get(classDescription.getPackageName(), classDescription.getName() + "Repository", "IndexSelector");
 
-        ClassName isName =  ClassName.get(classDescription.getPackageName(), classDescription.getName() + "Repository", is.name);
+
 
         String mainMapperName = toSnakeCase(classDescription.getName());
 
@@ -155,7 +158,6 @@ public class DynamoDBProcessor extends AbstractProcessor
             .addAnnotation(Builder.class)
             .addAnnotation(AllArgsConstructor.class)
             .addModifiers(PUBLIC)
-                .addType(is)
             .addField(FieldSpec.builder(get(String.class), "tableName", FINAL, PRIVATE).build())
                 .addTypes(classDescription.getSourandingClasses().values()
                         .stream()
@@ -297,6 +299,8 @@ public class DynamoDBProcessor extends AbstractProcessor
         ClassUtils d = new ClassUtils(classDescription, logger);
 
         List<IndexDescription> indexes = d.createIndexsDescription();
+        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, indexes );
+        navigatorClass.addType(indexSelector);
 
         indexes.stream()
             .map(it -> MethodSpec.methodBuilder(Optional.of(it)
