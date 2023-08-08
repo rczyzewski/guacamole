@@ -8,8 +8,6 @@ import io.github.rczyzewski.guacamole.ddb.processor.generator.IndexSelectorGener
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionBuilderGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
-import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
-import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -21,9 +19,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
 import lombok.*;
-import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awssdk.services.dynamodb.model.Condition;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
@@ -41,10 +37,7 @@ import javax.lang.model.util.Types;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -117,20 +110,6 @@ public class DynamoDBProcessor extends AbstractProcessor
         return true;
     }
 
-    public TypeSpec getEnumFields(String name, List<FieldDescription> fieldDescriptions){
-        TypeSpec.Builder enumBuilder = TypeSpec.enumBuilder(name)
-                                               .addAnnotation(Getter.class)
-                                               .addAnnotation(AllArgsConstructor.class)
-                                               .addField(FieldSpec.builder(String.class, "ddbField", PRIVATE, FINAL)
-                                                                  .build())
-                                               .addModifiers(PUBLIC, STATIC);
-        fieldDescriptions.forEach(it -> enumBuilder.addEnumConstant(TypoUtils.toSnakeCase(it.getName()),
-                                                                    TypeSpec.anonymousClassBuilder(String.format(
-                                                                                    "\"%s\"",
-                                                                                    it.getAttribute()))
-                                                                            .build()));
-        return enumBuilder.build();
-    }
 
     @SneakyThrows
     private void writeToFile(ClassDescription classDescription)
@@ -140,13 +119,9 @@ public class DynamoDBProcessor extends AbstractProcessor
         ClassName repositoryClazz = ClassName.get(classDescription.getPackageName(),
                                                   classDescription.getName() + "Repository");
 
-        ClassName updateClazzName = ClassName.get(classDescription.getPackageName(),
-                                                  classDescription.getName() + "Repository",
-                                                 "LogicalExpressionBuilder");
+        ClassName updateClazzName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
-        ClassName isName =  ClassName.get(classDescription.getPackageName(), classDescription.getName() + "Repository", "IndexSelector");
-
-
+        ClassName isName =  repositoryClazz.nestedClass( "IndexSelector");
 
         String mainMapperName = toSnakeCase(classDescription.getName());
 
@@ -250,20 +225,16 @@ public class DynamoDBProcessor extends AbstractProcessor
                         .returns(ParameterizedTypeName.get(ClassName.get(MappedScanExpression.class),clazz,
                                 updateClazzName))
                         .build())
-            .addMethod(MethodSpec.methodBuilder("delete")
-                           .addModifiers(PUBLIC)
-                           .addAnnotation(Override.class)
-                           .addParameter(ParameterSpec.builder(clazz, "item").build())
-                    .addCode(CodeBlock.builder()
-                            .indent()
-                            .add("$T gen = new $T() ;  \n" , updateClazzName, updateClazzName)
-                            .add("return $L.generateDeleteExpression(item, gen, this.tableName);", mainMapperName)
-                            .unindent()
-                            .build())
-                    .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class),clazz,
-                            updateClazzName))
-                           .build())
-            .addMethod(MethodSpec.methodBuilder("createTable")
+                .addMethod(MethodSpec.methodBuilder("delete")
+                        .addModifiers(PUBLIC)
+                        .addAnnotation(Override.class)
+                        .addParameter(ParameterSpec.builder(clazz, "item").build())
+                        .addCode("$T gen = new $T() ;  \n", updateClazzName, updateClazzName)
+                        .addCode("return $L.generateDeleteExpression(item, gen, this.tableName);", mainMapperName)
+                        .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class), clazz,
+                                updateClazzName))
+                        .build())
+                .addMethod(MethodSpec.methodBuilder("createTable")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addCode(
@@ -271,58 +242,16 @@ public class DynamoDBProcessor extends AbstractProcessor
                            .returns(ClassName.get(CreateTableRequest.class))
                            .build());
 
-        Optional.of(classDescription)
-                .map(it -> it.getFieldDescriptions()
-                             .stream()
-                             .filter(field -> Arrays.asList(DDBType.INTEGER, DDBType.FLOAT, DDBType.LONG, DDBType.DOUBLE ) .contains(field.getDdbType()))
-                             .collect(Collectors.toList()))
-                .filter(fields -> !fields.isEmpty())
-                .map(fields -> this.getEnumFields("FieldAllNumbers", fields))
-                .ifPresent(navigatorClass::addType);
-        Optional.of(classDescription)
-                .map(it -> it.getFieldDescriptions()
-                             .stream()
-                             .filter(field -> field.getDdbType().equals(DDBType.STRING))
-                             .collect(Collectors.toList()))
-                .filter(fields -> !fields.isEmpty())
-                .map(fields -> this.getEnumFields("AllStrings", fields))
-                .ifPresent(navigatorClass::addType);
-
-        Optional.of(classDescription)
-                .map(ClassDescription::getFieldDescriptions)
-                .filter(fields -> !fields.isEmpty())
-                .map(fields -> this.getEnumFields("AllFields", fields))
-                .ifPresent(navigatorClass::addType);
-
-
 
         ClassUtils d = new ClassUtils(classDescription, logger);
 
         List<IndexDescription> indexes = d.createIndexsDescription();
-        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, indexes );
+        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, clazz , indexes );
         navigatorClass.addType(indexSelector);
 
-        indexes.stream()
-            .map(it -> MethodSpec.methodBuilder(Optional.of(it)
-                                                    .map(IndexDescription::getName)
-                                                    .map(TypoUtils::toCamelCase)
-                                                    .orElse("primary"))
+        ClassName logicalExpressionBuilderClassName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
-                .addModifiers(PUBLIC)
-                //TODO move class generation for given purpose into a static method
-                .returns(ClassName.get(repositoryClazz.packageName(), repositoryClazz.simpleName(),
-                        TypoUtils.toClassName(it.getName()) + "CustomSearch"))
-
-                .addCode(
-                    "return new $L$L(DynamoSearch.builder().tableName(tableName).indexName($S).build());\n",
-                        TypoUtils.toClassName(it.getName()), "CustomSearch", it.getName())
-                .build())
-            .forEach(navigatorClass::addMethod);
-
-        indexes.stream().map(it -> fluentQueryGenerator(it, classDescription))
-            .forEach(navigatorClass::addType);
-
-        TypeSpec queryGeneratorBuilder = this.expressionBuilderGenerator.createLogicalExpressionBuilder(classDescription);
+        TypeSpec queryGeneratorBuilder = this.expressionBuilderGenerator.createLogicalExpressionBuilder(logicalExpressionBuilderClassName, classDescription);
 
         @NotNull TypeSpec path = this.pathGenerator.createPaths(classDescription);
 
@@ -335,86 +264,7 @@ public class DynamoDBProcessor extends AbstractProcessor
             .writeTo(filer);
     }
 
-    public TypeSpec fluentQueryGenerator(IndexDescription indexDescription, ClassDescription classDescription)
-    {
-        ParameterizedTypeName conditionType = get(ClassName.get(Map.class),
-                                                  ClassName.get(String.class), ClassName.get(Condition.class));
 
-        ClassName customSearchKF = ClassName.get(classDescription.getPackageName(),
-                                                 classDescription.getName() + "Repository",
-                TypoUtils.toClassName(indexDescription.getName()) +
-                                                 "CustomSearch", "KeyFilterCreator");
-        logger.info("customSearchKF" + customSearchKF);
-
-        ClassName customSearchAF = ClassName.get(classDescription.getPackageName(),
-                                                 classDescription.getName() + "Repository",
-                TypoUtils.toClassName(indexDescription.getName()) +
-                                                 "CustomSearch", "FilterCreator");
-
-        logger.info("customSearchAF" + customSearchAF);
-
-        ClassName customSearchCN = ClassName.get(classDescription.getPackageName(),
-                                                 classDescription.getName() + "Repository",
-                TypoUtils.toClassName(indexDescription.getName()) +
-                                                 "CustomSearch");
-
-        logger.info("customSearchCN" + customSearchCN);
-
-        TypeSpec queryClass = TypeSpec.classBuilder(customSearchAF)
-            .addModifiers(PUBLIC, FINAL)
-            .addAnnotation(With.class)
-            .addAnnotation(AllArgsConstructor.class)
-            .addField(FieldSpec.builder(customSearchCN, "customSearch", FINAL, PRIVATE).build())
-            .addField(FieldSpec.builder(conditionType, "conditionHashMap").build())
-            //.addMethods(FilterMethodsCreator.createAllFiltersMethod(customSearchAF, indexDescription))
-            .addMethod(MethodSpec.methodBuilder("end")
-                           .addModifiers(PUBLIC)
-                           .returns(customSearchCN)
-                           .addCode("return this.customSearch.withDynamoSearch($L);",
-                                    CodeBlock.of(
-                                        "this.customSearch.dynamoSearch.withFilterConditions(conditionHashMap)"))
-                           .build())
-            .build();
-
-        TypeSpec keyQueryClass = TypeSpec.classBuilder(customSearchKF)
-            .addModifiers(PUBLIC, FINAL)
-            .addAnnotation(With.class)
-            .addAnnotation(AllArgsConstructor.class)
-            .addField(FieldSpec.builder(customSearchCN, "customSearch", FINAL, PRIVATE).build())
-            .addField(FieldSpec.builder(conditionType, "conditionHashMap").build())
-            //.addMethods(FilterMethodsCreator.createKeyFiltersMethod(customSearchKF, indexDescription))
-            .addMethod(MethodSpec.methodBuilder("end")
-                           .addModifiers(PUBLIC)
-                           .returns(customSearchCN)
-                           .addCode("return this.customSearch.withDynamoSearch($L);",
-                                    CodeBlock.of(
-                                        "this.customSearch.dynamoSearch.withKeyConditions(conditionHashMap)"))
-                           .build())
-            .build();
-
-
-        return TypeSpec.classBuilder(customSearchCN)
-            .addAnnotation(With.class)
-            .addAnnotation(Getter.class)
-            .addAnnotation(AllArgsConstructor.class)
-            .addField(FieldSpec.builder(DynamoSearch.class, "dynamoSearch", FINAL, PRIVATE).build())
-            .addModifiers(PUBLIC, FINAL)
-            .addMethod(MethodSpec.methodBuilder("filter")
-                           .addModifiers(PUBLIC)
-                           .returns(customSearchAF)
-                           .addCode("return new $L(this, $L);\n", customSearchAF,
-                                    CodeBlock.of("new $L<>()", ClassName.get(HashMap.class)))
-                           .build())
-            .addMethod(MethodSpec.methodBuilder("keyFilter")
-                           .addModifiers(PUBLIC)
-                           .returns(customSearchKF)
-                           .addCode("return new $L(this, $L);\n", customSearchKF,
-                                    CodeBlock.of("new $L<>()", ClassName.get(HashMap.class)))
-                           .build())
-            .addType(queryClass)
-            .addType(keyQueryClass)
-            .build();
-    }
 
     @Override
     public Set<String> getSupportedAnnotationTypes()

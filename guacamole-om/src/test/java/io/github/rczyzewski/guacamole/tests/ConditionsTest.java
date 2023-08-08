@@ -6,11 +6,9 @@ import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -168,11 +166,12 @@ class ConditionsTest {
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonGreater(path.selectFamousMusician())),
 
+                /*
                 named("there should be someone more famous than the head of state(NOT)",
                         it -> it.not(it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))),
                 named("there should be someone more famous than the head of state(EQUAL)",
                         it -> it.famousPersonEqual(CountryRepository.AllStrings.NAME.name())),
-
+*/
                 named("nothing compares to BrianMay(1)",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectName())),
                 named("nothing compares to BrianMay(2)",
@@ -326,8 +325,10 @@ class ConditionsTest {
                         it -> it.famousPersonGreaterOrEqual(path.selectFamousMusician())),
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonLessOrEqual(path.selectFamousMusician())),
+                /*
                 named("there should be someone more famous than the head of state",
                         it -> it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name())),
+                 */
                 named("when famous person is Brian May, (written with AND)",
                         it -> it.and(it.famousPersonEqual("Brian May"))),
                 named("when famous person is Brian May, and name is United Kingdom",
@@ -680,11 +681,5 @@ class ConditionsTest {
 
         assertThatThrownBy(() -> ddbClient.updateItem(request).get())
                 .hasCauseInstanceOf(ConditionalCheckFailedException.class);
-    }
-    @Test
-    public void intialTestOfTheQueryMethod(){
-        //It's cool that it's compile now
-       repo.query(it-> "SomeString");
-
     }
 }
