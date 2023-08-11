@@ -13,12 +13,13 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
+import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -111,18 +112,51 @@ class IndexTest {
                         .loses(19)
                         .build());
 
-        data.stream().map(repo::create).forEach(ddbClient::putItem);
+        for (PlayerRanking datum : data) {
+            PutItemRequest putItemRequest = repo.create(datum);
+            ddbClient.putItem(putItemRequest).get();
+        }
     }
+    @SneakyThrows
+    private List<PlayerRanking> perfrom(QueryRequest request) {
 
+        QueryResponse results = ddbClient.query(request).get();
+        return results.items()
+                .stream()
+                .map(PlayerRankingRepository.PLAYER_RANKING::transform)
+                .collect(Collectors.toList());
+
+
+    }
 
     @Test
     @SneakyThrows
-     void intialTestOfTheQueryMethod() {
-        //It's cool that it's compile now
-       QueryRequest abc = repo.query(it -> it.GameTitleIndex("dd")).asQuerytemRequest();
-       QueryResponse results = ddbClient.query(abc).get();
-       results.items().stream().map(PlayerRankingRepository.PLAYER_RANKING::transform)
-               .forEach(it-> log.info("PlayerRanking {} ", it));
-        assertThat("Works!").startsWithIgnoringCase("work");
+    void noResultsWhenUsingNonExistingHashKey() {
+        QueryRequest request = repo.query(it -> it.GameTitleIndex("dd")).asQuerytemRequest();
+        assertThat(perfrom(request)).isEmpty();
+        request = repo.query(it -> it.primary("dd")).asQuerytemRequest();
+        assertThat(perfrom(request)).isEmpty();
+    }
+
+    @Test
+    @SneakyThrows
+    void emptyScanShouldReturnResults() {
+        //TODO: when scanning without condition, the exception is thrown
+        ScanRequest request = repo.scan().condition(PlayerRankingRepository.LogicalExpressionBuilder::userIdExists).asScanItemRequest();
+        CompletableFuture<ScanResponse> results = ddbClient.scan(request);
+        List<PlayerRanking> items = results.get().items()
+                .stream()
+                .map(PlayerRankingRepository.PLAYER_RANKING::transform)
+                .collect(Collectors.toList());
+
+        assertThat(items).isNotEmpty();
+
+    }
+    @Test
+    @SneakyThrows
+    void shouldRetriveResultsWhenScanningByExistingSecondaryKey() {
+        QueryRequest request = repo.query(it -> it.GameTitleIndex("Meteor Blaster")).asQuerytemRequest();
+        assertThat(perfrom(request)).isNotEmpty();
+
     }
 }
