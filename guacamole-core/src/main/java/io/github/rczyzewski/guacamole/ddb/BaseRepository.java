@@ -18,9 +18,7 @@ public interface BaseRepository<BEAN_TYPE,
 
     MappedScanExpression<BEAN_TYPE, EXPRESSION_GENERATOR> scan();
 
-    MappedQueryExpression<BEAN_TYPE, EXPRESSION_GENERATOR> query(Function<INDEX_SELECTOR,String> keyConditions);
-
- //   DynamoSearch getAll();
+    MappedQueryExpression<BEAN_TYPE, EXPRESSION_GENERATOR> query(Function<INDEX_SELECTOR,MappedQueryExpression<BEAN_TYPE, EXPRESSION_GENERATOR>> keyConditions);
 
     CreateTableRequest createTable();
 }

@@ -175,32 +175,30 @@ public class DynamoDBProcessor extends AbstractProcessor
                                  .returns(ParameterizedTypeName.get(ClassName.get(MappedUpdateExpression.class),clazz,
                                                                     updateClazzName))
                            .build())
-            .addMethod(MethodSpec.methodBuilder("create")
-                           .addModifiers(PUBLIC)
-                           .addAnnotation(Override.class)
-                           .addParameter(ParameterSpec.builder(clazz, "someName").build())
-                           .addCode(
-                                             CodeBlock.builder().indent()
-                                                 .add("return $T.builder()\n", PutItemRequest.class)
-                                                 .add(".tableName(tableName)\n")
-                                                 .add(".item($L.export(someName))\n", mainMapperName)
-                                                 .add(".build();")
-                                                 .unindent()
-                                                 .build())
-                           .returns(PutItemRequest.class)
-                           .build())
-                        .addMethod(MethodSpec.methodBuilder("query")
-                               .addModifiers(PUBLIC)
-                                .addParameter(
-                                        ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), isName, ClassName.get(String.class)),"builder")
+                .addMethod(MethodSpec.methodBuilder("create")
+                        .addModifiers(PUBLIC)
+                        .addAnnotation(Override.class)
+                        .addParameter(ParameterSpec.builder(clazz, "someName").build())
+                        .addCode(
+                                CodeBlock.builder().indent()
+                                        .add("return $T.builder()\n", PutItemRequest.class)
+                                        .add(".tableName(tableName)\n")
+                                        .add(".item($L.export(someName))\n", mainMapperName)
+                                        .add(".build();")
+                                        .unindent()
                                         .build())
-                               .addAnnotation(Override.class)
-                               .addCode(
-                                       CodeBlock.builder()
-                                               .add("return null;")
-                                               .build())
-                               .returns(ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class),clazz, updateClazzName))
-                               .build())
+                        .returns(PutItemRequest.class)
+                        .build())
+                .addMethod(MethodSpec.methodBuilder("query")
+                        .addModifiers(PUBLIC)
+                        .addParameter(
+                                ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), isName,
+                                                ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, updateClazzName)), "builder")
+                                        .build())
+                        .addAnnotation(Override.class)
+                        .addCode("return builder.apply(new IndexSelector()).withTableName(tableName).withLiveMappingDescription($L);", mainMapperName)
+                        .returns(ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, updateClazzName))
+                        .build())
          /*        .addMethod(MethodSpec.methodBuilder("getAll")
                         .addModifiers(PUBLIC)
                         .addAnnotation(Override.class)
@@ -245,11 +243,11 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         ClassUtils d = new ClassUtils(classDescription, logger);
 
-        List<IndexDescription> indexes = d.createIndexsDescription();
-        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, clazz , indexes );
-        navigatorClass.addType(indexSelector);
 
         ClassName logicalExpressionBuilderClassName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
+        List<IndexDescription> indexes = d.createIndexsDescription();
+        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, clazz , logicalExpressionBuilderClassName, indexes );
+        navigatorClass.addType(indexSelector);
 
         TypeSpec queryGeneratorBuilder = this.expressionBuilderGenerator.createLogicalExpressionBuilder(logicalExpressionBuilderClassName, classDescription);
 

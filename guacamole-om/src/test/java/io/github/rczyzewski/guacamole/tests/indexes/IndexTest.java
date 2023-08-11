@@ -13,9 +13,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -113,18 +116,13 @@ class IndexTest {
 
 
     @Test
+    @SneakyThrows
      void intialTestOfTheQueryMethod() {
         //It's cool that it's compile now
-        repo.query(it ->
-        {
-            it.GameTitleIndex("dd",
-                    $ -> {
-                        $.topScoreEqual(22);
-                        return "ddd";
-                    }
-            );
-            return "ddd";
-        });
+       QueryRequest abc = repo.query(it -> it.GameTitleIndex("dd")).asQuerytemRequest();
+       QueryResponse results = ddbClient.query(abc).get();
+       results.items().stream().map(PlayerRankingRepository.PLAYER_RANKING::transform)
+               .forEach(it-> log.info("PlayerRanking {} ", it));
         assertThat("Works!").startsWithIgnoringCase("work");
     }
 }

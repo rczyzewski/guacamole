@@ -83,14 +83,32 @@ public class LogicalExpressionBuilderGenerator {
                 .build();
     }
 
+    public MethodSpec createFilterConditionsComparedToReference(@NotNull ClassName baseBean,
+                                                                @NotNull FieldDescription fd,
+                                                                LogicalExpression.ComparisonOperator operator) {
+        ParameterizedTypeName returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
+                baseBean);
+
+        ParameterizedTypeName pathOfBean = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
+
+        if (fd.getDdbType() != DDBType.STRING && !Objects.equals(fd.getDdbType().getSymbol(), "n"))
+            return null;
+
+        return MethodSpec
+                .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
+                .addParameter(ParameterSpec.builder(pathOfBean, "referencePath").build())
+                .addModifiers(PUBLIC)
+                .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                .addCode("return new LogicalExpression.ComparisonToReference<>(path,  $T.$L, referencePath);\n",
+                        LogicalExpression.ComparisonOperator.class, operator)
+                .returns(returnExpressionType)
+                .build();
+    }
+
     @NotNull
     public TypeSpec createLogicalExpressionBuilder(ClassName customSearchAF, @NotNull ClassDescription classDescription) {
 
         ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
-
-        ParameterizedTypeName returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
-                baseBean);
-        ParameterizedTypeName pathOfBean = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
 
         ParameterizedTypeName superInterface = ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class),
                 baseBean);
@@ -108,23 +126,11 @@ public class LogicalExpressionBuilderGenerator {
                     .filter(Objects::nonNull)
                     .forEach(queryClass::addMethod);
 
+            Arrays.stream(LogicalExpression.ComparisonOperator.values())
+                    .map(it -> this.createFilterConditionsComparedToReference(baseBean, fd, it))
+                    .filter(Objects::nonNull)
+                    .forEach(queryClass::addMethod);
 
-            if (fd.getDdbType() == DDBType.STRING || Objects.equals(fd.getDdbType().getSymbol(), "n")) {
-
-                Arrays.stream(LogicalExpression.ComparisonOperator.values())
-                        .map(it -> MethodSpec
-                                .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(it.name())))
-                                .addParameter(ParameterSpec.builder(pathOfBean, "referencePath").build())
-                                .addModifiers(PUBLIC)
-                                .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
-                                .addCode("return new LogicalExpression.ComparisonToReference<>(path,  $T.$L, referencePath);\n",
-                                        LogicalExpression.ComparisonOperator.class, it)
-                                .returns(returnExpressionType)
-                                .build()
-                        )
-                        .forEach(queryClass::addMethod);
-
-            }
         }
         return queryClass.build();
     }
