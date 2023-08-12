@@ -25,22 +25,15 @@ public class IndexSelectorGenerator {
 
         for (IndexDescription index : description) {
 
-            //Adding scanning filter generator
-            /* ClassName scanFilterGeneratorName = externalClassName.nestedClass(Optional.ofNullable(index.getName()).orElse("_Primary"));
-            TypeSpec.Builder scanFilterGenerator = TypeSpec.classBuilder(scanFilterGeneratorName);
-            TypeSpec scanFilter = scanFilterGenerator.build();
-            indexSelectorBuilder.addType(scanFilter);
-             */
 
             indexSelectorBuilder.addMethod(this.createMethod(index,baseBean, logicalExpressionBuilder));
 
             if (index.getRangeField() != null) {
-                ClassName helperSecondaryIndex = externalClassName.nestedClass(index.getRangeField().getName());
+                ClassName helperSecondaryIndex = externalClassName.nestedClass(index.getName() + index.getRangeField().getName());
                 indexSelectorBuilder.addType(createSecondryIndexSelectorHelper(helperSecondaryIndex, baseBean, index));
-                indexSelectorBuilder.addMethod(createMethod2(index, helperSecondaryIndex));
+                indexSelectorBuilder.addMethod(createMethod2(index, baseBean,  logicalExpressionBuilder, helperSecondaryIndex));
             }
         }
-
         return indexSelectorBuilder.build();
     }
 
@@ -77,16 +70,25 @@ public class IndexSelectorGenerator {
         return indexSelectorBuilder.build();
     }
 
-    private MethodSpec createMethod2(IndexDescription index, ClassName helperSecondaryIndex) {
+    private MethodSpec createMethod2(IndexDescription index,ClassName baseBean,  ClassName generator, ClassName rangeKeyGenerator) {
 
+        ParameterizedTypeName rt = ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), baseBean, generator);
+        ParameterizedTypeName function = ParameterizedTypeName.get(ClassName.get(Function.class), rangeKeyGenerator , ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),baseBean));
         MethodSpec.Builder methodBuilder = MethodSpec
                 .methodBuilder(Optional.ofNullable(index.getName())
-                        .orElse("_primary"));
-        TypeName argTup = ClassName.bestGuess(index.getHashField().getTypeName());
-        methodBuilder.addParameter(ParameterSpec.builder(argTup, "hash").build());
+                        .orElse("primary"));
+        methodBuilder.addParameter(ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeName()), "hash").build());
+        methodBuilder.addParameter(ParameterSpec.builder(function, "generator").build())
+                .addCode(CodeBlock.builder()
+                        .add("ExpressionGenerator<$T> eg = new ExpressionGenerator<>();", baseBean)
+                        .add("$T tmp1 = $T.fromS(hash);\n", AttributeValue.class, AttributeValue.class)
+                        .add("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(index.getHashField().getName()))
+                        .add("LogicalExpression<$T> key = new LogicalExpression.ComparisonToValue<>(path , LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n", baseBean)
+                                .add("LogicalExpression<$T>  extra = eg.and(key, generator.apply(new $T()));\n", baseBean, rangeKeyGenerator)
+                        .add("return new $T<>(new $T(), $S,  null, null, null, extra); \n", rt.rawType, rt.typeArguments.get(1), index.getName())
+                        .build())
+                .returns(rt);
 
-        ParameterizedTypeName functionSignature = ParameterizedTypeName.get(ClassName.get(Function.class), helperSecondaryIndex , ClassName.get(String.class));
-        methodBuilder.addParameter(ParameterSpec.builder(functionSignature, "range").build());
         return methodBuilder.build();
     }
 }

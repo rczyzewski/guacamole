@@ -49,6 +49,7 @@ public class MappedQueryExpression<T, G> {
         Map<String, String> attributesFromFilteringCondition = preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getAttributes)
                 .orElse(Collections.emptyMap());
+
         Map<String, String> allAttributesNames = Stream.of(
                         attributesFromFilteringCondition,
                         preparedKeyCondition.getAttributesMap())

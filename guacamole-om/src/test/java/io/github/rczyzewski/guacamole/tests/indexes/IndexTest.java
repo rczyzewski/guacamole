@@ -18,7 +18,6 @@ import software.amazon.awssdk.services.dynamodb.model.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -135,6 +134,11 @@ class IndexTest {
         QueryRequest request = repo.query(it -> it.GameTitleIndex("dd")).asQuerytemRequest();
         assertThat(perfrom(request)).isEmpty();
         request = repo.query(it -> it.primary("dd")).asQuerytemRequest();
+        assertThat(perfrom(request)).isEmpty();
+        request = repo.query(it -> it.primary("dd",g -> g.gameTitleEqual("ddd"))).asQuerytemRequest();
+        assertThat(perfrom(request)).isEmpty();
+
+        request = repo.query(it -> it.GameTitleIndex("dd",g -> g.topScoreLess(123))).asQuerytemRequest();
         assertThat(perfrom(request)).isEmpty();
     }
 
