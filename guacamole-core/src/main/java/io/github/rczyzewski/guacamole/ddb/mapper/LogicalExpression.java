@@ -143,7 +143,9 @@ public interface LogicalExpression<T>{
         LESS("<"),
         LESS_OR_EQUAL("<="),
         GREATER(">"),
-        GREATER_OR_EQUAL(">=");
+        GREATER_OR_EQUAL(">="),
+        BETWEEN("BETWEEN"),
+        BEGINS_WITH("BEGINS");
 
         private final String symbol;
     }
@@ -189,6 +191,91 @@ public interface LogicalExpression<T>{
             parts.addAll(path.getPartsName());
             parts.addAll(otherPath.getPartsName());
 
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        }
+    }
+    @Builder
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    class Between<K> implements LogicalExpression<K>{
+        final Path<K> path ;
+        final AttributeValue dynamoDBEncodedValue;
+        final AttributeValue dynamoDBEncodedValue2;
+        @With
+        Map<String, String> shortCodeAccumulator;
+
+        @With
+        String shortValueCode;
+        @With
+        String shortValueCode2;
+
+
+        @Override
+        public String serialize(){
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" %s BETWEEN %s %s", serializedPath,  shortValueCode, shortValueCode2);
+        }
+
+        @Override
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            return this.withShortCodeAccumulator(shortCodeAccumulator)
+                    .withShortValueCode(":" + idGenerator.get());
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValuesMap(){
+            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            Set<String> parts = path.getPartsName();
+            return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+        }
+    }
+
+
+    @Builder
+    @AllArgsConstructor
+    @RequiredArgsConstructor
+    class BeginsWith<K> implements LogicalExpression<K>{
+        final Path<K> path ;
+        final AttributeValue dynamoDBEncodedValue;
+        @With
+        Map<String, String> shortCodeAccumulator;
+
+        @With
+        String shortValueCode;
+
+
+        @Override
+        public String serialize(){
+            String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
+            return String.format(" begins_with( %s,  %s)", serializedPath,  shortValueCode);
+        }
+
+        @Override
+        public LogicalExpression<K> prepare(ConsecutiveIdGenerator idGenerator, LiveMappingDescription<K> liveMappingDescription, Map<String,String> shortCodeAccumulator){
+
+            path.getPartsName()
+                    .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
+            return this.withShortCodeAccumulator(shortCodeAccumulator)
+                    .withShortValueCode(":" + idGenerator.get());
+        }
+
+        @Override
+        public Map<String, AttributeValue> getValuesMap(){
+            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
+        }
+
+        @Override
+        public Map<String, String> getAttributesMap(){
+            Set<String> parts = path.getPartsName();
             return this.shortCodeAccumulator.entrySet().stream().filter(it-> parts.contains(it.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
         }

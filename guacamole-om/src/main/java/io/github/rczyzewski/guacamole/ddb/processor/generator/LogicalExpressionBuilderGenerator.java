@@ -66,17 +66,56 @@ public class LogicalExpressionBuilderGenerator {
         if (fd.getDdbType() != DDBType.STRING && !Objects.equals(fd.getDdbType().getSymbol(), "n"))
             return null;
 
-
         CodeBlock cb = fd.getDdbType() == DDBType.STRING ?
                 CodeBlock.of("AttributeValue av =  AttributeValue.fromS(value);\n") :
                 CodeBlock.of("AttributeValue av =  AttributeValue.fromN($T.toString(value));\n", fd.getDdbType().getClazz());
+
+        CodeBlock path = CodeBlock.of("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()));
+
+        if (LogicalExpression.ComparisonOperator.BEGINS_WITH.equals(operator))
+        {
+            if( Objects.equals(fd.getDdbType().getSymbol() ,  "n")) {
+                return null;
+            }
+
+            return MethodSpec
+                    .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
+                    .addParameter(fd.getDdbType().getClazz(), "value")
+                    .addModifiers(PUBLIC)
+                    .addCode(cb)
+                    .addCode(path)
+                    .addCode("return new LogicalExpression.BeginsWith<>(path,  av);\n")
+                    .returns(returnExpressionType)
+                    .build();
+
+
+
+        } else if (LogicalExpression.ComparisonOperator.BETWEEN.equals(operator)) {
+            CodeBlock cb2 = fd.getDdbType() == DDBType.STRING ?
+                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromS(value2);\n") :
+                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromN($T.toString(value2));\n", fd.getDdbType().getClazz());
+
+            return MethodSpec
+                    .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
+                    .addParameter(fd.getDdbType().getClazz(), "value")
+                    .addParameter(fd.getDdbType().getClazz(), "value2")
+                    .addModifiers(PUBLIC)
+                    .addCode(cb)
+                    .addCode(cb2)
+                    .addCode(path)
+                    .addCode("return new LogicalExpression.Between<>(path,   av, av2);\n" )
+                    .returns(returnExpressionType)
+                    .build();
+
+        }
+
 
         return MethodSpec
                 .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
                 .addParameter(fd.getDdbType().getClazz(), "value")
                 .addModifiers(PUBLIC)
                 .addCode(cb)
-                .addCode("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()))
+                .addCode(path)
                 .addCode("return new LogicalExpression.ComparisonToValue<>(path,  $T.$L, av);\n",
                         LogicalExpression.ComparisonOperator.class, operator)
                 .returns(returnExpressionType)

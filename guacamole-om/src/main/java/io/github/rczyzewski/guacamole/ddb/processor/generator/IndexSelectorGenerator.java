@@ -9,6 +9,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -60,11 +61,17 @@ public class IndexSelectorGenerator {
         TypeSpec.Builder indexSelectorBuilder = TypeSpec.classBuilder(fullName.simpleName());
         LogicalExpressionBuilderGenerator g = new LogicalExpressionBuilderGenerator();
 
-        Stream.of(ComparisonOperator.LESS,
+        Stream.of(
                         ComparisonOperator.EQUAL,
+                 ComparisonOperator.LESS,
+                       ComparisonOperator.LESS_OR_EQUAL ,
+              ComparisonOperator.GREATER,
                         ComparisonOperator.GREATER_OR_EQUAL,
-                        ComparisonOperator.LESS_OR_EQUAL)
+                        ComparisonOperator.BETWEEN ,
+                        ComparisonOperator.BEGINS_WITH
+                )
                 .map(it -> g.createFilterConditionsComparedToValue(baseBean, index.getRangeField(), it))
+                .filter(Objects::nonNull)
                 .forEach(indexSelectorBuilder::addMethod);
 
         return indexSelectorBuilder.build();
