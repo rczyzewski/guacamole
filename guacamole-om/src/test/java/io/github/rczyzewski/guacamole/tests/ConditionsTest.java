@@ -20,9 +20,7 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -99,8 +97,8 @@ class ConditionsTest {
     @SneakyThrows
     @BeforeEach
     void beforeEach() {
-        ddbClient.putItem(repo.create(POLAND)).get();
-        ddbClient.putItem(repo.create(UNITED_KINGDOM)).get();
+       Map<String, Collection<WriteRequest>> writeRequest = repo.asWriteRequest(POLAND, UNITED_KINGDOM);
+       ddbClient.batchWriteItem(BatchWriteItemRequest.builder().requestItems(writeRequest).build()).get();
     }
 
 

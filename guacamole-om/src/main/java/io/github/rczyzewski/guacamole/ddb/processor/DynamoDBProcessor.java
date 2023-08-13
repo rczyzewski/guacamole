@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.google.auto.service.AutoService;
+import com.squareup.javapoet.*;
 import io.github.rczyzewski.guacamole.ddb.*;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
@@ -9,19 +10,12 @@ import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionB
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
 import lombok.*;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -34,11 +28,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -175,6 +165,13 @@ public class DynamoDBProcessor extends AbstractProcessor
                                  .returns(ParameterizedTypeName.get(ClassName.get(MappedUpdateExpression.class),clazz,
                                                                     updateClazzName))
                            .build())
+                .addMethod(MethodSpec.methodBuilder("asWriteRequest")
+                        .addModifiers(PUBLIC)
+                        .addParameter(ParameterSpec.builder(ArrayTypeName.of(clazz), "arg").build())
+                                        .addCode("return $L.writeRequest( tableName, arg);\n", mainMapperName)
+                        .varargs(true)
+                        .returns(ParameterizedTypeName.get(ClassName.get(Map.class),ClassName.get( String.class), ParameterizedTypeName.get(Collection.class, WriteRequest.class)))
+                        .build())
                 .addMethod(MethodSpec.methodBuilder("create")
                         .addModifiers(PUBLIC)
                         .addAnnotation(Override.class)
