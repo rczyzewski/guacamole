@@ -133,6 +133,17 @@ public class LogicalExpressionBuilderGenerator {
         if (fd.getDdbType() != DDBType.STRING && !Objects.equals(fd.getDdbType().getSymbol(), "n"))
             return null;
 
+        if (fd.getDdbType() != DDBType.STRING  && operator.equals(LogicalExpression.ComparisonOperator.BEGINS_WITH)) {
+            return null; //Because BeginsWith make sense only with STRING
+        }
+        if(operator.equals(LogicalExpression.ComparisonOperator.BETWEEN)) {
+            // right now between is only supported for two values,
+            // support can be extended for path and value and for two paths,
+            // but I don't think it's a priority
+            return null;
+        }
+
+
         return MethodSpec
                 .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
                 .addParameter(ParameterSpec.builder(pathOfBean, "referencePath").build())

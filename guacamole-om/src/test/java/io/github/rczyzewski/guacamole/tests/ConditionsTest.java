@@ -599,6 +599,49 @@ class ConditionsTest {
                         CountryRepository.LogicalExpressionBuilder::famousMusicianExists),
                 named("most famous person is Brian May",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY)),
+                named("famous Person begins with 'Brian'",
+                        it -> it.famousPersonBeginsWith(BRIAN_MAY.substring(0,5))),
+                named("famous Person between s with 'Arian' and 'Crian'",
+                        it -> it.famousPersonBetween("Arian","Crian")),
+                named("famous Person between s with 'Crian' and 'Arian'",
+                        it -> it.famousPersonBetween("Arian","Crian")),
+                named("population between...",
+                        it -> it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())),
+                named("area between...",
+                        it -> it.areaBetween(UNITED_KINGDOM.getArea() ,UNITED_KINGDOM.getArea())),
+                named("population between... and AND condition",
+                        it -> it.and( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                        , it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()))),
+                named("population between... and OR condition",
+                        it -> it.or( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                , it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()))),
+                named("population between... and OR and AND condition",
+                        it -> it.or( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                ,it.and(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))),
+                named("population between... and AND,  AND and OR condition",
+                        it -> it.or(
+                                it.and(
+                                        it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation()),
+                                        it.or(
+                                                it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                                it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                        )),
+                                it.and(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))
+                ),
+                named("population between... and AND and OR condition",
+                        it -> it.and( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                ,it.or(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))),
+                named("density between...",
+                        it -> it.densityBetween(UNITED_KINGDOM.getDensity() ,UNITED_KINGDOM.getDensity())),
                 named("capitol of the first region name is London",
                         it -> it.compare(path.selectRegionList().at(0).selectCapital().selectName(), EQUAL, "London")));
 

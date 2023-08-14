@@ -214,7 +214,7 @@ public interface LogicalExpression<T>{
         @Override
         public String serialize(){
             String serializedPath = path.serializeAsPartExpression(this.shortCodeAccumulator);
-            return String.format(" %s BETWEEN %s %s", serializedPath,  shortValueCode, shortValueCode2);
+            return String.format(" %s BETWEEN %s AND %s", serializedPath,  shortValueCode, shortValueCode2);
         }
 
         @Override
@@ -223,12 +223,16 @@ public interface LogicalExpression<T>{
             path.getPartsName()
                     .forEach(it-> shortCodeAccumulator.computeIfAbsent(it, ignored -> idGenerator.get()));
             return this.withShortCodeAccumulator(shortCodeAccumulator)
+                    .withShortValueCode2(":" + idGenerator.get())
                     .withShortValueCode(":" + idGenerator.get());
         }
 
         @Override
         public Map<String, AttributeValue> getValuesMap(){
-            return Collections.singletonMap(shortValueCode, dynamoDBEncodedValue);
+            HashMap<String, AttributeValue> ret = new HashMap<>();
+            ret.put(shortValueCode, dynamoDBEncodedValue);
+            ret.put(shortValueCode2, dynamoDBEncodedValue2);
+            return ret;
         }
 
         @Override
