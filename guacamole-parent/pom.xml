@@ -12,10 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-            <sonar.coverage.jacoco.xmlReportPaths>
-                ${project.basedir}/report-aggregate/target/site/
-                jacoco-aggregate/jacoco.xml
-            </sonar.coverage.jacoco.xmlReportPaths>
+
     </properties>
 
     <name>guacamole-parent</name>

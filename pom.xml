@@ -12,6 +12,9 @@
     <properties>
         <sonar.organization>rczyzewski</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${project.basedir}/report-aggregate/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <modules>
@@ -20,6 +23,7 @@
         <module>guacamole-dockertest</module>
         <module>guacamole-om</module>
         <module>report-aggregate</module>
+
         <!--
         <module>examples</module>
         <module>guacamole-reactor</module>
