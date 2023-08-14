@@ -214,9 +214,8 @@ public class LiveDescriptionGenerator
 
         CodeBlock primary = createKeySchema(HASH, utils.getPrimaryHash().getAttribute());
 
-        CodeBlock secondary = utils.getPrimaryRange()
-            .map(it -> createKeySchema(RANGE, it.getAttribute()))
-            .orElse(null);
+        Optional<CodeBlock> secondary = utils.getPrimaryRange()
+            .map(it -> createKeySchema(RANGE, it.getAttribute()));
 
         CodeBlock attributeDefinitions = utils.getAttributes()
             .stream()
@@ -233,8 +232,9 @@ public class LiveDescriptionGenerator
         CodeBlock.Builder request = CodeBlock.builder()
             .add("return $T.builder()\n", CreateTableRequest.class)
             .add(".tableName(tableName)\n")
-            .add(".keySchema($L)", Stream.of(primary, secondary)
-                .filter(Objects::nonNull)
+            .add(".keySchema($L)", Stream.of(Optional.of(primary), secondary)
+                .filter(Optional::isPresent)
+                    .map(Optional::get)
                 .collect(CodeBlock.joining(",\n")))
             .add(".attributeDefinitions($L)", attributeDefinitions)
             .add(".provisionedThroughput( $L )\n", createThroughput(DEFAULT_WRITE_CAPACITY, DEFAULT_READ_CAPACITY));
