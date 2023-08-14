@@ -9,6 +9,11 @@
     <version>0.1.1-RC2</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <sonar.organization>rczyzewski</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    </properties>
+
     <modules>
         <module>guacamole-parent</module>
         <module>guacamole-core</module>
