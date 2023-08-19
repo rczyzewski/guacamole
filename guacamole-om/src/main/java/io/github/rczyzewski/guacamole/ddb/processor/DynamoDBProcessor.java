@@ -73,6 +73,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
     }
 
+    @SneakyThrows
     @Override
     public boolean process(
         Set<? extends TypeElement> annotations,
@@ -86,14 +87,16 @@ public class DynamoDBProcessor extends AbstractProcessor
                 .filter(it -> ElementKind.CLASS == it.getKind())
                 .forEach(it -> {
                     try {
-                        writeToFile(classAnalyzer.generate(it));
+                        generateRepositoryCode(classAnalyzer.generate(it)).writeTo(filer);
+
                     } catch (Exception e) {
 
                         String stackTrace = Arrays.stream(e.getStackTrace())
                                 .map(line -> line.getClassName() + ":" + line.getMethodName() + ":" + line.getLineNumber())
                                 .collect(Collectors.joining("\n"));
                         logger.error(String.format( " %s   while processing the class: %s %n %s " , e.getMessage()  , it.getSimpleName() , stackTrace)) ;
-                        throw e;
+
+                        throw new RuntimeException(e);
                     }
                 });
 
@@ -102,7 +105,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
 
     @SneakyThrows
-    private void writeToFile(ClassDescription classDescription)
+    public JavaFile generateRepositoryCode(ClassDescription classDescription)
     {
         ClassName clazz = ClassName.get(classDescription.getPackageName(), classDescription.getName());
 
@@ -111,13 +114,13 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         ClassName updateClazzName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
-        ClassName isName =  repositoryClazz.nestedClass( "IndexSelector");
+        ClassName indexSelectorName =  repositoryClazz.nestedClass( "IndexSelector");
 
         String mainMapperName = toSnakeCase(classDescription.getName());
 
         TypeSpec.Builder navigatorClass = TypeSpec
             .classBuilder(repositoryClazz)
-            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName, isName))
+            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName, indexSelectorName))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
@@ -190,7 +193,7 @@ public class DynamoDBProcessor extends AbstractProcessor
                 .addMethod(MethodSpec.methodBuilder("query")
                         .addModifiers(PUBLIC)
                         .addParameter(
-                                ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), isName,
+                                ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), indexSelectorName,
                                                 ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, updateClazzName)), "builder")
                                         .build())
                         .addAnnotation(Override.class)
@@ -229,12 +232,14 @@ public class DynamoDBProcessor extends AbstractProcessor
                         .addCode("return $L.generateDeleteExpression(item, gen, this.tableName);", mainMapperName)
                         .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class), clazz,
                                 updateClazzName))
-                        .build())
-                .addMethod(MethodSpec.methodBuilder("createTable")
+                        .build());
+
+        ClassUtils ddd = new ClassUtils(classDescription, logger);
+               navigatorClass.addMethod(MethodSpec.methodBuilder("createTable")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addCode(
-                               descriptionGenerator.createTableDefinition(new ClassUtils(classDescription, logger)))
+                               descriptionGenerator.createTableDefinition(ddd))
                            .returns(ClassName.get(CreateTableRequest.class))
                            .build());
 
@@ -244,7 +249,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         ClassName logicalExpressionBuilderClassName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
         List<IndexDescription> indexes = d.createIndexsDescription();
-        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(isName, clazz , logicalExpressionBuilderClassName, indexes );
+        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(indexSelectorName, clazz , logicalExpressionBuilderClassName, indexes );
         navigatorClass.addType(indexSelector);
 
         TypeSpec queryGeneratorBuilder = this.expressionBuilderGenerator.createLogicalExpressionBuilder(logicalExpressionBuilderClassName, classDescription);
@@ -255,10 +260,9 @@ public class DynamoDBProcessor extends AbstractProcessor
         navigatorClass.addType(path);
 
         //TODO: Check if packageName can be an empty string
-        JavaFile.builder(classDescription.getPackageName(), navigatorClass.build())
+        return JavaFile.builder(classDescription.getPackageName(), navigatorClass.build())
             .addFileComment("This file is generated by `guacamole` library")
-            .build()
-            .writeTo(filer);
+            .build();
     }
 
 
