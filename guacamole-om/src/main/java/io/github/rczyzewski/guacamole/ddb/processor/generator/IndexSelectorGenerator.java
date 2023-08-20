@@ -5,7 +5,9 @@ import io.github.rczyzewski.guacamole.ddb.MappedQueryExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
+import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
+import lombok.AllArgsConstructor;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.List;
@@ -14,7 +16,9 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+@AllArgsConstructor
 public class IndexSelectorGenerator {
+    ClassDescription classDescription;
 
     public TypeSpec createIndexSelectClass(
             ClassName externalClassName,
@@ -31,7 +35,7 @@ public class IndexSelectorGenerator {
 
             if (index.getRangeField() != null) {
                 ClassName helperSecondaryIndex = externalClassName.nestedClass(index.getName() + index.getRangeField().getName());
-                indexSelectorBuilder.addType(createSecondryIndexSelectorHelper(helperSecondaryIndex, baseBean, index));
+                indexSelectorBuilder.addType(createSecondaryIndexSelectorHelper(helperSecondaryIndex, baseBean, index));
                 indexSelectorBuilder.addMethod(createMethod2(index, baseBean,  logicalExpressionBuilder, helperSecondaryIndex));
             }
         }
@@ -56,10 +60,10 @@ public class IndexSelectorGenerator {
         return methodBuilder.build();
     }
 
-    private TypeSpec createSecondryIndexSelectorHelper(ClassName fullName, ClassName baseBean, IndexDescription index) {
+    private TypeSpec createSecondaryIndexSelectorHelper(ClassName fullName, ClassName baseBean, IndexDescription index) {
 
         TypeSpec.Builder indexSelectorBuilder = TypeSpec.classBuilder(fullName.simpleName());
-        LogicalExpressionBuilderGenerator g = new LogicalExpressionBuilderGenerator();
+        LogicalExpressionBuilderGenerator g = new LogicalExpressionBuilderGenerator(this.classDescription);
 
         Stream.of(
                         ComparisonOperator.EQUAL,

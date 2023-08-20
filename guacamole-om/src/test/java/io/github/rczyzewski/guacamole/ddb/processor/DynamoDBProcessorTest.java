@@ -2,9 +2,7 @@ package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.google.testing.compile.Compilation;
 import com.google.testing.compile.JavaFileObjects;
-import io.github.rczyzewski.guacamole.ddb.processor.generator.IndexSelectorGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
-import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionBuilderGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
@@ -53,18 +51,16 @@ class DynamoDBProcessorTest {
                 .name("SomeClass")
                 .build();
 
-        DynamoDBProcessor a = DynamoDBProcessor.builder()
+        DynamoDBProcessor dynamoDBProcessor = DynamoDBProcessor.builder()
                 .descriptionGenerator(new LiveDescriptionGenerator(logger))
-                .expressionBuilderGenerator(new LogicalExpressionBuilderGenerator())
                 .pathGenerator(new PathGenerator())
-                .indexSelectorGenerator(new IndexSelectorGenerator())
                 .logger(logger)
                 .build();
 
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
 
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
-        a.generateRepositoryCode(classDescription).writeTo(bw);
+        dynamoDBProcessor.generateRepositoryCode(classDescription).writeTo(bw);
         bw.flush();
         Assertions.assertThat(byteArray.toString()).isNotBlank();
         bw.close();

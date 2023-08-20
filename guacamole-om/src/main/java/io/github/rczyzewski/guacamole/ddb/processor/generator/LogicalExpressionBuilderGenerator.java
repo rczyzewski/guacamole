@@ -8,6 +8,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -19,7 +20,15 @@ import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
+@AllArgsConstructor
 public class LogicalExpressionBuilderGenerator {
+    private ClassDescription classDescription;
+
+    private     CodeBlock prepareLocalPathVariable(FieldDescription fd) {
+        ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
+        return CodeBlock.of("Path<$T> path = (new Paths.Root()).select$L()\n;"
+                , baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()));
+    }
     @NotNull
     public List<MethodSpec> createExistsAndTypeConditions(@NotNull ClassName baseBean, @NotNull FieldDescription fd) {
         ParameterizedTypeName returnExpressionType = ParameterizedTypeName.get(ClassName.get(LogicalExpression.class),
@@ -27,13 +36,11 @@ public class LogicalExpressionBuilderGenerator {
 
         ArrayList<MethodSpec> ret = new ArrayList<>();
 
-        CodeBlock cb = CodeBlock.of("Path<$T> path = (new Paths.Root()).select$L()\n;"
-                , baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()));
 
         ret.add(MethodSpec
                 .methodBuilder(fd.getName() + "Exists")
                 .addModifiers(PUBLIC)
-                .addCode(cb)
+                .addCode(prepareLocalPathVariable(fd))
                 .addCode("return new LogicalExpression.AttributeExists<>(true, path); \n", fd.getAttribute())
                 .returns(returnExpressionType)
                 .build());
@@ -41,7 +48,7 @@ public class LogicalExpressionBuilderGenerator {
         ret.add(MethodSpec
                 .methodBuilder(fd.getName() + "NotExists")
                 .addModifiers(PUBLIC)
-                .addCode(cb)
+                .addCode(prepareLocalPathVariable(fd))
                 .addCode("return new LogicalExpression.AttributeExists<>(false, path); \n")
                 .returns(returnExpressionType)
                 .build());
@@ -49,7 +56,7 @@ public class LogicalExpressionBuilderGenerator {
         ret.add(MethodSpec.methodBuilder(fd.getName() + "IsAttributeType")
                 .addParameter(ParameterSpec.builder(ClassName.get(ExpressionGenerator.AttributeType.class), "type").build())
                 .addModifiers(PUBLIC)
-                .addCode(cb)
+                .addCode(prepareLocalPathVariable(fd))
                 .addCode("return new LogicalExpression.AttributeType<>(path, type); \n", fd.getAttribute())
                 .returns(returnExpressionType)
                 .build());
@@ -70,7 +77,7 @@ public class LogicalExpressionBuilderGenerator {
                 CodeBlock.of("AttributeValue av =  AttributeValue.fromS(value);\n") :
                 CodeBlock.of("AttributeValue av =  AttributeValue.fromN($T.toString(value));\n", fd.getDdbType().getClazz());
 
-        CodeBlock path = CodeBlock.of("Path<$T> path = (new Paths.Root()).select$L()\n;", baseBean, TypoUtils.upperCaseFirstLetter(fd.getName()));
+        CodeBlock path = prepareLocalPathVariable(fd);
 
         if (LogicalExpression.ComparisonOperator.BEGINS_WITH.equals(operator))
         {
@@ -112,7 +119,7 @@ public class LogicalExpressionBuilderGenerator {
 
         return MethodSpec
                 .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
-                .addParameter(fd.getDdbType().getClazz(), "value")
+                .addParameter(fd.getDdbType().getClazz(), "value1")
                 .addModifiers(PUBLIC)
                 .addCode(cb)
                 .addCode(path)
@@ -156,7 +163,7 @@ public class LogicalExpressionBuilderGenerator {
     }
 
     @NotNull
-    public TypeSpec createLogicalExpressionBuilder(ClassName customSearchAF, @NotNull ClassDescription classDescription) {
+    public TypeSpec createLogicalExpressionBuilder(ClassName customSearchAF) {
 
         ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
 

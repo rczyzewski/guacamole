@@ -53,10 +53,8 @@ public class DynamoDBProcessor extends AbstractProcessor
     private Filer filer;
     private Logger logger;
     private LiveDescriptionGenerator descriptionGenerator;
-    private LogicalExpressionBuilderGenerator expressionBuilderGenerator;
     private PathGenerator pathGenerator;
     private Types types;
-    private IndexSelectorGenerator indexSelectorGenerator;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment)
@@ -66,14 +64,11 @@ public class DynamoDBProcessor extends AbstractProcessor
         logger = new CompileTimeLogger(processingEnvironment.getMessager());
         logger.info("DDBRepoGenerator initialized");
         descriptionGenerator = new LiveDescriptionGenerator(logger);
-        expressionBuilderGenerator = new LogicalExpressionBuilderGenerator();
         pathGenerator = new PathGenerator();
         types = processingEnvironment.getTypeUtils();
-        indexSelectorGenerator = new IndexSelectorGenerator();
 
     }
 
-    @SneakyThrows
     @Override
     public boolean process(
         Set<? extends TypeElement> annotations,
@@ -103,8 +98,6 @@ public class DynamoDBProcessor extends AbstractProcessor
         return true;
     }
 
-
-    @SneakyThrows
     public JavaFile generateRepositoryCode(ClassDescription classDescription)
     {
         ClassName clazz = ClassName.get(classDescription.getPackageName(), classDescription.getName());
@@ -234,25 +227,23 @@ public class DynamoDBProcessor extends AbstractProcessor
                                 updateClazzName))
                         .build());
 
-        ClassUtils ddd = new ClassUtils(classDescription, logger);
+        ClassUtils classUtils = new ClassUtils(classDescription, logger);
                navigatorClass.addMethod(MethodSpec.methodBuilder("createTable")
                            .addModifiers(PUBLIC)
                            .addAnnotation(Override.class)
                            .addCode(
-                               descriptionGenerator.createTableDefinition(ddd))
+                               descriptionGenerator.createTableDefinition(classUtils))
                            .returns(ClassName.get(CreateTableRequest.class))
                            .build());
 
-
-        ClassUtils d = new ClassUtils(classDescription, logger);
-
-
         ClassName logicalExpressionBuilderClassName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
-        List<IndexDescription> indexes = d.createIndexsDescription();
-        TypeSpec indexSelector = indexSelectorGenerator.createIndexSelectClass(indexSelectorName, clazz , logicalExpressionBuilderClassName, indexes );
+        List<IndexDescription> indexes = classUtils.createIndexsDescription();
+        TypeSpec indexSelector = (new IndexSelectorGenerator(classDescription))
+        .createIndexSelectClass(indexSelectorName, clazz , logicalExpressionBuilderClassName, indexes );
         navigatorClass.addType(indexSelector);
 
-        TypeSpec queryGeneratorBuilder = this.expressionBuilderGenerator.createLogicalExpressionBuilder(logicalExpressionBuilderClassName, classDescription);
+       TypeSpec queryGeneratorBuilder = new LogicalExpressionBuilderGenerator(classDescription)
+               .createLogicalExpressionBuilder(logicalExpressionBuilderClassName);
 
         @NotNull TypeSpec path = this.pathGenerator.createPaths(classDescription);
 
