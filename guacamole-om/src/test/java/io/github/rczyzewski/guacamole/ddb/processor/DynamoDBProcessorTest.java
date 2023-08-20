@@ -73,17 +73,18 @@ class DynamoDBProcessorTest {
         byte[] b = Files.readAllBytes(path);
         return new String(b);
     }
+
     private static Stream<Arguments> customAddTestCases() {
-    return    Stream.of(Country.class, Employee.class, PlayerRanking.class ).map(
-             it->   Arguments.of( it.getCanonicalName(),
-                     readContentBasedOnCanonicalName( it.getPackage().getName(), it.getSimpleName()) )
+        return Stream.of(Country.class, Employee.class, PlayerRanking.class).map(
+                it -> Arguments.of(it.getCanonicalName(),
+                        readContentBasedOnCanonicalName(it.getPackage().getName(), it.getSimpleName()))
         );
     }
 
     @MethodSource("customAddTestCases")
     @ParameterizedTest(name = "{index}. {0}")
     @SneakyThrows
-    void compilationOfAlreadyUsedExample(String classFullName, String code )  {
+    void compilationOfAlreadyUsedExample(String classFullName, String code) {
         //https://github.com/google/compile-testing/issues/329
         //lombok is required to compile it
 
@@ -102,4 +103,25 @@ class DynamoDBProcessorTest {
         assertThat(compilation).succeeded();
     }
 
+    @Test
+    @SneakyThrows
+    void compilationOfAEntityWithoutPrimaryKey() {
+        JavaFileObject entity = JavaFileObjects.forResource("NoIndexDefined.java");
+
+        Class<?> lombokAnnotationProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$AnnotationProcessor");
+        Class<?> lombokClaimingProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$ClaimingProcessor");
+
+        Compilation compilation =
+                javac()
+                        .withProcessors(
+                                (Processor) lombokAnnotationProcessor.getDeclaredConstructor().newInstance(),
+                                (Processor) lombokClaimingProcessor.getDeclaredConstructor().newInstance(),
+                                new DynamoDBProcessor())
+                        .compile(entity);
+
+        assertThat(compilation).failed();
+
+        assertThat(compilation)
+                .hadErrorContaining("'there is no HashKey defined for unnamed package NoIndexDefined' while processing the class: 'NoIndexDefined'");
+    }
 }

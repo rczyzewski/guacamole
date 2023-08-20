@@ -86,12 +86,14 @@ public class DynamoDBProcessor extends AbstractProcessor
 
                     } catch (Exception e) {
 
+                        /*
                         String stackTrace = Arrays.stream(e.getStackTrace())
                                 .map(line -> line.getClassName() + ":" + line.getMethodName() + ":" + line.getLineNumber())
                                 .collect(Collectors.joining("\n"));
-                        logger.error(String.format( " %s   while processing the class: %s %n %s " , e.getMessage()  , it.getSimpleName() , stackTrace)) ;
+                        */
+                        logger.error(String.format( "'%s' while processing the class: '%s'" , e.getMessage()  , it.getSimpleName())) ;
 
-                        throw new GuacamoleRuntimeException(e);
+                       // throw new GuacamoleRuntimeException(e);
                     }
                 });
 
