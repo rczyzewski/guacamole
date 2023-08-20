@@ -105,7 +105,7 @@ public class DynamoDBProcessor extends AbstractProcessor
         ClassName repositoryClazz = ClassName.get(classDescription.getPackageName(),
                                                   classDescription.getName() + "Repository");
 
-        ClassName updateClazzName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
+        ClassName expressionBuilder = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
         ClassName indexSelectorName =  repositoryClazz.nestedClass( "IndexSelector");
 
@@ -113,7 +113,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         TypeSpec.Builder navigatorClass = TypeSpec
             .classBuilder(repositoryClazz)
-            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, updateClazzName, indexSelectorName))
+            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, expressionBuilder, indexSelectorName))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
@@ -157,10 +157,9 @@ public class DynamoDBProcessor extends AbstractProcessor
                     .methodBuilder("update")
                     .addModifiers(PUBLIC)
                     .addParameter(ParameterSpec.builder(clazz, "bean").build())
-                    .addCode("$T gen = new $T() ;  \n", updateClazzName, updateClazzName)
-                    .addCode("return $L.generateUpdateExpression(bean, gen, this.tableName);", mainMapperName )
+                    .addCode("return getMapper().generateUpdateExpression(bean, new $T(), this.tableName);", expressionBuilder )
                     .returns(ParameterizedTypeName.get(ClassName.get(MappedUpdateExpression.class), clazz,
-                            updateClazzName))
+                            expressionBuilder))
                        .build())
                 .addMethod(MethodSpec.methodBuilder("asWriteRequest")
                         .addModifiers(PUBLIC)
@@ -187,11 +186,11 @@ public class DynamoDBProcessor extends AbstractProcessor
                         .addModifiers(PUBLIC)
                         .addParameter(
                                 ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(Function.class), indexSelectorName,
-                                                ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, updateClazzName)), "builder")
+                                                ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, expressionBuilder)), "builder")
                                         .build())
                         .addAnnotation(Override.class)
                         .addCode("return builder.apply(new IndexSelector()).withTableName(tableName).withLiveMappingDescription($L);", mainMapperName)
-                        .returns(ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, updateClazzName))
+                        .returns(ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), clazz, expressionBuilder))
                         .build())
          /*        .addMethod(MethodSpec.methodBuilder("getAll")
                         .addModifiers(PUBLIC)
@@ -210,21 +209,19 @@ public class DynamoDBProcessor extends AbstractProcessor
                         .addAnnotation(Override.class)
                         .addCode(CodeBlock.builder()
                                 .indent()
-                                .add("$T gen = new $T() ;  \n" , updateClazzName, updateClazzName)
-                                .add("return $L.generateScanExpression(gen, this.tableName);", mainMapperName)
+                                .add("return getMapper().generateScanExpression(new $T(), this.tableName);", expressionBuilder)
                                 .unindent()
                                 .build())
                         .returns(ParameterizedTypeName.get(ClassName.get(MappedScanExpression.class),clazz,
-                                updateClazzName))
+                                expressionBuilder))
                         .build())
                 .addMethod(MethodSpec.methodBuilder("delete")
                         .addModifiers(PUBLIC)
                         .addAnnotation(Override.class)
                         .addParameter(ParameterSpec.builder(clazz, "item").build())
-                        .addCode("$T gen = new $T() ;  \n", updateClazzName, updateClazzName)
-                        .addCode("return $L.generateDeleteExpression(item, gen, this.tableName);", mainMapperName)
+                        .addCode("return getMapper().generateDeleteExpression(item, new $T(), this.tableName);", expressionBuilder)
                         .returns(ParameterizedTypeName.get(ClassName.get(MappedDeleteExpression.class), clazz,
-                                updateClazzName))
+                                expressionBuilder))
                         .build());
 
         ClassUtils classUtils = new ClassUtils(classDescription, logger);
@@ -236,14 +233,13 @@ public class DynamoDBProcessor extends AbstractProcessor
                            .returns(ClassName.get(CreateTableRequest.class))
                            .build());
 
-        ClassName logicalExpressionBuilderClassName = repositoryClazz.nestedClass("LogicalExpressionBuilder");
         List<IndexDescription> indexes = classUtils.createIndexsDescription();
         TypeSpec indexSelector = (new IndexSelectorGenerator(classDescription))
-        .createIndexSelectClass(indexSelectorName, clazz , logicalExpressionBuilderClassName, indexes );
+        .createIndexSelectClass(indexSelectorName, clazz , expressionBuilder, indexes );
         navigatorClass.addType(indexSelector);
 
        TypeSpec queryGeneratorBuilder = new LogicalExpressionBuilderGenerator(classDescription)
-               .createLogicalExpressionBuilder(logicalExpressionBuilderClassName);
+               .createLogicalExpressionBuilder(expressionBuilder);
 
         @NotNull TypeSpec path = this.pathGenerator.createPaths(classDescription);
 

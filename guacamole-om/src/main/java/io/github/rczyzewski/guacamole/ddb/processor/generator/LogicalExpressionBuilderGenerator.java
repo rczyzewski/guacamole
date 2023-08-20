@@ -24,7 +24,7 @@ import static javax.lang.model.element.Modifier.STATIC;
 public class LogicalExpressionBuilderGenerator {
     private ClassDescription classDescription;
     private static final String ARG1 = "value1";
-    private static final String ARG2 = "vadfsfaue2";
+    private static final String ARG2 = "value2";
 
     private     CodeBlock prepareLocalPathVariable(FieldDescription fd) {
         ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
