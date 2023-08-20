@@ -23,6 +23,8 @@ import static javax.lang.model.element.Modifier.STATIC;
 @AllArgsConstructor
 public class LogicalExpressionBuilderGenerator {
     private ClassDescription classDescription;
+    private static final String ARG1 = "value1";
+    private static final String ARG2 = "vadfsfaue2";
 
     private     CodeBlock prepareLocalPathVariable(FieldDescription fd) {
         ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
@@ -74,8 +76,8 @@ public class LogicalExpressionBuilderGenerator {
             return null;
 
         CodeBlock cb = fd.getDdbType() == DDBType.STRING ?
-                CodeBlock.of("AttributeValue av =  AttributeValue.fromS(value);\n") :
-                CodeBlock.of("AttributeValue av =  AttributeValue.fromN($T.toString(value));\n", fd.getDdbType().getClazz());
+                CodeBlock.of("AttributeValue av =  AttributeValue.fromS($L);\n", ARG1) :
+                CodeBlock.of("AttributeValue av =  AttributeValue.fromN($T.toString($L));\n", fd.getDdbType().getClazz(), ARG1);
 
         CodeBlock path = prepareLocalPathVariable(fd);
 
@@ -87,7 +89,7 @@ public class LogicalExpressionBuilderGenerator {
 
             return MethodSpec
                     .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
-                    .addParameter(fd.getDdbType().getClazz(), "value")
+                    .addParameter(fd.getDdbType().getClazz(), ARG1)
                     .addModifiers(PUBLIC)
                     .addCode(cb)
                     .addCode(path)
@@ -99,13 +101,13 @@ public class LogicalExpressionBuilderGenerator {
 
         } else if (LogicalExpression.ComparisonOperator.BETWEEN.equals(operator)) {
             CodeBlock cb2 = fd.getDdbType() == DDBType.STRING ?
-                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromS(value2);\n") :
-                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromN($T.toString(value2));\n", fd.getDdbType().getClazz());
+                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromS($L);\n",ARG2) :
+                    CodeBlock.of("AttributeValue av2 =  AttributeValue.fromN($T.toString($L));\n", fd.getDdbType().getClazz(), ARG2);
 
             return MethodSpec
                     .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
-                    .addParameter(fd.getDdbType().getClazz(), "value")
-                    .addParameter(fd.getDdbType().getClazz(), "value2")
+                    .addParameter(fd.getDdbType().getClazz(), ARG1)
+                    .addParameter(fd.getDdbType().getClazz(), ARG2)
                     .addModifiers(PUBLIC)
                     .addCode(cb)
                     .addCode(cb2)
@@ -119,7 +121,7 @@ public class LogicalExpressionBuilderGenerator {
 
         return MethodSpec
                 .methodBuilder(fd.getName() + TypoUtils.upperCaseFirstLetter(TypoUtils.toCamelCase(operator.name())))
-                .addParameter(fd.getDdbType().getClazz(), "value1")
+                .addParameter(fd.getDdbType().getClazz(), ARG1)
                 .addModifiers(PUBLIC)
                 .addCode(cb)
                 .addCode(path)
