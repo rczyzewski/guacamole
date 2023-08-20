@@ -15,7 +15,7 @@ import java.util.List;
 @Builder
 @DynamoDBTable
 @With
-class Country {
+public class Country {
     @DynamoDBHashKey
     String id;
     String name;

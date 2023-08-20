@@ -10,21 +10,27 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.processor.NormalLogger;
-import lombok.Lombok;
+import io.github.rczyzewski.guacamole.tests.Country;
+import io.github.rczyzewski.guacamole.tests.Employee;
+import io.github.rczyzewski.guacamole.tests.indexes.PlayerRanking;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.annotation.processing.Processor;
 import javax.tools.JavaFileObject;
-import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
-import java.net.URL;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static com.google.testing.compile.CompilationSubject.assertThat;
 import static com.google.testing.compile.Compiler.javac;
@@ -54,23 +60,38 @@ class DynamoDBProcessorTest {
                 .indexSelectorGenerator(new IndexSelectorGenerator())
                 .logger(logger)
                 .build();
+
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
         a.generateRepositoryCode(classDescription).writeTo(bw);
+        bw.flush();
+        Assertions.assertThat(byteArray.toString()).isNotBlank();
         bw.close();
-        log.info("code: {}", byteArray);
-
-
     }
 
-    @Test
     @SneakyThrows
-    void compilationHappyDay() throws ClassNotFoundException {
+    static String readContentBasedOnCanonicalName(String packageName, String className) {
+        String baseDir = new File(".").getCanonicalPath() + "/src/test/java/";
+        Path path = Paths.get(baseDir + packageName.replaceAll("\\.", "/") + "/" + className + ".java");
+        byte[] b = Files.readAllBytes(path);
+        return new String(b);
+    }
+    private static Stream<Arguments> customAddTestCases() {
+    return    Stream.of(Country.class, Employee.class, PlayerRanking.class ).map(
+             it->   Arguments.of( it.getCanonicalName(),
+                     readContentBasedOnCanonicalName( it.getPackage().getName(), it.getSimpleName()) )
+        );
+    }
+
+    @MethodSource("customAddTestCases")
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    void compilationOfAlreadyUsedExample(String classFullName, String code )  {
         //https://github.com/google/compile-testing/issues/329
         //lombok is required to compile it
 
-        JavaFileObject entity = JavaFileObjects.forResource("io/github/rczyzewski/guacamole/tests/FakeCountry.java");
-
+        JavaFileObject entity = JavaFileObjects.forSourceString(classFullName, code);
 
         Class<?> lombokAnnotationProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$AnnotationProcessor");
         Class<?> lombokClaimingProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$ClaimingProcessor");
@@ -83,11 +104,6 @@ class DynamoDBProcessorTest {
                 .compile(entity);
 
         assertThat(compilation).succeeded();
-          /*
-          assertThat(compilation)
-                           .hadErrorContaining("No types named HelloWorld!")
-                           .inFile(helloWorld)
-                            .onLine(23)
-                            .atColumn(5); */
     }
+
 }
