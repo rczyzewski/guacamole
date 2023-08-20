@@ -30,7 +30,6 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static io.github.rczyzewski.guacamole.ddb.processor.TypoUtils.toSnakeCase;
@@ -114,7 +113,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         TypeSpec.Builder navigatorClass = TypeSpec
             .classBuilder(repositoryClazz)
-            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, expressionBuilder, indexSelectorName))
+            .addSuperinterface(get(ClassName.get(BaseRepository.class), clazz, expressionBuilder))
             .addAnnotation(Generated.class)
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
