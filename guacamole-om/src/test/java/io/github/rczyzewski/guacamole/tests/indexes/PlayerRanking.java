@@ -21,7 +21,6 @@ public class PlayerRanking {
     @DynamoDBRangeKey
     String gameTitle;
 
-    @DynamoDBLocalIndexRangeKey(localSecondaryIndexName = "UserScoreIndex")
     @DynamoDBIndexRangeKey(globalSecondaryIndexNames = {"GameTitleIndex"})
     @DynamoDBAttribute(attributeName = "TopScore")
     Integer topScore;

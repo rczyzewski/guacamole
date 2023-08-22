@@ -24,9 +24,7 @@ import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -164,31 +162,6 @@ public class LiveDescriptionGenerator
     }
 
     @NotNull
-    //TODO: why it is not us
-    public List<ClassDescription> getRequiredMappers(
-        @NotNull ClassDescription classDescription,
-        @NotNull List<ClassDescription> encountered)
-    {
-
-        if (encountered.contains(classDescription)) {
-            return encountered;
-        }
-
-        List<ClassDescription> forwarded = Stream.concat(Stream.of(classDescription), encountered.stream())
-            .collect(Collectors.toList());
-
-        return Stream.concat(
-            classDescription.getFieldDescriptions()
-                .stream().map(FieldDescription::getClassDescription)
-                .filter(Objects::nonNull)
-                .map(it -> this.getRequiredMappers(it, forwarded))
-                .flatMap(List::stream),
-            forwarded.stream())
-            .distinct()
-            .collect(Collectors.toList());
-    }
-
-    @NotNull
     public CodeBlock createMapper(@NotNull ClassDescription description)
     {
 
@@ -282,12 +255,10 @@ public class LiveDescriptionGenerator
 
     public KeyType computeIndexType(FieldDescription fd, String indexName)
     {
-
         return Optional.of(fd).map(FieldDescription::getGlobalIndexHash)
             .filter(it -> it.contains(indexName))
             .map(it -> HASH)
             .orElse(RANGE);
-
     }
 
 }

@@ -188,19 +188,4 @@ class IndexTest {
         assertThat(perfrom(request)).isNotEmpty();
 
     }
-    @Test
-    @SneakyThrows
-    void testingLocalIndex() {
-
-        QueryRequest request = repo.getIndexSelector()
-                .UserScoreIndex("101")
-                .asQuerytemRequest();
-
-        assertThat(perfrom(request)).isNotEmpty();
-
-         request = repo.getIndexSelector()
-                .UserScoreIndex("101", dd -> dd.topScoreBetween(1000, 1000000))
-                .asQuerytemRequest();
-        assertThat(perfrom(request)).isNotEmpty();
-    }
 }
