@@ -6,15 +6,19 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
 import lombok.AllArgsConstructor;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 
 @AllArgsConstructor
 public class IndexSelectorGenerator {
@@ -33,20 +37,26 @@ public class IndexSelectorGenerator {
 
         for (IndexDescription index : description) {
 
+            String indexName = Optional.ofNullable(index.getName()).orElse("Primary");
 
-            indexSelectorBuilder.addMethod(this.createMethod(index, baseBean, logicalExpressionBuilder));
+            ClassName helperSecondaryFilter = externalClassName.nestedClass(indexName + "Filter");
+            indexSelectorBuilder.addType(createSecondaryIndexSelectorFilterHelper(helperSecondaryFilter, baseBean, index));
+
+            indexSelectorBuilder.addMethod(this.createMethod(index, baseBean, helperSecondaryFilter));
 
             if (index.getRangeField() != null) {
-                ClassName helperSecondaryIndex = externalClassName.nestedClass(index.getName() + index.getRangeField().getName());
+                ClassName helperSecondaryIndex = externalClassName.nestedClass(indexName + "KeyFilter");
                 indexSelectorBuilder.addType(createSecondaryIndexSelectorHelper(helperSecondaryIndex, baseBean, index));
-                indexSelectorBuilder.addMethod(createMethod2(index, baseBean, logicalExpressionBuilder, helperSecondaryIndex));
+
+                indexSelectorBuilder.addMethod(createMethod2(index, baseBean, helperSecondaryFilter, helperSecondaryIndex));
             }
         }
+
         return indexSelectorBuilder.build();
     }
 
-    private MethodSpec createMethod(IndexDescription index, ClassName baseBean, ClassName generator) {
-        ParameterizedTypeName rt = ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), baseBean, generator);
+    private MethodSpec createMethod(IndexDescription index, ClassName baseBean, ClassName filterClass) {
+        ParameterizedTypeName rt = ParameterizedTypeName.get(ClassName.get(MappedQueryExpression.class), baseBean, filterClass);
         MethodSpec.Builder methodBuilder = MethodSpec
                 .methodBuilder(Optional.ofNullable(index.getName())
                         .orElse("primary"));
@@ -63,6 +73,32 @@ public class IndexSelectorGenerator {
         return methodBuilder.build();
     }
 
+    private TypeSpec createSecondaryIndexSelectorFilterHelper(ClassName fullName, ClassName baseBean, IndexDescription index) {
+
+        TypeSpec.Builder indexSelectorBuilder = TypeSpec.classBuilder(fullName.simpleName());
+        LogicalExpressionBuilderGenerator g = new LogicalExpressionBuilderGenerator(this.classDescription);
+
+        List<String> excluded = Stream.of(index.getHashField(), index.getRangeField())
+                .filter(Objects::nonNull)
+                .map(FieldDescription::getName)
+                .collect(Collectors.toList());
+
+        this.classDescription.getFieldDescriptions().stream().filter(it -> !excluded.contains(it.getName())).forEach(
+                attribute -> {
+                    Arrays.stream((ComparisonOperator.values()))
+                            .map(it -> g.createFilterConditionsComparedToValue(baseBean, attribute, it))
+                            .filter(Objects::nonNull)
+                            .forEach(indexSelectorBuilder::addMethod);
+
+                    Arrays.stream((ComparisonOperator.values()))
+                            .map(it -> g.createFilterConditionsComparedToReference(baseBean, attribute, it))
+                            .filter(Objects::nonNull)
+                            .forEach(indexSelectorBuilder::addMethod);
+                }
+        );
+
+        return indexSelectorBuilder.build();
+    }
     private TypeSpec createSecondaryIndexSelectorHelper(ClassName fullName, ClassName baseBean, IndexDescription index) {
 
         TypeSpec.Builder indexSelectorBuilder = TypeSpec.classBuilder(fullName.simpleName());

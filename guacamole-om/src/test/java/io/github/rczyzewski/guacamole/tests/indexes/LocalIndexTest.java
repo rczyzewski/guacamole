@@ -130,7 +130,13 @@ class LocalIndexTest {
         QueryRequest request = repo.getIndexSelector()
                 .LastPostIndex("S3")
                 .asQuerytemRequest();
-
         assertThat(perform(request)).isNotEmpty();
+
+         request = repo.getIndexSelector()
+                .LastPostIndex("S3", lastPostIndexKeyFilter -> lastPostIndexKeyFilter.lastPostDateTimeEqual("2015-03-15 17:24:31"))
+                 .condition(it->it.repliesGreater(1))
+                .asQuerytemRequest();
+        assertThat(perform(request)).isNotEmpty();
+
     }
 }
