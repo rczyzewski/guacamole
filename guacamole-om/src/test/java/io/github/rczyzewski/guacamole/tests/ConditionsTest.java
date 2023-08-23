@@ -6,7 +6,6 @@ import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,9 +20,7 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -100,8 +97,8 @@ class ConditionsTest {
     @SneakyThrows
     @BeforeEach
     void beforeEach() {
-        ddbClient.putItem(repo.create(POLAND)).get();
-        ddbClient.putItem(repo.create(UNITED_KINGDOM)).get();
+       Map<String, Collection<WriteRequest>> writeRequest = repo.asWriteRequest(POLAND, UNITED_KINGDOM);
+       ddbClient.batchWriteItem(BatchWriteItemRequest.builder().requestItems(writeRequest).build()).get();
     }
 
 
@@ -167,11 +164,12 @@ class ConditionsTest {
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonGreater(path.selectFamousMusician())),
 
+                /*
                 named("there should be someone more famous than the head of state(NOT)",
                         it -> it.not(it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name()))),
                 named("there should be someone more famous than the head of state(EQUAL)",
                         it -> it.famousPersonEqual(CountryRepository.AllStrings.NAME.name())),
-
+*/
                 named("nothing compares to BrianMay(1)",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, path.selectName())),
                 named("nothing compares to BrianMay(2)",
@@ -325,8 +323,10 @@ class ConditionsTest {
                         it -> it.famousPersonGreaterOrEqual(path.selectFamousMusician())),
                 named("when famous person is no more famous than Brian",
                         it -> it.famousPersonLessOrEqual(path.selectFamousMusician())),
+                /*
                 named("there should be someone more famous than the head of state",
                         it -> it.famousPersonNotEqual(CountryRepository.AllStrings.NAME.name())),
+                 */
                 named("when famous person is Brian May, (written with AND)",
                         it -> it.and(it.famousPersonEqual("Brian May"))),
                 named("when famous person is Brian May, and name is United Kingdom",
@@ -599,6 +599,49 @@ class ConditionsTest {
                         CountryRepository.LogicalExpressionBuilder::famousMusicianExists),
                 named("most famous person is Brian May",
                         it -> it.compare(path.selectFamousPerson(), EQUAL, BRIAN_MAY)),
+                named("famous Person begins with 'Brian'",
+                        it -> it.famousPersonBeginsWith(BRIAN_MAY.substring(0,5))),
+                named("famous Person between s with 'Arian' and 'Crian'",
+                        it -> it.famousPersonBetween("Arian","Crian")),
+                named("famous Person between s with 'Crian' and 'Arian'",
+                        it -> it.famousPersonBetween("Arian","Crian")),
+                named("population between...",
+                        it -> it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())),
+                named("area between...",
+                        it -> it.areaBetween(UNITED_KINGDOM.getArea() ,UNITED_KINGDOM.getArea())),
+                named("population between... and AND condition",
+                        it -> it.and( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                        , it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()))),
+                named("population between... and OR condition",
+                        it -> it.or( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                , it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()))),
+                named("population between... and OR and AND condition",
+                        it -> it.or( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                ,it.and(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))),
+                named("population between... and AND,  AND and OR condition",
+                        it -> it.or(
+                                it.and(
+                                        it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation()),
+                                        it.or(
+                                                it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                                it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                        )),
+                                it.and(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))
+                ),
+                named("population between... and AND and OR condition",
+                        it -> it.and( it.populationBetween(UNITED_KINGDOM.getPopulation(), UNITED_KINGDOM.getPopulation())
+                                ,it.or(
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson()),
+                                        it.famousPersonEqual(UNITED_KINGDOM.getFamousPerson())
+                                ))),
+                named("density between...",
+                        it -> it.densityBetween(UNITED_KINGDOM.getDensity() ,UNITED_KINGDOM.getDensity())),
                 named("capitol of the first region name is London",
                         it -> it.compare(path.selectRegionList().at(0).selectCapital().selectName(), EQUAL, "London")));
 

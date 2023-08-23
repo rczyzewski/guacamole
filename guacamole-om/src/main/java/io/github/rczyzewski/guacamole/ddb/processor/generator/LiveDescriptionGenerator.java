@@ -24,9 +24,7 @@ import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,7 +45,7 @@ public class LiveDescriptionGenerator
     @NotNull
     private static CodeBlock createKeySchema(@NotNull KeyType keyType, @NotNull String attributeName)
     {
-
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()\n", KeySchemaElement.class)
@@ -61,7 +59,7 @@ public class LiveDescriptionGenerator
     @NotNull
     private static CodeBlock createProjection(@NotNull ProjectionType projectionType)
     {
-
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()", Projection.class)
@@ -75,6 +73,7 @@ public class LiveDescriptionGenerator
     private static CodeBlock createThroughput(@NotNull Long writeCapacity, @NotNull Long readCapacity)
     {
 
+        //TODO: move all builders into helper in LiveDescrition, so here we have one liner
         return CodeBlock.builder()
             .indent()
             .add("$T.builder()\n", ProvisionedThroughput.class)
@@ -163,30 +162,6 @@ public class LiveDescriptionGenerator
     }
 
     @NotNull
-    public List<ClassDescription> getRequiredMappers(
-        @NotNull ClassDescription classDescription,
-        @NotNull List<ClassDescription> encountered)
-    {
-
-        if (encountered.contains(classDescription)) {
-            return encountered;
-        }
-
-        List<ClassDescription> forwarded = Stream.concat(Stream.of(classDescription), encountered.stream())
-            .collect(Collectors.toList());
-
-        return Stream.concat(
-            classDescription.getFieldDescriptions()
-                .stream().map(FieldDescription::getClassDescription)
-                .filter(Objects::nonNull)
-                .map(it -> this.getRequiredMappers(it, forwarded))
-                .flatMap(List::stream),
-            forwarded.stream())
-            .distinct()
-            .collect(Collectors.toList());
-    }
-
-    @NotNull
     public CodeBlock createMapper(@NotNull ClassDescription description)
     {
 
@@ -205,14 +180,15 @@ public class LiveDescriptionGenerator
                             mappedClassName, Arrays.class, indentBlocks);
     }
 
+
     public CodeBlock createTableDefinition(@NotNull ClassUtils utils)
     {
+        //TODO:  only invocation of static method from LiveDescription here
 
         CodeBlock primary = createKeySchema(HASH, utils.getPrimaryHash().getAttribute());
 
-        CodeBlock secondary = utils.getPrimaryRange()
-            .map(it -> createKeySchema(RANGE, it.getAttribute()))
-            .orElse(null);
+        Optional<CodeBlock> secondary = utils.getPrimaryRange()
+            .map(it -> createKeySchema(RANGE, it.getAttribute()));
 
         CodeBlock attributeDefinitions = utils.getAttributes()
             .stream()
@@ -229,8 +205,9 @@ public class LiveDescriptionGenerator
         CodeBlock.Builder request = CodeBlock.builder()
             .add("return $T.builder()\n", CreateTableRequest.class)
             .add(".tableName(tableName)\n")
-            .add(".keySchema($L)", Stream.of(primary, secondary)
-                .filter(Objects::nonNull)
+            .add(".keySchema($L)", Stream.of(Optional.of(primary), secondary)
+                .filter(Optional::isPresent)
+                    .map(Optional::get)
                 .collect(CodeBlock.joining(",\n")))
             .add(".attributeDefinitions($L)", attributeDefinitions)
             .add(".provisionedThroughput( $L )\n", createThroughput(DEFAULT_WRITE_CAPACITY, DEFAULT_READ_CAPACITY));
@@ -278,12 +255,10 @@ public class LiveDescriptionGenerator
 
     public KeyType computeIndexType(FieldDescription fd, String indexName)
     {
-
         return Optional.of(fd).map(FieldDescription::getGlobalIndexHash)
             .filter(it -> it.contains(indexName))
             .map(it -> HASH)
             .orElse(RANGE);
-
     }
 
 }

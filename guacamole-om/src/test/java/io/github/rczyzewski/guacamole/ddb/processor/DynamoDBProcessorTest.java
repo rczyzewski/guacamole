@@ -1,19 +1,127 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
+import com.google.testing.compile.Compilation;
+import com.google.testing.compile.JavaFileObjects;
+import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
+import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
+import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+import io.github.rczyzewski.guacamole.processor.NormalLogger;
+import io.github.rczyzewski.guacamole.tests.Country;
+import io.github.rczyzewski.guacamole.tests.Employee;
+import io.github.rczyzewski.guacamole.tests.indexes.PlayerRanking;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.junit.jupiter.api.Assertions.*;
+import javax.annotation.processing.Processor;
+import javax.tools.JavaFileObject;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
-class DynamoDBProcessorTest{
+import static com.google.testing.compile.CompilationSubject.assertThat;
+import static com.google.testing.compile.Compiler.javac;
+
+@Slf4j
+class DynamoDBProcessorTest {
 
 
     @Test
-    void ddd(){
-        ClassDescription.builder()
-                        .name("SomeClass")
+    @SneakyThrows
+    void sunnyDayTest() {
+        NormalLogger logger = new NormalLogger();
+        List<FieldDescription> fields = new ArrayList<>();
+        fields.add(FieldDescription.builder().isHashKey(true).attribute("ID").typeName("java.lang.String").ddbType(DDBType.STRING).name("ABC").build());
+
+        ClassDescription classDescription = ClassDescription.builder()
+                .packageName("io.foo.bar") //TODO: reporting when class is in the default package
+                .sourandingClasses(Collections.emptyMap())
+                .fieldDescriptions(fields)
+                .name("SomeClass")
                 .build();
 
+        DynamoDBProcessor dynamoDBProcessor = DynamoDBProcessor.builder()
+                .descriptionGenerator(new LiveDescriptionGenerator(logger))
+                .pathGenerator(new PathGenerator())
+                .logger(logger)
+                .build();
 
+        ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
+        dynamoDBProcessor.generateRepositoryCode(classDescription).writeTo(bw);
+        bw.flush();
+        Assertions.assertThat(byteArray.toString()).isNotBlank();
+        bw.close();
+    }
+
+    @SneakyThrows
+    static String readContentBasedOnCanonicalName(String packageName, String className) {
+        String baseDir = new File(".").getCanonicalPath() + "/src/test/java/";
+        Path path = Paths.get(baseDir + packageName.replaceAll("\\.", "/") + "/" + className + ".java");
+        byte[] b = Files.readAllBytes(path);
+        return new String(b);
+    }
+
+    private static Stream<Arguments> customAddTestCases() {
+        return Stream.of(Country.class, Employee.class, PlayerRanking.class).map(
+                it -> Arguments.of(it.getCanonicalName(),
+                        readContentBasedOnCanonicalName(it.getPackage().getName(), it.getSimpleName()))
+        );
+    }
+
+    @MethodSource("customAddTestCases")
+    @ParameterizedTest(name = "{index}. {0}")
+    @SneakyThrows
+    void compilationOfAlreadyUsedExample(String classFullName, String code) {
+        //https://github.com/google/compile-testing/issues/329
+        //lombok is required to compile it
+
+        JavaFileObject entity = JavaFileObjects.forSourceString(classFullName, code);
+
+        Class<?> lombokAnnotationProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$AnnotationProcessor");
+        Class<?> lombokClaimingProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$ClaimingProcessor");
+
+        Compilation compilation = javac()
+                .withProcessors(
+                        (Processor) lombokAnnotationProcessor.getDeclaredConstructor().newInstance(),
+                        (Processor) lombokClaimingProcessor.getDeclaredConstructor().newInstance(),
+                        new DynamoDBProcessor())
+                .compile(entity);
+
+        assertThat(compilation).succeeded();
+    }
+
+    @Test
+    @SneakyThrows
+    void compilationOfAEntityWithoutPrimaryKey() {
+        JavaFileObject entity = JavaFileObjects.forResource("NoIndexDefined.java");
+
+        Class<?> lombokAnnotationProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$AnnotationProcessor");
+        Class<?> lombokClaimingProcessor = getClass().getClassLoader().loadClass("lombok.launch.AnnotationProcessorHider$ClaimingProcessor");
+
+        Compilation compilation =
+                javac()
+                        .withProcessors(
+                                (Processor) lombokAnnotationProcessor.getDeclaredConstructor().newInstance(),
+                                (Processor) lombokClaimingProcessor.getDeclaredConstructor().newInstance(),
+                                new DynamoDBProcessor())
+                        .compile(entity);
+
+        assertThat(compilation).failed();
+
+        assertThat(compilation)
+                .hadErrorContaining("'there is no HashKey defined for unnamed package NoIndexDefined' while processing the class: 'NoIndexDefined'");
     }
 }

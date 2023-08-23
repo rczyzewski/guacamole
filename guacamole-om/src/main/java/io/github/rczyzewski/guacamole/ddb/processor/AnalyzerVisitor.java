@@ -12,7 +12,6 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -37,7 +36,6 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     private Types types;
 
 
-    @SneakyThrows
     ClassDescription generate(Element element)
     {
 
