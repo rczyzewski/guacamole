@@ -219,7 +219,7 @@ public class DynamoDBProcessor extends AbstractProcessor
 
         List<IndexDescription> indexes = classUtils.createIndexsDescription();
         TypeSpec indexSelector = (new IndexSelectorGenerator(classDescription))
-        .createIndexSelectClass(indexSelectorName, clazz , expressionBuilder, indexes );
+                .createIndexSelectClass(indexSelectorName, clazz, indexes);
         navigatorClass.addType(indexSelector);
 
        TypeSpec queryGeneratorBuilder = new LogicalExpressionBuilderGenerator(classDescription)

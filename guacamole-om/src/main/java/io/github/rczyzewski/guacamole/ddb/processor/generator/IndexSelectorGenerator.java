@@ -27,7 +27,6 @@ public class IndexSelectorGenerator {
     public TypeSpec createIndexSelectClass(
             ClassName externalClassName,
             ClassName baseBean,
-            ClassName logicalExpressionBuilder,
             List<IndexDescription> description) {
 
         TypeSpec.Builder indexSelectorBuilder = TypeSpec.classBuilder(externalClassName.simpleName());
