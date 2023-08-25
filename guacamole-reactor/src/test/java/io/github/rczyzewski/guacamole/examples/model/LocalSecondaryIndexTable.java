@@ -12,17 +12,14 @@ import lombok.With;
 @Value
 @Builder
 @DynamoDBTable
-public class LocalSecondaryIndexTable
-{
+public class LocalSecondaryIndexTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
-    @DynamoDBRangeKey
-    String range;
+  @DynamoDBRangeKey String range;
 
-    @DynamoDBLocalIndexRangeKey(localSecondaryIndexName = "secondRange")
-    String secondRange;
+  @DynamoDBLocalIndexRangeKey(localSecondaryIndexName = "secondRange")
+  String secondRange;
 
-    String payload;
+  String payload;
 }

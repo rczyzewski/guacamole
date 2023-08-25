@@ -12,11 +12,9 @@ import lombok.With;
 @With
 public class RecursiveTable {
 
+  @DynamoDBHashKey String uid;
 
-    @DynamoDBHashKey
-    String uid;
+  RecursiveTable data;
 
-    RecursiveTable data;
-
-    String payload;
+  String payload;
 }

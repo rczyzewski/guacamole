@@ -14,20 +14,16 @@ import java.util.List;
 @With
 @DynamoDBTable
 public class ListWithObjectsFieldTable {
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
-    List<InnerObject> payload;
+  List<InnerObject> payload;
 
-
-    @With
-    @Value
-    @Builder
-    @DynamoDBDocument
-    public static class InnerObject{
-        String name;
-        String age;
-    }
+  @With
+  @Value
+  @Builder
+  @DynamoDBDocument
+  public static class InnerObject {
+    String name;
+    String age;
+  }
 }
-
-

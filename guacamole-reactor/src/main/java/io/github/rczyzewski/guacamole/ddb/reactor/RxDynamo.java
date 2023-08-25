@@ -28,84 +28,72 @@ import java.util.Optional;
 import java.util.logging.Level;
 
 @AllArgsConstructor
-public class RxDynamo
-{
+public class RxDynamo {
 
-    private final DynamoDbAsyncClient ddbClient;
+  private final DynamoDbAsyncClient ddbClient;
 
-    public Flux<Map<String, AttributeValue>> scan(@NonNull DynamoSearch dynamoSearch)
-    {
-        ScanRequest.Builder scanRequest = ScanRequest.builder()
+  public Flux<Map<String, AttributeValue>> scan(@NonNull DynamoSearch dynamoSearch) {
+    ScanRequest.Builder scanRequest =
+        ScanRequest.builder()
             .tableName(dynamoSearch.getTableName())
             .scanFilter(dynamoSearch.getFilterConditions())
             .expressionAttributeValues(dynamoSearch.getExpressionAttributeValues());
-        Optional.ofNullable(dynamoSearch.getIndexName()).ifPresent(scanRequest::indexName);
+    Optional.ofNullable(dynamoSearch.getIndexName()).ifPresent(scanRequest::indexName);
 
-        return Flux.from(ddbClient.scanPaginator(scanRequest.build()))
-            .flatMapIterable(ScanResponse::items);
-    }
+    return Flux.from(ddbClient.scanPaginator(scanRequest.build()))
+        .flatMapIterable(ScanResponse::items);
+  }
 
-    private Flux<Map<String, AttributeValue>> query(@NonNull DynamoSearch dynamoSearch)
-    {
-        QueryRequest.Builder queryRequest = QueryRequest.builder()
+  private Flux<Map<String, AttributeValue>> query(@NonNull DynamoSearch dynamoSearch) {
+    QueryRequest.Builder queryRequest =
+        QueryRequest.builder()
             .tableName(dynamoSearch.getTableName())
             .keyConditions(dynamoSearch.getKeyConditions())
             .queryFilter(dynamoSearch.getFilterConditions())
             .expressionAttributeValues(dynamoSearch.getExpressionAttributeValues());
 
-        Optional.ofNullable(dynamoSearch.getIndexName()).ifPresent(queryRequest::indexName);
+    Optional.ofNullable(dynamoSearch.getIndexName()).ifPresent(queryRequest::indexName);
 
-        return Flux.from(ddbClient.queryPaginator(queryRequest.build()))
-            .flatMapIterable(QueryResponse::items);
-    }
+    return Flux.from(ddbClient.queryPaginator(queryRequest.build()))
+        .flatMapIterable(QueryResponse::items);
+  }
 
-    public Flux<Map<String, AttributeValue>> search(@NonNull DynamoSearch dynamoSearch)
-    {
-        return Optional.of(dynamoSearch)
-            .map(DynamoSearch::getKeyConditions)
-            .filter(it -> !it.isEmpty())
-            .map(it -> dynamoSearch)
-            .map(this::query)
-            .orElseGet(() -> this.scan(dynamoSearch));
-    }
+  public Flux<Map<String, AttributeValue>> search(@NonNull DynamoSearch dynamoSearch) {
+    return Optional.of(dynamoSearch)
+        .map(DynamoSearch::getKeyConditions)
+        .filter(it -> !it.isEmpty())
+        .map(it -> dynamoSearch)
+        .map(this::query)
+        .orElseGet(() -> this.scan(dynamoSearch));
+  }
 
-    public Mono<PutItemResponse> save(@NonNull PutItemRequest putItemRequest)
-    {
-        return Mono.just(putItemRequest)
-            .log("PUT " + putItemRequest.tableName(), Level.FINER, SignalType.ON_NEXT)
-            .map(ddbClient::putItem)
-            .flatMap(Mono::fromFuture);
-    }
+  public Mono<PutItemResponse> save(@NonNull PutItemRequest putItemRequest) {
+    return Mono.just(putItemRequest)
+        .log("PUT " + putItemRequest.tableName(), Level.FINER, SignalType.ON_NEXT)
+        .map(ddbClient::putItem)
+        .flatMap(Mono::fromFuture);
+  }
 
-    public Mono<UpdateItemResponse> update(@NonNull UpdateItemRequest updateItemRequest)
-    {
-        return Mono.just(updateItemRequest)
-            .log("UPDATE " + updateItemRequest.tableName(), Level.FINER, SignalType.ON_NEXT)
-            .map(ddbClient::updateItem)
-            .flatMap(Mono::fromFuture);
-    }
+  public Mono<UpdateItemResponse> update(@NonNull UpdateItemRequest updateItemRequest) {
+    return Mono.just(updateItemRequest)
+        .log("UPDATE " + updateItemRequest.tableName(), Level.FINER, SignalType.ON_NEXT)
+        .map(ddbClient::updateItem)
+        .flatMap(Mono::fromFuture);
+  }
 
-    public Mono<DeleteItemResponse> delete(@NonNull DeleteItemRequest deleteItemRequest)
-    {
-        return Mono.just(deleteItemRequest)
-                .map(ddbClient::deleteItem)
-                .flatMap(Mono::fromFuture);
-    }
+  public Mono<DeleteItemResponse> delete(@NonNull DeleteItemRequest deleteItemRequest) {
+    return Mono.just(deleteItemRequest).map(ddbClient::deleteItem).flatMap(Mono::fromFuture);
+  }
 
-    public Mono<CreateTableResponse> createTable(
-        CreateTableRequest createTableRequest)
-    {
-        return Mono.just(createTableRequest)
-                .map(ddbClient::createTable)
-                .flatMap(Mono::fromFuture);
-    }
+  public Mono<CreateTableResponse> createTable(CreateTableRequest createTableRequest) {
+    return Mono.just(createTableRequest).map(ddbClient::createTable).flatMap(Mono::fromFuture);
+  }
 
-    public Mono<DeleteTableResponse> deleteTable(String table)
-    {
+  public Mono<DeleteTableResponse> deleteTable(String table) {
 
-      return  Mono.just(table)
-                .map(it-> DeleteTableRequest.builder().tableName(table).build())
-                .map( ddbClient::deleteTable)
-                .flatMap(Mono::fromFuture);
-    }
+    return Mono.just(table)
+        .map(it -> DeleteTableRequest.builder().tableName(table).build())
+        .map(ddbClient::deleteTable)
+        .flatMap(Mono::fromFuture);
+  }
 }

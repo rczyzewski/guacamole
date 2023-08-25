@@ -20,40 +20,40 @@ import java.util.ArrayList;
 @Testcontainers
 class ListOfMappedObjectIT {
 
+  static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
 
-    static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
-    @Container
-    static LocalStackContainer localstack =  new LocalStackContainer(localstackImage)
-        .withServices(LocalStackContainer.Service.DYNAMODB)
-        .withLogConsumer(new Slf4jLogConsumer(log));
+  @Container
+  static LocalStackContainer localstack =
+      new LocalStackContainer(localstackImage)
+          .withServices(LocalStackContainer.Service.DYNAMODB)
+          .withLogConsumer(new Slf4jLogConsumer(log));
 
-    private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
+  private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
-    private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
+  private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
 
-    @Test
-    void testStoringAList(){
+  @Test
+  void testStoringAList() {
 
-        ListWithObjectsFieldTableRepository repo = new ListWithObjectsFieldTableRepository("randomTableName");
+    ListWithObjectsFieldTableRepository repo =
+        new ListWithObjectsFieldTableRepository("randomTableName");
 
-        RxDynamo rxDynamo  = new RxDynamo(ddbClient);
-        rxDynamo.createTable(repo.createTable())
-                .block();
+    RxDynamo rxDynamo = new RxDynamo(ddbClient);
+    rxDynamo.createTable(repo.createTable()).block();
 
-        ArrayList<ListWithObjectsFieldTable.InnerObject> a = new ArrayList<>();
-        a.add(ListWithObjectsFieldTable.InnerObject.builder().age("2").name("RCZ").build());
+    ArrayList<ListWithObjectsFieldTable.InnerObject> a = new ArrayList<>();
+    a.add(ListWithObjectsFieldTable.InnerObject.builder().age("2").name("RCZ").build());
 
-        ListWithObjectsFieldTable item = ListWithObjectsFieldTable.builder().uid("myUUID").payload(a).build();
+    ListWithObjectsFieldTable item =
+        ListWithObjectsFieldTable.builder().uid("myUUID").payload(a).build();
 
-        StepVerifier.create(rxDynamo.save(repo.create(item)))
-                        .expectNextCount(1)
-                        .verifyComplete();
+    StepVerifier.create(rxDynamo.save(repo.create(item))).expectNextCount(1).verifyComplete();
 
-        StepVerifier.create(rxDynamo.search(repo.getAll())
-                                    .map(ListWithObjectsFieldTableRepository.LIST_WITH_OBJECTS_FIELD_TABLE::transform))
-                        .expectNext(item).verifyComplete();
-
-    }
-
-
+    StepVerifier.create(
+            rxDynamo
+                .search(repo.getAll())
+                .map(ListWithObjectsFieldTableRepository.LIST_WITH_OBJECTS_FIELD_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 }

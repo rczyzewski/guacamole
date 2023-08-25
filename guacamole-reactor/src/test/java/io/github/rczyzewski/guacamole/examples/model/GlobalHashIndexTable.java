@@ -11,15 +11,12 @@ import lombok.With;
 @Value
 @Builder
 @DynamoDBTable
-public class GlobalHashIndexTable
-{
+public class GlobalHashIndexTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
-    @DynamoDBIndexHashKey(globalSecondaryIndexNames = { "globalSecondaryIndexName" })
-    String globalId;
+  @DynamoDBIndexHashKey(globalSecondaryIndexNames = {"globalSecondaryIndexName"})
+  String globalId;
 
-    String payload;
-
+  String payload;
 }

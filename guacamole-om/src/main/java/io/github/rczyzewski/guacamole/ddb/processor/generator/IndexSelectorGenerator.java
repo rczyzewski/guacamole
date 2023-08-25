@@ -72,7 +72,8 @@ public class IndexSelectorGenerator {
                     baseBean,
                     TypoUtils.upperCaseFirstLetter(index.getHashField().getName()))
                 .add(
-                    "LogicalExpression<$T> key = new LogicalExpression.ComparisonToValue<>(path , LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n",
+                    "LogicalExpression<$T> key = new LogicalExpression.ComparisonToValue<>(path ,"
+                        + " LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n",
                     baseBean)
                 .add(
                     "$T ddd  =  new $T<>(new $T(), $S,  tableName, null, getMapper(), key); \n",
@@ -169,7 +170,8 @@ public class IndexSelectorGenerator {
                     baseBean,
                     TypoUtils.upperCaseFirstLetter(index.getHashField().getName()))
                 .add(
-                    "LogicalExpression<$T> key = new LogicalExpression.ComparisonToValue<>(path , LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n",
+                    "LogicalExpression<$T> key = new LogicalExpression.ComparisonToValue<>(path ,"
+                        + " LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n",
                     baseBean)
                 .add(
                     "LogicalExpression<$T>  extra = eg.and(key, generator.apply(new $T()));\n",

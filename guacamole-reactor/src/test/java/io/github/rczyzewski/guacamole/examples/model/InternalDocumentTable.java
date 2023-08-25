@@ -11,24 +11,20 @@ import lombok.With;
 @Builder
 @Value
 @DynamoDBTable
-public class InternalDocumentTable
-{
+public class InternalDocumentTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
+
+  String payload;
+
+  InternalDocumentContent content;
+
+  @With
+  @Value
+  @Builder
+  @DynamoDBDocument
+  public static class InternalDocumentContent {
 
     String payload;
-
-    InternalDocumentContent content;
-
-    @With
-    @Value
-    @Builder
-    @DynamoDBDocument
-    public static class InternalDocumentContent
-    {
-
-        String payload;
-    }
+  }
 }
-

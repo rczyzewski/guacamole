@@ -16,23 +16,16 @@ import java.util.List;
 @With
 public class TreeTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
+  TreeBranch content;
 
-    TreeBranch content;
-
-    @With
-    @Value
-    @Builder
-
-    @DynamoDBDocument
-    public static class TreeBranch
-    {
-        @Singular
-        List<TreeBranch> subbranches;
-        String payload;
-    }
-
-
+  @With
+  @Value
+  @Builder
+  @DynamoDBDocument
+  public static class TreeBranch {
+    @Singular List<TreeBranch> subbranches;
+    String payload;
+  }
 }

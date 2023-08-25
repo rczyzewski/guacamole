@@ -146,6 +146,7 @@ class DynamoDBProcessorTest {
 
     assertThat(compilation)
         .hadErrorContaining(
-            "'there is no HashKey defined for unnamed package NoIndexDefined' while processing the class: 'NoIndexDefined'");
+            "'there is no HashKey defined for unnamed package NoIndexDefined' while processing the"
+                + " class: 'NoIndexDefined'");
   }
 }

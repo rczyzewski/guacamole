@@ -12,17 +12,15 @@ import lombok.With;
 @Value
 @Builder
 @DynamoDBTable
-public class GlobalRangeIndexTable
-{
+public class GlobalRangeIndexTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
-    @DynamoDBIndexHashKey(globalSecondaryIndexNames = { "globalSecondaryIndexName" })
-    String globalId;
+  @DynamoDBIndexHashKey(globalSecondaryIndexNames = {"globalSecondaryIndexName"})
+  String globalId;
 
-    @DynamoDBIndexRangeKey(globalSecondaryIndexNames = { "globalSecondaryIndexName" })
-    String globalRange;
+  @DynamoDBIndexRangeKey(globalSecondaryIndexNames = {"globalSecondaryIndexName"})
+  String globalRange;
 
-    String payload;
+  String payload;
 }

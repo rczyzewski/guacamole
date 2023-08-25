@@ -20,47 +20,51 @@ import static io.github.rczyzewski.guacamole.examples.model.CompositePrimaryInde
 
 @Slf4j
 @Testcontainers
-class UpdateRecordIT{
-    static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
-    @Container
-    static LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-            .withServices(LocalStackContainer.Service.DYNAMODB)
-            .withLogConsumer(new Slf4jLogConsumer(log));
+class UpdateRecordIT {
+  static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
 
-    private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
+  @Container
+  static LocalStackContainer localstack =
+      new LocalStackContainer(localstackImage)
+          .withServices(LocalStackContainer.Service.DYNAMODB)
+          .withLogConsumer(new Slf4jLogConsumer(log));
 
-    private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
+  private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
-    private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
+  private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
 
-    @Test
-    void simpleUpdate(){
-        CompositePrimaryIndexTableRepository repo = new CompositePrimaryIndexTableRepository(getTableName());
-        rxDynamo.createTable(repo.createTable())
-                .block();
-        CompositePrimaryIndexTable item =
-                CompositePrimaryIndexTable.builder()
-                                          .uid("someUID")
-                                          .payload("ABC")
-                                          .range("A")
-                                          .fuzzyVal(322.0)
-                                          .build();
+  private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
 
-        rxDynamo.save(repo.create(item)).block();
-        StepVerifier.create(rxDynamo.search(repo.getAll())
-                                    .map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
-                    .expectNext(item).verifyComplete();
-        rxDynamo.update(repo.update(item.withPayload(null)).asUpdateItemRequest()).block();
-        StepVerifier.create(rxDynamo.search(repo.getAll())
-                                    .map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
-                    .expectNext(item).verifyComplete();
-    }
+  @Test
+  void simpleUpdate() {
+    CompositePrimaryIndexTableRepository repo =
+        new CompositePrimaryIndexTableRepository(getTableName());
+    rxDynamo.createTable(repo.createTable()).block();
+    CompositePrimaryIndexTable item =
+        CompositePrimaryIndexTable.builder()
+            .uid("someUID")
+            .payload("ABC")
+            .range("A")
+            .fuzzyVal(322.0)
+            .build();
 
-    private static String getTableNamePrefix(){
-        return UpdateRecordIT.class.getSimpleName();
-    }
+    rxDynamo.save(repo.create(item)).block();
+    StepVerifier.create(
+            rxDynamo.search(repo.getAll()).map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+    rxDynamo.update(repo.update(item.withPayload(null)).asUpdateItemRequest()).block();
+    StepVerifier.create(
+            rxDynamo.search(repo.getAll()).map(COMPOSITE_PRIMARY_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    private String getTableName(){
-        return getTableNamePrefix() + UUID.randomUUID();
-    }
+  private static String getTableNamePrefix() {
+    return UpdateRecordIT.class.getSimpleName();
+  }
+
+  private String getTableName() {
+    return getTableNamePrefix() + UUID.randomUUID();
+  }
 }

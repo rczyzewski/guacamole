@@ -10,11 +10,9 @@ import lombok.With;
 @Value
 @Builder
 @With
-public class HashPrimaryIndexTable
-{
+public class HashPrimaryIndexTable {
 
-    @DynamoDBHashKey
-    String uid;
+  @DynamoDBHashKey String uid;
 
-    String payload;
+  String payload;
 }

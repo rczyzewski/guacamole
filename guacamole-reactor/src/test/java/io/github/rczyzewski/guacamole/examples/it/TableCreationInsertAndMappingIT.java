@@ -34,172 +34,166 @@ import java.util.UUID;
 
 @Slf4j
 @Testcontainers
-class TableCreationInsertAndMappingIT
-{
-    static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
-    @Container
-    static LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-        .withServices(LocalStackContainer.Service.DYNAMODB)
-        .withLogConsumer(new Slf4jLogConsumer(log));
+class TableCreationInsertAndMappingIT {
+  static DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:0.11.3");
 
-    private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
+  @Container
+  static LocalStackContainer localstack =
+      new LocalStackContainer(localstackImage)
+          .withServices(LocalStackContainer.Service.DYNAMODB)
+          .withLogConsumer(new Slf4jLogConsumer(log));
 
-    private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
-    private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
+  private final TestHelperDynamoDB testHelperDynamoDB = new TestHelperDynamoDB(localstack);
 
-    @AfterAll
-    static void cleanup()
-    {
-        //I guess, It might be reasonable to drop tables that have been created
-    }
+  private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
+  private final RxDynamo rxDynamo = new RxDynamo(ddbClient);
 
-    @Test
-    void simpleHashPrimaryIndex()
-    {
-        Hooks.onOperatorDebug();
-        HashPrimaryIndexTableRepository repo = new HashPrimaryIndexTableRepository(getTableName());
+  @AfterAll
+  static void cleanup() {
+    // I guess, It might be reasonable to drop tables that have been created
+  }
 
-        HashPrimaryIndexTable item = HashPrimaryIndexTable
-            .builder()
-            .uid("someUID")
-            .payload("payload")
-            .build();
+  @Test
+  void simpleHashPrimaryIndex() {
+    Hooks.onOperatorDebug();
+    HashPrimaryIndexTableRepository repo = new HashPrimaryIndexTableRepository(getTableName());
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable())
-                                .ignoreElement()
-                                .thenReturn(item)
-                                .flatMap(it -> rxDynamo.save(repo.create(it)))
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(HashPrimaryIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform)
-                    )
-                    .expectNext(item)
-                    .verifyComplete();
+    HashPrimaryIndexTable item =
+        HashPrimaryIndexTable.builder().uid("someUID").payload("payload").build();
 
-        HashPrimaryIndexTable newItem = item.withPayload("newPayload");
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .flatMap(it -> rxDynamo.save(repo.create(it)))
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(HashPrimaryIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
 
-        StepVerifier.create(
-                        rxDynamo.update(repo.update(newItem)
-                                        .asUpdateItemRequest())
-                                .thenReturn(repo)
-                                .map(HashPrimaryIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform)
+    HashPrimaryIndexTable newItem = item.withPayload("newPayload");
 
-                    )
-                    .expectNext(newItem)
-                    .verifyComplete();
+    StepVerifier.create(
+            rxDynamo
+                .update(repo.update(newItem).asUpdateItemRequest())
+                .thenReturn(repo)
+                .map(HashPrimaryIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform))
+        .expectNext(newItem)
+        .verifyComplete();
 
-        HashPrimaryIndexTable newNullItem = item.withPayload(null);
+    HashPrimaryIndexTable newNullItem = item.withPayload(null);
 
-        StepVerifier.create(
-                        rxDynamo.update(repo.update(newNullItem).asUpdateItemRequest())
-                                .thenReturn(repo)
-                                .map(HashPrimaryIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform)
-                    )
-                    .expectNext(newItem) // Must not override existing value with null
-                    .verifyComplete();
+    StepVerifier.create(
+            rxDynamo
+                .update(repo.update(newNullItem).asUpdateItemRequest())
+                .thenReturn(repo)
+                .map(HashPrimaryIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(HashPrimaryIndexTableRepository.HASH_PRIMARY_INDEX_TABLE::transform))
+        .expectNext(newItem) // Must not override existing value with null
+        .verifyComplete();
+  }
 
-    }
+  @Test
+  void localSecondaryIndexTableRepository() {
 
-    @Test
-    void localSecondaryIndexTableRepository()
-    {
+    LocalSecondaryIndexTableRepository repo =
+        new LocalSecondaryIndexTableRepository(getTableName());
 
-        LocalSecondaryIndexTableRepository repo = new LocalSecondaryIndexTableRepository(getTableName());
-
-        LocalSecondaryIndexTable item = LocalSecondaryIndexTable
-            .builder()
+    LocalSecondaryIndexTable item =
+        LocalSecondaryIndexTable.builder()
             .uid("someUID")
             .range("A")
             .secondRange("B")
             .payload("payload")
             .build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .flatMap(it -> rxDynamo.save(repo.create(it)))
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(LocalSecondaryIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(LocalSecondaryIndexTableRepository.LOCAL_SECONDARY_INDEX_TABLE::transform)
-                    )
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .flatMap(it -> rxDynamo.save(repo.create(it)))
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(LocalSecondaryIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(LocalSecondaryIndexTableRepository.LOCAL_SECONDARY_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void globalHashIndexTableRepository()
-    {
+  @Test
+  void globalHashIndexTableRepository() {
 
-        GlobalHashIndexTableRepository repo = new GlobalHashIndexTableRepository(getTableName());
+    GlobalHashIndexTableRepository repo = new GlobalHashIndexTableRepository(getTableName());
 
-        GlobalHashIndexTable item = GlobalHashIndexTable
-            .builder()
+    GlobalHashIndexTable item =
+        GlobalHashIndexTable.builder()
             .uid("someUID")
             .globalId("otherId")
             .payload("payload")
             .build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                                .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(GlobalHashIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(GlobalHashIndexTableRepository.GLOBAL_HASH_INDEX_TABLE::transform)
-                    )
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(GlobalHashIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(GlobalHashIndexTableRepository.GLOBAL_HASH_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void globalRangeIndexTableRepository()
-    {
+  @Test
+  void globalRangeIndexTableRepository() {
 
-        GlobalRangeIndexTableRepository repo = new GlobalRangeIndexTableRepository(getTableName());
+    GlobalRangeIndexTableRepository repo = new GlobalRangeIndexTableRepository(getTableName());
 
-        GlobalRangeIndexTable item = GlobalRangeIndexTable
-            .builder()
+    GlobalRangeIndexTable item =
+        GlobalRangeIndexTable.builder()
             .uid("someUID")
             .globalId("otherId")
             .globalRange("someRange")
             .payload("payload")
             .build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable())
-                                .ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                                .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(GlobalRangeIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(GlobalRangeIndexTableRepository.GLOBAL_RANGE_INDEX_TABLE::transform))
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(GlobalRangeIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(GlobalRangeIndexTableRepository.GLOBAL_RANGE_INDEX_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void integerAsCompositeIndexRepository()
-    {
+  @Test
+  void integerAsCompositeIndexRepository() {
 
-        IntegerAsCompositeIndexTableRepository repo = new IntegerAsCompositeIndexTableRepository(getTableName());
+    IntegerAsCompositeIndexTableRepository repo =
+        new IntegerAsCompositeIndexTableRepository(getTableName());
 
-        IntegerAsCompositeIndexTable item = IntegerAsCompositeIndexTable
-            .builder()
+    IntegerAsCompositeIndexTable item =
+        IntegerAsCompositeIndexTable.builder()
             .uid(12)
             .range(33)
             .payload("payload")
@@ -207,121 +201,119 @@ class TableCreationInsertAndMappingIT
             .val(12)
             .build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                                .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(IntegerAsCompositeIndexTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(IntegerAsCompositeIndexTableRepository.INTEGER_AS_COMPOSITE_INDEX_TABLE::transform))
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(IntegerAsCompositeIndexTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(
+                    IntegerAsCompositeIndexTableRepository.INTEGER_AS_COMPOSITE_INDEX_TABLE
+                        ::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void internalDocumentTableRepository()
-    {
+  @Test
+  void internalDocumentTableRepository() {
 
-        InternalDocumentTableRepository repo = new InternalDocumentTableRepository(getTableName());
+    InternalDocumentTableRepository repo = new InternalDocumentTableRepository(getTableName());
 
-        InternalDocumentTable item = InternalDocumentTable
-            .builder()
+    InternalDocumentTable item =
+        InternalDocumentTable.builder()
             .uid("uid")
             .payload("someString")
-            .content(InternalDocumentTable.InternalDocumentContent.builder().payload("internalPayload").build())
-
+            .content(
+                InternalDocumentTable.InternalDocumentContent.builder()
+                    .payload("internalPayload")
+                    .build())
             .build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                                .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(InternalDocumentTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(InternalDocumentTableRepository.INTERNAL_DOCUMENT_TABLE::transform))
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(InternalDocumentTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(InternalDocumentTableRepository.INTERNAL_DOCUMENT_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void recursiveTableInsideATableRepository()
-    {
+  @Test
+  void recursiveTableInsideATableRepository() {
 
-        RecursiveTableRepository repo = new RecursiveTableRepository(getTableName());
+    RecursiveTableRepository repo = new RecursiveTableRepository(getTableName());
 
-        RecursiveTable inner = RecursiveTable
-            .builder()
-            .uid("uid")
-            .payload("to understand recursion")
-            .build();
+    RecursiveTable inner =
+        RecursiveTable.builder().uid("uid").payload("to understand recursion").build();
 
-        RecursiveTable item = inner.withData(inner).withPayload("you need to understand recursion");
+    RecursiveTable item = inner.withData(inner).withPayload("you need to understand recursion");
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                            .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(RecursiveTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(RecursiveTableRepository.RECURSIVE_TABLE::transform))
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(RecursiveTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(RecursiveTableRepository.RECURSIVE_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    @Test
-    void treeTableRepository()
-    {
+  @Test
+  void treeTableRepository() {
 
-        TreeTableRepository repo = new TreeTableRepository(getTableName());
+    TreeTableRepository repo = new TreeTableRepository(getTableName());
 
-        TreeTable.TreeBranch rcz = TreeTable.TreeBranch.builder().payload("Rafal").build();
-        TreeTable.TreeBranch gabor = TreeTable.TreeBranch.builder().payload("Gabor").build();
-        TreeTable.TreeBranch gonzalo = TreeTable.TreeBranch.builder()
-                                                           .payload("Gonzalo")
-                                                           .subbranch(rcz)
-                                                           .subbranch(gabor)
-                                                           .build();
-        TreeTable.TreeBranch json = TreeTable.TreeBranch.builder().payload("Json").subbranch(gonzalo).build();
-        TreeTable.TreeBranch tania = TreeTable.TreeBranch.builder().payload("Tania").build();
-        TreeTable.TreeBranch armando = TreeTable.TreeBranch.builder().payload("Armando").subbranch(tania).subbranch(
-            json).build();
+    TreeTable.TreeBranch rcz = TreeTable.TreeBranch.builder().payload("Rafal").build();
+    TreeTable.TreeBranch gabor = TreeTable.TreeBranch.builder().payload("Gabor").build();
+    TreeTable.TreeBranch gonzalo =
+        TreeTable.TreeBranch.builder().payload("Gonzalo").subbranch(rcz).subbranch(gabor).build();
+    TreeTable.TreeBranch json =
+        TreeTable.TreeBranch.builder().payload("Json").subbranch(gonzalo).build();
+    TreeTable.TreeBranch tania = TreeTable.TreeBranch.builder().payload("Tania").build();
+    TreeTable.TreeBranch armando =
+        TreeTable.TreeBranch.builder().payload("Armando").subbranch(tania).subbranch(json).build();
 
-        TreeTable item = TreeTable
-            .builder()
-            .uid("uid")
-            .content(armando)
-            .build();
+    TreeTable item = TreeTable.builder().uid("uid").content(armando).build();
 
-        StepVerifier.create(
-                        rxDynamo.createTable(repo.createTable()).ignoreElement()
-                                .thenReturn(item)
-                                .map(repo::create)
-                                .flatMap(rxDynamo::save)
-                                .ignoreElement()
-                                .thenReturn(repo)
-                                .map(TreeTableRepository::getAll)
-                                .flatMapMany(rxDynamo::search)
-                                .map(TreeTableRepository.TREE_TABLE::transform))
-                    .expectNext(item)
-                    .verifyComplete();
-    }
+    StepVerifier.create(
+            rxDynamo
+                .createTable(repo.createTable())
+                .ignoreElement()
+                .thenReturn(item)
+                .map(repo::create)
+                .flatMap(rxDynamo::save)
+                .ignoreElement()
+                .thenReturn(repo)
+                .map(TreeTableRepository::getAll)
+                .flatMapMany(rxDynamo::search)
+                .map(TreeTableRepository.TREE_TABLE::transform))
+        .expectNext(item)
+        .verifyComplete();
+  }
 
-    private static String getTableNamePrefix()
-    {
-        return TableCreationInsertAndMappingIT.class.getSimpleName();
-    }
+  private static String getTableNamePrefix() {
+    return TableCreationInsertAndMappingIT.class.getSimpleName();
+  }
 
-    private String getTableName()
-    {
-        return getTableNamePrefix() + UUID.randomUUID();
-    }
+  private String getTableName() {
+    return getTableNamePrefix() + UUID.randomUUID();
+  }
 }

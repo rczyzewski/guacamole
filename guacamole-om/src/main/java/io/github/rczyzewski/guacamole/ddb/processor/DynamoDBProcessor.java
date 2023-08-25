@@ -170,7 +170,8 @@ public class DynamoDBProcessor extends AbstractProcessor {
                     .addModifiers(PUBLIC)
                     .addParameter(ParameterSpec.builder(clazz, "bean").build())
                     .addCode(
-                        "return getMapper().generateUpdateExpression(bean, new $T(), this.tableName);",
+                        "return getMapper().generateUpdateExpression(bean, new $T(),"
+                            + " this.tableName);",
                         expressionBuilder)
                     .returns(
                         ParameterizedTypeName.get(
@@ -212,7 +213,8 @@ public class DynamoDBProcessor extends AbstractProcessor {
                         CodeBlock.builder()
                             .indent()
                             .add(
-                                "return getMapper().generateScanExpression(new $T(), this.tableName);",
+                                "return getMapper().generateScanExpression(new $T(),"
+                                    + " this.tableName);",
                                 expressionBuilder)
                             .unindent()
                             .build())
@@ -226,7 +228,8 @@ public class DynamoDBProcessor extends AbstractProcessor {
                     .addAnnotation(Override.class)
                     .addParameter(ParameterSpec.builder(clazz, "item").build())
                     .addCode(
-                        "return getMapper().generateDeleteExpression(item, new $T(), this.tableName);",
+                        "return getMapper().generateDeleteExpression(item, new $T(),"
+                            + " this.tableName);",
                         expressionBuilder)
                     .returns(
                         ParameterizedTypeName.get(

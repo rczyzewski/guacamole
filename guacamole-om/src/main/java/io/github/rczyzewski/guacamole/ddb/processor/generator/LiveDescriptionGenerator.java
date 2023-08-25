@@ -125,12 +125,15 @@ public class LiveDescriptionGenerator {
           generator.get(),
           isKeyValue,
           CodeBlock.of(
-              "(bean, value) -> bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))",
+              "(bean, value) ->"
+                  + " bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))",
               suffix,
               AttributeValue.class,
               liveMappingName),
           CodeBlock.of(
-              "value -> $T.ofNullable(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit -> $T.builder().m(iit).build()).collect($T.toList())).build())",
+              "value ->"
+                  + " $T.ofNullable(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit"
+                  + " -> $T.builder().m(iit).build()).collect($T.toList())).build())",
               Optional.class,
               suffix,
               AttributeValue.class,
@@ -147,12 +150,14 @@ public class LiveDescriptionGenerator {
           generator.get(),
           isKeyValue,
           CodeBlock.of(
-              "(bean, value) ->Optional.ofNullable(value.$L()).map(it-> bean.with$L($T.valueOf(it))).orElse(bean)",
+              "(bean, value) ->Optional.ofNullable(value.$L()).map(it->"
+                  + " bean.with$L($T.valueOf(it))).orElse(bean)",
               fieldDescription.getDdbType().getSymbol(),
               suffix,
               fieldDescription.getDdbType().getClazz()),
           CodeBlock.of(
-              "value -> $T.ofNullable(value.get$L()).map(it-> $T.builder().$L(it.toString()).build())",
+              "value -> $T.ofNullable(value.get$L()).map(it->"
+                  + " $T.builder().$L(it.toString()).build())",
               Optional.class,
               suffix,
               AttributeValue.class,
@@ -170,7 +175,8 @@ public class LiveDescriptionGenerator {
           CodeBlock.of(
               "(bean, value) -> bean.with$L($L.transform(value.m()))", suffix, liveMappingName),
           CodeBlock.of(
-              "value -> $T.ofNullable(value.get$L()).map(it-> $T.builder().m($L.export(it)).build())",
+              "value -> $T.ofNullable(value.get$L()).map(it->"
+                  + " $T.builder().m($L.export(it)).build())",
               Optional.class,
               suffix,
               AttributeValue.class,
