@@ -5,16 +5,16 @@ import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
-public interface BaseRepository<T, G extends ExpressionGenerator<T>>
-{
-    PutItemRequest create(T item);
-    LiveMappingDescription<T> getMapper();
+public interface BaseRepository<T, G extends ExpressionGenerator<T>> {
+  PutItemRequest create(T item);
 
-    MappedDeleteExpression<T, G> delete(T item);
+  LiveMappingDescription<T> getMapper();
 
-    MappedUpdateExpression<T, G> update(T data);
+  MappedDeleteExpression<T, G> delete(T item);
 
-    MappedScanExpression<T, G> scan();
+  MappedUpdateExpression<T, G> update(T data);
 
-    CreateTableRequest createTable();
+  MappedScanExpression<T, G> scan();
+
+  CreateTableRequest createTable();
 }

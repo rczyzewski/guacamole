@@ -1,4 +1,5 @@
-/** Example below is inspired/is implementation of:
+/**
+ * Example below is inspired/is implementation of:
  * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/GSI.html
  */
 package io.github.rczyzewski.guacamole.tests.indexes;
@@ -14,17 +15,17 @@ import lombok.With;
 @With
 public class PlayerRanking {
 
-    @DynamoDBHashKey
-    String userId;
+  @DynamoDBHashKey String userId;
 
-    @DynamoDBIndexHashKey(globalSecondaryIndexNames = {"GameTitleIndex"})
-    @DynamoDBRangeKey
-    String gameTitle;
+  @DynamoDBIndexHashKey(globalSecondaryIndexNames = {"GameTitleIndex"})
+  @DynamoDBRangeKey
+  String gameTitle;
 
-    @DynamoDBIndexRangeKey(globalSecondaryIndexNames = {"GameTitleIndex"})
-    @DynamoDBAttribute(attributeName = "TopScore")
-    Integer topScore;
-    String topScoreDateTime;
-    Integer wins;
-    Integer loses;
+  @DynamoDBIndexRangeKey(globalSecondaryIndexNames = {"GameTitleIndex"})
+  @DynamoDBAttribute(attributeName = "TopScore")
+  Integer topScore;
+
+  String topScoreDateTime;
+  Integer wins;
+  Integer loses;
 }

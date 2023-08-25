@@ -4,11 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.experimental.Delegate;
 
-
 @AllArgsConstructor
 @Builder
-public class TerminalElement<E> implements Path<E>{
-    @Delegate
-    Path<E> parent;
-
+public class TerminalElement<E> implements Path<E> {
+  @Delegate Path<E> parent;
 }

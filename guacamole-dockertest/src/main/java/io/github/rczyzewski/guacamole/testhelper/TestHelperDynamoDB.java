@@ -8,21 +8,17 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 
 @AllArgsConstructor
-public class TestHelperDynamoDB
-{
+public class TestHelperDynamoDB {
 
-    private final LocalStackContainer localstack;
+  private final LocalStackContainer localstack;
 
-    public DynamoDbAsyncClient getDdbAsyncClient()
-    {
-        return DynamoDbAsyncClient.builder()
-                                  .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
-                                  .credentialsProvider(
-                                      StaticCredentialsProvider.create(
-                                          AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())
-                                      ))
-                                  .region(Region.of(localstack.getRegion()))
-
-                                  .build();
-    }
+  public DynamoDbAsyncClient getDdbAsyncClient() {
+    return DynamoDbAsyncClient.builder()
+        .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+        .region(Region.of(localstack.getRegion()))
+        .build();
+  }
 }
