@@ -7,6 +7,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.FieldMappingDescription;
+import io.github.rczyzewski.guacamole.ddb.mapper.SchemaUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.ClassUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.Logger;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
@@ -24,7 +25,6 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndex;
-import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
 import software.amazon.awssdk.services.dynamodb.model.KeyType;
 import software.amazon.awssdk.services.dynamodb.model.LocalSecondaryIndex;
 import software.amazon.awssdk.services.dynamodb.model.Projection;
@@ -42,15 +42,14 @@ public class LiveDescriptionGenerator {
   @NotNull
   private static CodeBlock createKeySchema(
       @NotNull KeyType keyType, @NotNull String attributeName) {
-    // TODO: move all builders into helper in LiveDescrition, so here we have one liner
-    return CodeBlock.builder()
-        .indent()
-        .add("$T.builder()\n", KeySchemaElement.class)
-        .add(".attributeName($S)\n", attributeName)
-        .add(".keyType($T.$L)\n", KeyType.class, keyType)
-        .add(".build()\n")
-        .unindent()
-        .build();
+
+    return CodeBlock.of(
+        "$T.createKeySchemaElement($S, $T.$L)",
+        SchemaUtils.class,
+        attributeName,
+        KeyType.class,
+        keyType);
+
   }
 
   @NotNull
@@ -104,7 +103,19 @@ public class LiveDescriptionGenerator {
     String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
     boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
 
-    if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
+    if (AttributeValue.class.getCanonicalName().equals(fieldDescription.getTypeName())) {
+
+      logger.info("Direct support of AttributeValue");
+      return createFieldMappingDescription(
+              fieldDescription.getAttribute(),
+              generator.get(),
+              isKeyValue,
+              CodeBlock.of("(bean, value) -> bean.with$L(value)", suffix),
+              CodeBlock.of("value->$T.ofNullable(value)", Optional.class) );
+
+    }
+
+    else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
 
       return createFieldMappingDescription(
           fieldDescription.getAttribute(),

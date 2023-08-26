@@ -80,16 +80,14 @@ public class DynamoDBProcessor extends AbstractProcessor {
               } catch (Exception e) {
 
                 /*
-                String stackTrace = Arrays.stream(e.getStackTrace())
-                        .map(line -> line.getClassName() + ":" + line.getMethodName() + ":" + line.getLineNumber())
-                        .collect(Collectors.joining("\n"));
-                */
+                 * String stackTrace = Arrays.stream(e.getStackTrace())
+                 *       .map(line -> line.getClassName() + ":" + line.getMethodName() + ":" + line.getLineNumber())
+                 *       .collect(Collectors.joining("\n"));
+                 */
                 logger.error(
                     String.format(
                         "'%s' while processing the class: '%s'",
                         e.getMessage(), it.getSimpleName()));
-
-                // throw new GuacamoleRuntimeException(e);
               }
             });
 
@@ -170,8 +168,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
                     .addModifiers(PUBLIC)
                     .addParameter(ParameterSpec.builder(clazz, "bean").build())
                     .addCode(
-                        "return getMapper().generateUpdateExpression(bean, new $T(),"
-                            + " this.tableName);",
+                        "return getMapper().generateUpdateExpression(bean, new $T(), tableName);",
                         expressionBuilder)
                     .returns(
                         ParameterizedTypeName.get(
@@ -286,6 +283,4 @@ public class DynamoDBProcessor extends AbstractProcessor {
     return SourceVersion.RELEASE_8;
   }
 
-  @StandardException
-  static class GuacamoleRuntimeException extends RuntimeException {}
 }
