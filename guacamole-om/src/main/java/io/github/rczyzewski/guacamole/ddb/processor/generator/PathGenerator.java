@@ -25,32 +25,27 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
+@AllArgsConstructor
 public class PathGenerator {
   private static final Set<String> primitives =
       new HashSet<>(Arrays.asList("String", "Integer", "Long", "Float", "Double"));
-  private static final String REPOSITORY_SUFFIX = "Repository";
-  private static final String PATH_NAMESPACE = "Paths";
+  private static final Set<DDBType> PRIMITIVE_DDB_TYPE =
+      new HashSet<>(
+          Arrays.asList(
+              DDBType.STRING, DDBType.INTEGER, DDBType.FLOAT, DDBType.DOUBLE, DDBType.LONG));
   private static final String SELECT_METHOD = "select";
+
+  private final ClassName pathsNamespace;
 
   @NotNull
   public TypeSpec createPaths(@NotNull ClassDescription classDescription) {
-    ClassName customSearchAF =
-        ClassName.get(
-            classDescription.getPackageName(),
-            classDescription.getName() + REPOSITORY_SUFFIX,
-            PATH_NAMESPACE);
     TypeSpec.Builder queryClass =
-        TypeSpec.classBuilder(customSearchAF).addModifiers(PUBLIC, FINAL, STATIC);
+        TypeSpec.classBuilder(pathsNamespace).addModifiers(PUBLIC, FINAL, STATIC);
     ClassName baseBean =
         ClassName.get(classDescription.getPackageName(), classDescription.getName());
     ParameterizedTypeName path = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
 
-    ClassName rootBeanPathClassName =
-        ClassName.get(
-            classDescription.getPackageName(),
-            classDescription.getName() + REPOSITORY_SUFFIX,
-            PATH_NAMESPACE,
-            "Root");
+    ClassName rootBeanPathClassName = pathsNamespace.nestedClass("Root");
 
     Function<Class, ParameterizedTypeName> typedParentPathFunction =
         c -> ParameterizedTypeName.get(ClassName.get(TypedPath.class), baseBean, TypeName.get(c));
@@ -69,12 +64,7 @@ public class PathGenerator {
         .getSourandingClasses()
         .forEach(
             (txt, it) -> {
-              ClassName beanPathClass =
-                  ClassName.get(
-                      classDescription.getPackageName(),
-                      classDescription.getName() + REPOSITORY_SUFFIX,
-                      PATH_NAMESPACE,
-                      it.getName() + "Path");
+              ClassName beanPathClass = pathsNamespace.nestedClass(it.getName() + "Path");
               TypeSpec.Builder pathClassBuilder =
                   createPath(
                           classDescription,
@@ -117,11 +107,8 @@ public class PathGenerator {
             .addAnnotation(Builder.class)
             .addModifiers(PUBLIC, FINAL, STATIC);
     for (FieldDescription fd : classDescription.getFieldDescriptions()) {
-      if (fd.getDdbType() == DDBType.STRING
-          || fd.getDdbType() == DDBType.INTEGER
-          || fd.getDdbType() == DDBType.FLOAT
-          || fd.getDdbType() == DDBType.DOUBLE
-          || fd.getDdbType() == DDBType.LONG) {
+
+      if (PRIMITIVE_DDB_TYPE.contains(fd.getDdbType()) || fd.getDdbType().equals(DDBType.NATIVE)) {
         MethodSpec method =
             MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                 .addModifiers(PUBLIC)
@@ -139,6 +126,7 @@ public class PathGenerator {
       } else if (fd.getTypeName().startsWith("java.util.List")) {
         MethodSpec method;
         String a = fd.getTypeArguments().get(0);
+        // TODO: Contained types should be expressed as a compound object, not a string
         if (primitives.contains(a)) {
           ParameterizedTypeName returnType =
               ParameterizedTypeName.get(
@@ -164,12 +152,7 @@ public class PathGenerator {
                   .returns(returnType)
                   .build();
         } else if (fd.getSourandingClasses().containsKey(a)) {
-          ClassName beanPathClass =
-              ClassName.get(
-                  mainBeanForRepo.getPackageName(),
-                  mainBeanForRepo.getName() + REPOSITORY_SUFFIX,
-                  PATH_NAMESPACE,
-                  a + "Path");
+          ClassName beanPathClass = pathsNamespace.nestedClass(a + "Path");
           ParameterizedTypeName returnType =
               ParameterizedTypeName.get(ClassName.get(ListPath.class), majorBean, beanPathClass);
           method =
@@ -199,12 +182,7 @@ public class PathGenerator {
         queryClass.addMethod(method);
 
       } else if (fd.getDdbType() == DDBType.OTHER) {
-        ClassName beanPathClass =
-            ClassName.get(
-                mainBeanForRepo.getPackageName(),
-                mainBeanForRepo.getName() + REPOSITORY_SUFFIX,
-                PATH_NAMESPACE,
-                fd.getClassReference() + "Path");
+        ClassName beanPathClass = pathsNamespace.nestedClass(fd.getClassReference() + "Path");
 
         ClassName Abdadfa = ClassName.bestGuess(fd.getClassReference());
         ClassName mbfr = ClassName.bestGuess(mainBeanForRepo.getName());

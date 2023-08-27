@@ -32,7 +32,6 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
 import lombok.*;
-import lombok.experimental.StandardException;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
@@ -51,7 +50,6 @@ public class DynamoDBProcessor extends AbstractProcessor {
   private Filer filer;
   private Logger logger;
   private LiveDescriptionGenerator descriptionGenerator;
-  private PathGenerator pathGenerator;
   private Types types;
 
   @Override
@@ -61,7 +59,6 @@ public class DynamoDBProcessor extends AbstractProcessor {
     logger = new CompileTimeLogger(processingEnvironment.getMessager());
     logger.info("DDBRepoGenerator initialized");
     descriptionGenerator = new LiveDescriptionGenerator(logger);
-    pathGenerator = new PathGenerator();
     types = processingEnvironment.getTypeUtils();
   }
 
@@ -103,6 +100,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
     ClassName expressionBuilder = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
     ClassName indexSelectorName = repositoryClazz.nestedClass("IndexSelector");
+    ClassName pathClassName = repositoryClazz.nestedClass("Paths");
 
     String mainMapperName = toSnakeCase(classDescription.getName());
 
@@ -262,7 +260,8 @@ public class DynamoDBProcessor extends AbstractProcessor {
         new LogicalExpressionBuilderGenerator(classDescription)
             .createLogicalExpressionBuilder(expressionBuilder);
 
-    @NotNull TypeSpec path = this.pathGenerator.createPaths(classDescription);
+    PathGenerator pathGenerator = new PathGenerator(pathClassName);
+    @NotNull TypeSpec path = pathGenerator.createPaths(classDescription);
 
     navigatorClass.addType(queryGeneratorBuilder);
     navigatorClass.addType(path);

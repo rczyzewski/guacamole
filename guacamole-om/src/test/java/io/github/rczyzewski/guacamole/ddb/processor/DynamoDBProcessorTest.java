@@ -6,7 +6,6 @@ import static com.google.testing.compile.Compiler.javac;
 import com.google.testing.compile.Compilation;
 import com.google.testing.compile.JavaFileObjects;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
-import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
@@ -60,7 +59,6 @@ class DynamoDBProcessorTest {
     DynamoDBProcessor dynamoDBProcessor =
         DynamoDBProcessor.builder()
             .descriptionGenerator(new LiveDescriptionGenerator(logger))
-            .pathGenerator(new PathGenerator())
             .logger(logger)
             .build();
 

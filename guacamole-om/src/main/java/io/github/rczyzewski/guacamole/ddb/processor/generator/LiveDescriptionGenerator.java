@@ -103,15 +103,13 @@ public class LiveDescriptionGenerator {
     String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
     boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
 
-    if (AttributeValue.class.getCanonicalName().equals(fieldDescription.getTypeName())) {
-
-      logger.info("Direct support of AttributeValue");
+    if ( DDBType.NATIVE.equals(fieldDescription.getDdbType())) {
       return createFieldMappingDescription(
               fieldDescription.getAttribute(),
               generator.get(),
               isKeyValue,
               CodeBlock.of("(bean, value) -> bean.with$L(value)", suffix),
-              CodeBlock.of("value->$T.ofNullable(value)", Optional.class) );
+              CodeBlock.of("value->$T.ofNullable(value.get$L())", Optional.class, suffix) );
 
     }
 
