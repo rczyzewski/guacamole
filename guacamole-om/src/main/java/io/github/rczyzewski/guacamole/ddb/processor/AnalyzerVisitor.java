@@ -1,13 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBAttribute;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexHashKey;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexRangeKey;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBLocalIndexRangeKey;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBRangeKey;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
+import com.squareup.javapoet.ClassName;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.*;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
@@ -24,6 +18,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor8;
 import javax.lang.model.util.Types;
@@ -33,12 +28,30 @@ import lombok.AllArgsConstructor;
 public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
 
   private Types types;
+  private Logger logger;
 
   ClassDescription generate(Element element) {
 
     HashMap<String, ClassDescription> worldContext = new HashMap<>();
     element.accept(this, worldContext);
     return worldContext.get(element.getSimpleName().toString());
+  }
+
+
+  public ClassName getConverterClass(Element element) {
+    try {
+              return Optional.of(element)
+                      .map(it-> it.getAnnotation(DynamoDBConverted.class))
+                              .map(DynamoDBConverted::converter)
+                      .map(ClassName::get)
+                      .orElse(null);
+
+    } catch(MirroredTypeException mte) {
+      DeclaredType declaredType = (DeclaredType) mte.getTypeMirror();
+      TypeElement typeElement = (TypeElement ) declaredType.asElement();
+      typeElement.getQualifiedName().toString();
+      return ClassName.get(typeElement);
+    }
   }
 
   @Override
@@ -102,6 +115,7 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
                 .typeName(e.asType().toString())
                 .typePackage(e.asType().toString())
                 .ddbType(ddbType)
+                .converterClass(getConverterClass(e))
                 .typeArguments(typeArguments)
                 .isHashKey(Optional.ofNullable(e.getAnnotation(DynamoDBHashKey.class)).isPresent())
                 .isRangeKey(

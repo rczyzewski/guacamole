@@ -1,5 +1,7 @@
 package io.github.rczyzewski.guacamole.tests;
 
+import io.github.rczyzewski.guacamole.LocalDateTimeConverter;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import lombok.Builder;
@@ -15,4 +17,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 public class Books {
   @DynamoDBHashKey String isbn;
   AttributeValue customData;
+
+  @DynamoDBConverted(converter = LocalDateTimeConverter.class)
+  String customData2;
 }

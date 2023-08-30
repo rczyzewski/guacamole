@@ -65,7 +65,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-    AnalyzerVisitor classAnalyzer = new AnalyzerVisitor(types);
+    AnalyzerVisitor classAnalyzer = new AnalyzerVisitor(types, logger);
 
     roundEnv.getElementsAnnotatedWith(DynamoDBTable.class).stream()
         .filter(it -> ElementKind.CLASS == it.getKind())
