@@ -9,6 +9,8 @@ import lombok.Value;
 import lombok.With;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
+import java.time.LocalDateTime;
+
 
 @Value
 @Builder
@@ -19,5 +21,5 @@ public class Books {
   AttributeValue customData;
 
   @DynamoDBConverted(converter = LocalDateTimeConverter.class)
-  String customData2;
+  LocalDateTime customData2;
 }

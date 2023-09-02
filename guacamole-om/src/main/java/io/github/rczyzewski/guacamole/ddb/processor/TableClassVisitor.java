@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.*;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
@@ -25,12 +27,12 @@ import javax.lang.model.util.Types;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
+public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
 
   private Types types;
   private Logger logger;
 
-  ClassDescription generate(Element element) {
+  ClassDescription getClassDescription(Element element) {
 
     HashMap<String, ClassDescription> worldContext = new HashMap<>();
     element.accept(this, worldContext);
@@ -49,13 +51,12 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     } catch(MirroredTypeException mte) {
       DeclaredType declaredType = (DeclaredType) mte.getTypeMirror();
       TypeElement typeElement = (TypeElement ) declaredType.asElement();
-      typeElement.getQualifiedName().toString();
       return ClassName.get(typeElement);
     }
   }
 
   @Override
-  public AnalyzerVisitor visitType(TypeElement element, Map<String, ClassDescription> o) {
+  public TableClassVisitor visitType(TypeElement element, Map<String, ClassDescription> o) {
 
     String name = element.getSimpleName().toString();
 
@@ -81,6 +82,28 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     return this;
   }
 
+ TypeName getParametrizedTypeName(Element element) {
+
+   DeclaredType declaredType = ((DeclaredType) element.asType());
+
+   TypeName[] typeArguments = declaredType.getTypeArguments()
+           .stream()
+           .map(it -> types.asElement(it))
+           //.map(it -> (Type.TypeVar) it.asType())
+           .map(this::getParametrizedTypeName)
+           .map(it -> (TypeName) it)
+           .toArray(TypeName[]::new);
+
+   if(  typeArguments.length == 0 ){
+
+      return  TypeName.get(declaredType);
+   } else{
+
+      TypeElement ddd = (TypeElement) declaredType.asElement();
+      return ParameterizedTypeName.get(ClassName.get(ddd), typeArguments);
+    }
+  }
+
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
 
@@ -91,6 +114,10 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
 
     String name = e.getSimpleName().toString();
     types.asElement(e.asType()).accept(this, o);
+
+
+    TypeName tn = getParametrizedTypeName(e);
+    logger.warn("ddd"+ tn.toString());
 
     List<String> typeArguments = Collections.emptyList();
 

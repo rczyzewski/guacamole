@@ -10,5 +10,5 @@ import java.lang.annotation.Target;
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface DynamoDBConverted
 {
-    Class<?> converter();
+    Class<?  extends GuacamoleConverter> converter();
 }

@@ -65,22 +65,29 @@ public class DynamoDBProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-    AnalyzerVisitor classAnalyzer = new AnalyzerVisitor(types, logger);
+    TableClassVisitor classAnalyzer = new TableClassVisitor(types, logger);
 
     roundEnv.getElementsAnnotatedWith(DynamoDBTable.class).stream()
         .filter(it -> ElementKind.CLASS == it.getKind())
         .forEach(
             it -> {
               try {
-                generateRepositoryCode(classAnalyzer.generate(it)).writeTo(filer);
+                generateRepositoryCode(classAnalyzer.getClassDescription(it)).writeTo(filer);
 
               } catch (Exception e) {
 
-                /*
-                 * String stackTrace = Arrays.stream(e.getStackTrace())
-                 *       .map(line -> line.getClassName() + ":" + line.getMethodName() + ":" + line.getLineNumber())
-                 *       .collect(Collectors.joining("\n"));
-                 */
+                String stackTrace =
+                    Arrays.stream(e.getStackTrace())
+                        .map(
+                            line ->
+                                line.getClassName()
+                                    + ":"
+                                    + line.getMethodName()
+                                    + ":"
+                                    + line.getLineNumber())
+                        .collect(Collectors.joining("\n"));
+
+                logger.error(stackTrace);
                 logger.error(
                     String.format(
                         "'%s' while processing the class: '%s'",
@@ -281,5 +288,4 @@ public class DynamoDBProcessor extends AbstractProcessor {
   public SourceVersion getSupportedSourceVersion() {
     return SourceVersion.RELEASE_8;
   }
-
 }

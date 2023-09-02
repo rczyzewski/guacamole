@@ -18,6 +18,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import lombok.AllArgsConstructor;
@@ -108,7 +109,9 @@ public class PathGenerator {
             .addModifiers(PUBLIC, FINAL, STATIC);
     for (FieldDescription fd : classDescription.getFieldDescriptions()) {
 
-      if (PRIMITIVE_DDB_TYPE.contains(fd.getDdbType()) || fd.getDdbType().equals(DDBType.NATIVE)) {
+      if (PRIMITIVE_DDB_TYPE.contains(fd.getDdbType())
+          || fd.getDdbType().equals(DDBType.NATIVE)
+          || Objects.nonNull(fd.getConverterClass())) {
         MethodSpec method =
             MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                 .addModifiers(PUBLIC)

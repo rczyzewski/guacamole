@@ -49,7 +49,6 @@ public class LiveDescriptionGenerator {
         attributeName,
         KeyType.class,
         keyType);
-
   }
 
   @NotNull
@@ -103,17 +102,30 @@ public class LiveDescriptionGenerator {
     String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
     boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
 
-    if ( DDBType.NATIVE.equals(fieldDescription.getDdbType())) {
+    if (fieldDescription.getConverterClass() != null) {
       return createFieldMappingDescription(
-              fieldDescription.getAttribute(),
-              generator.get(),
-              isKeyValue,
-              CodeBlock.of("(bean, value) -> bean.with$L(value)", suffix),
-              CodeBlock.of("value->$T.ofNullable(value.get$L())", Optional.class, suffix) );
+          fieldDescription.getAttribute(),
+          generator.get(),
+          isKeyValue,
+          CodeBlock.of(
+              "(bean, value) -> bean.with$L($T.valueOf(value))",
+              suffix,
+              fieldDescription.getConverterClass()),
+          CodeBlock.of(
+              "value->$T.ofNullable($T.toValue(value.get$L()))",
+              Optional.class,
+              fieldDescription.getConverterClass(),
+              suffix));
 
-    }
+    } else if (DDBType.NATIVE.equals(fieldDescription.getDdbType())) {
+      return createFieldMappingDescription(
+          fieldDescription.getAttribute(),
+          generator.get(),
+          isKeyValue,
+          CodeBlock.of("(bean, value) -> bean.with$L(value)", suffix),
+          CodeBlock.of("value->$T.ofNullable(value.get$L())", Optional.class, suffix));
 
-    else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
+    } else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
 
       return createFieldMappingDescription(
           fieldDescription.getAttribute(),
