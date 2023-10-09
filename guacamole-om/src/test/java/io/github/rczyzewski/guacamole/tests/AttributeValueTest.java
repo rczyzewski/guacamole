@@ -1,8 +1,13 @@
 package io.github.rczyzewski.guacamole.tests;
 
-
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
 import java.nio.charset.Charset;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,6 +21,9 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
+
+import static java.time.ZoneOffset.UTC;
+import static org.assertj.core.api.Assertions.*;
 
 @Slf4j
 @Testcontainers
@@ -32,16 +40,32 @@ class AttributeValueTest {
 
   private final DynamoDbAsyncClient ddbClient = testHelperDynamoDB.getDdbAsyncClient();
 
-  private static final String TABLE_NAME = "Countries";
+  private static final String TABLE_NAME = "Books";
 
-  private static final BooksRepository repo = new BooksRepository(TABLE_NAME);
+  private static final io.github.rczyzewski.guacamole.tests.BooksRepository repo =
+      new io.github.rczyzewski.guacamole.tests.BooksRepository(TABLE_NAME);
 
-  Books bb = Books.builder().isbn("I45678").customData(AttributeValue.fromS("ddddd")).build();
-  Books vv = Books.builder().isbn("B12345").customData(AttributeValue.fromN("1985")).build();
-  Books abc = Books.builder().isbn("B12345").customData(AttributeValue.fromN("1985")).build();
-  Books dd = Books.builder()
-          .isbn("H34505")
-          .customData(AttributeValue.fromB(SdkBytes.fromString("hello", Charset.defaultCharset())))
+  Books tomSawyer =
+      Books.builder()
+          .id("I45678")
+          .authors(Collections.singletonList("Mark Twain"))
+              .title("ddd")
+          .notes(AttributeValue.fromS("ddddd"))
+          .build();
+
+  Books huckFin =
+      Books.builder()
+          .id("B12345")
+              .authors(Collections.singletonList("Mark Twain"))
+              .title("")
+          .notes(AttributeValue.fromL(Collections.singletonList(AttributeValue.fromN("1985"))))
+          .build();
+
+  Books catcherInTheRay =
+      Books.builder()
+          .id("B12345")
+          .notes(AttributeValue.fromN("1985"))
+          .published(LocalDateTime.now())
           .build();
 
   @BeforeAll
@@ -55,8 +79,13 @@ class AttributeValueTest {
   void beforeEach() {}
 
   @Test
-  public void ddd() {
+  @SneakyThrows
+  void firstTest() {
+    Instant a = Clock.fixed(Instant.ofEpochSecond(10000), UTC).instant();
 
-    repo.scan().condition(it -> it.isbnNotExists());
+    // Instant.ofEpochSecond()
+    ScanRequest r = repo.scan().condition(BooksRepository.LogicalExpressionBuilder::idNotExists).asScanItemRequest();
+    ScanResponse results = ddbClient.scan(r).get();
+    assertThat(results.items() ).isEmpty();
   }
 }
