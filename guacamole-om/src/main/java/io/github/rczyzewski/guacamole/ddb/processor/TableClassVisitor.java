@@ -82,6 +82,7 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     return this;
   }
 
+  /*
  TypeName getParametrizedTypeName(Element element) {
 
    DeclaredType declaredType = ((DeclaredType) element.asType());
@@ -89,7 +90,7 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
    TypeName[] typeArguments = declaredType.getTypeArguments()
            .stream()
            .map(it -> types.asElement(it))
-           //.map(it -> (Type.TypeVar) it.asType())
+           .map(it -> (Type.TypeVar) it.asType())
            .map(this::getParametrizedTypeName)
            .map(it -> (TypeName) it)
            .toArray(TypeName[]::new);
@@ -103,6 +104,7 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
       return ParameterizedTypeName.get(ClassName.get(ddd), typeArguments);
     }
   }
+   */
 
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
@@ -114,25 +116,24 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
 
     String name = e.getSimpleName().toString();
     types.asElement(e.asType()).accept(this, o);
-
-
-    TypeName tn = getParametrizedTypeName(e);
-    logger.warn("ddd"+ tn.toString());
-
     List<String> typeArguments = Collections.emptyList();
 
     if (e.asType() instanceof DeclaredType) {
       for (TypeMirror typeArgument : ((DeclaredType) e.asType()).getTypeArguments()) {
         types.asElement(typeArgument).accept(this, o);
       }
-
       typeArguments =
-          ((DeclaredType) e.asType())
-              .getTypeArguments().stream()
-                  .map(types::asElement)
-                  .map(it -> it.getSimpleName().toString())
-                  .collect(Collectors.toList());
+              ((DeclaredType) e.asType())
+                      .getTypeArguments().stream()
+                      .map(types::asElement)
+                      .map(it -> it.getSimpleName().toString())
+                      .collect(Collectors.toList());
     }
+
+
+    TypeArgumentsVisitor typeVisitor = TypeArgumentsVisitor.builder().logger(logger).build();
+
+      FieldDescription.TypeArgument typeArgument = ((DeclaredType) e.asType()).accept(typeVisitor, null);
 
     classDescription
         .getFieldDescriptions()
@@ -144,6 +145,7 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
                 .ddbType(ddbType)
                 .converterClass(getConverterClass(e))
                 .typeArguments(typeArguments)
+                .typeArgument(typeArgument)
                 .isHashKey(Optional.ofNullable(e.getAnnotation(DynamoDBHashKey.class)).isPresent())
                 .isRangeKey(
                     Optional.ofNullable(e.getAnnotation(DynamoDBRangeKey.class)).isPresent())
