@@ -11,6 +11,7 @@ import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
 import io.github.rczyzewski.guacamole.ddb.*;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.IndexSelectorGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
@@ -65,7 +66,8 @@ public class DynamoDBProcessor extends AbstractProcessor {
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
-    TableClassVisitor classAnalyzer = new TableClassVisitor(types, logger);
+    ConsecutiveIdGenerator consecutiveIdGenerator = ConsecutiveIdGenerator.builder().build();
+    TableClassVisitor classAnalyzer = new TableClassVisitor(types,logger, consecutiveIdGenerator);
 
     roundEnv.getElementsAnnotatedWith(DynamoDBTable.class).stream()
         .filter(it -> ElementKind.CLASS == it.getKind())
@@ -123,30 +125,18 @@ public class DynamoDBProcessor extends AbstractProcessor {
             .addTypes(
                 classDescription.getSourandingClasses().values().stream()
                     .map(
-                        it -> {
-                          var mapperClass =
-                              ClassName.get(
-                                  repositoryClazz.canonicalName(), it.getName() + "CLASS");
-                          var modelClass = ClassName.get(it.getPackageName(), it.getName());
-                          var ptype = get(ClassName.get(LiveMappingDescription.class), modelClass);
+                        it -> descriptionGenerator.prepare_class(it,repositoryClazz )
 
-                          return TypeSpec.classBuilder(mapperClass)
-                              .addModifiers(STATIC)
-                              .superclass(ptype)
-                              .addMethod(
-                                  MethodSpec.constructorBuilder()
-                                      .addCode(descriptionGenerator.createMapper(it))
-                                      .build())
-                              .build();
-                        })
+                        )
                     .collect(Collectors.toList()))
             .addFields(
                 classDescription.getSourandingClasses().values().stream()
+                    .filter(it-> ! it.getPackageName().equals("java.util"))
                     .map(
                         it -> {
                           var newClass =
                               ClassName.get(
-                                  repositoryClazz.canonicalName(), it.getName() + "CLASS");
+                                  repositoryClazz.canonicalName(), it.getGeneratedMapperName() + "CLASS");
 
                           return FieldSpec.builder(
                                   get(
@@ -267,7 +257,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
         new LogicalExpressionBuilderGenerator(classDescription)
             .createLogicalExpressionBuilder(expressionBuilder);
 
-    PathGenerator pathGenerator = new PathGenerator(pathClassName);
+    PathGenerator pathGenerator = new PathGenerator(pathClassName, logger);
     @NotNull TypeSpec path = pathGenerator.createPaths(classDescription);
 
     navigatorClass.addType(queryGeneratorBuilder);

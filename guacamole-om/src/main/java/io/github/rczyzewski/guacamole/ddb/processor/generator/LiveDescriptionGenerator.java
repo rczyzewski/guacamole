@@ -1,12 +1,13 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
+import static javax.lang.model.element.Modifier.STATIC;
 import static software.amazon.awssdk.services.dynamodb.model.KeyType.HASH;
 import static software.amazon.awssdk.services.dynamodb.model.KeyType.RANGE;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.*;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.FieldMappingDescription;
+import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.SchemaUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.ClassUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.Logger;
@@ -14,12 +15,12 @@ import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -30,6 +31,8 @@ import software.amazon.awssdk.services.dynamodb.model.LocalSecondaryIndex;
 import software.amazon.awssdk.services.dynamodb.model.Projection;
 import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
+
+import javax.lang.model.element.Modifier;
 
 @AllArgsConstructor
 public class LiveDescriptionGenerator {
@@ -125,7 +128,24 @@ public class LiveDescriptionGenerator {
           CodeBlock.of("(bean, value) -> bean.with$L(value)", suffix),
           CodeBlock.of("value->$T.ofNullable(value.get$L())", Optional.class, suffix));
 
-    } else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
+    }
+   else if ("List".equals (fieldDescription.getTypeArgument().getTypeName())) {
+      // (bean, value) ->{ return bean.withFullAuthorNames(  Mapper_AA.fromAttribute(value));  },
+      String ddd = fieldDescription.getTypeArgument().getMapperName();
+
+      return createFieldMappingDescription(
+              fieldDescription.getAttribute(),
+              generator.get(),
+              isKeyValue,
+              CodeBlock.of("(bean, value) -> bean.with$L($L.fromAttribute(value))", suffix, ddd ),
+              CodeBlock.of(
+                      "value -> $T.ofNullable(value).map(d->d.get$L()).map(it->$T.builder().ss().build())",
+                      Optional.class,
+                      suffix,
+                      AttributeValue.class));
+
+    }
+    else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
 
       return createFieldMappingDescription(
           fieldDescription.getAttribute(),
@@ -138,8 +158,11 @@ public class LiveDescriptionGenerator {
               suffix,
               AttributeValue.class));
 
-    } else if (fieldDescription.getTypeName().startsWith("java.util.List")) {
+    }  else if (fieldDescription.getTypeName().startsWith("java.util.List")) {
+      //createToBeanCode(fieldDescription.getTypeArgument());
 
+      //TODO: right here right now
+      //fieldDescription.getTypeArgument()
       String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArguments().get(0));
       return createFieldMappingDescription(
           fieldDescription.getAttribute(),
@@ -147,13 +170,14 @@ public class LiveDescriptionGenerator {
           isKeyValue,
           CodeBlock.of(
               "(bean, value) ->"
-                  + " bean.with$L(value.l().stream().map($T::m).map($L::transform).collect(Collectors.toList()))",
+                  + " bean.with$L(value.l().stream().map($T::m).map($L::transform).collect($T.toList()))",
               suffix,
               AttributeValue.class,
-              liveMappingName),
+              liveMappingName, Collectors.class),
           CodeBlock.of(
               "value ->"
-                  + " $T.ofNullable(value.get$L()).map(it->$T.builder().l(it.stream().map($L::export).map(iit"
+                  + " $T.ofNullable(value.get$L())" +
+                      ".map(it->$T.builder().l(it.stream().map($L::export).map(iit"
                   + " -> $T.builder().m(iit).build()).collect($T.toList())).build())",
               Optional.class,
               suffix,
@@ -207,6 +231,117 @@ public class LiveDescriptionGenerator {
 
       throw new NotSupportedTypeException(fieldDescription);
     }
+  }
+
+  TypeName get(FieldDescription.TypeArgument argument) {
+    String fullTypeName = argument.getPackageName() + "." + argument.getTypeName();
+    if ("java.util.List".equals(fullTypeName)) {
+      return ParameterizedTypeName.get(
+          ClassName.get(List.class), get(argument.getTypeArguments().get(0)));
+    } else if ("java.util.Map".equals(fullTypeName)) {
+      return null;
+    } else {
+      return ClassName.get(argument.getPackageName(),argument.getTypeName()) ;
+    }
+  }
+
+  @SneakyThrows
+  public TypeSpec prepare_class(ClassDescription classDescription, ClassName repositoryClass) {
+
+    if( classDescription.getPackageName().equals( "java.util" ) && classDescription.getName().equals("List")){
+
+      FieldDescription.TypeArgument dddd = classDescription.getParametrized()
+              .getTypeArguments()
+              .get(0);
+
+      Optional<ClassDescription> aa = classDescription.getSourandingClasses().values().stream()
+              .filter(it -> Objects.equals(it.getPackageName(), dddd.getPackageName()))
+              .filter(it -> Objects.equals(it.getName(), dddd.getTypeName()))
+              .findAny();
+
+      Class<?> standardConverter =
+          classDescription
+              .getParametrized()
+              .getTypeArguments()
+              .get(0)
+              .getDdbType()
+              .getStandardConverterClass();
+
+      ClassName internalMapper =
+                      Optional.ofNullable(standardConverter)
+                          .map(ClassName::get)
+                          .orElseGet(
+                                  ()->  repositoryClass.nestedClass(
+                                      classDescription
+                                          .getParametrized()
+                                          .getTypeArguments()
+                                          .get(0)
+                                          .getMapperName()));
+
+      if (standardConverter == null && dddd.getTypeArguments().isEmpty() && !dddd.getTypeName().equals("List")) {
+
+        String MAPPER_INSTANCE_NAME =  aa.get().getName().toUpperCase();
+
+        return TypeSpec.classBuilder(repositoryClass.nestedClass(classDescription.getGeneratedMapperName()))
+                .addModifiers(STATIC)
+                .addMethod(
+                        MethodSpec.methodBuilder("toAttribute")
+                                .addParameter(
+                                        ParameterSpec.builder(get(classDescription.getParametrized()), "arg").build())
+                                .addCode(" return AttributeValue.fromL( arg.stream().map(it -> $L.export(it))" +
+                                             "    .map(it-> AttributeValue.fromM(it)).collect($T.toList()));",
+                                        MAPPER_INSTANCE_NAME, Collectors.class)
+                                .addModifiers(STATIC)
+                                .returns(AttributeValue.class)
+                                .build())
+                .addMethod(
+                        MethodSpec.methodBuilder("fromAttribute")
+                                .addModifiers(STATIC)
+                                .addParameter(ParameterSpec.builder(AttributeValue.class, "arg").build())
+                                .addCode(
+        "return  arg.l().stream().map(it->it.m()).map(it-> $L.transform(it)).collect($T.toList()); ",
+                                        MAPPER_INSTANCE_NAME, Collectors.class)
+                                .returns(get(classDescription.getParametrized()))
+                                .build())
+                .build();
+
+      }
+
+      return TypeSpec.classBuilder(repositoryClass.nestedClass(classDescription.getGeneratedMapperName()))
+          .addModifiers(STATIC)
+          .addMethod(
+              MethodSpec.methodBuilder("toAttribute")
+                  .addParameter(
+                      ParameterSpec.builder(get(classDescription.getParametrized()), "arg").build())
+                  .addCode(
+                      "return AttributeValue.fromL( arg.stream().map($T::toAttribute).collect($T.toList()));\n",
+                      internalMapper, Collectors.class)
+                  .addModifiers(STATIC)
+                  .returns(AttributeValue.class)
+                  .build())
+          .addMethod(
+              MethodSpec.methodBuilder("fromAttribute")
+                  .addModifiers(STATIC)
+                  .addParameter(ParameterSpec.builder(AttributeValue.class, "arg").build())
+                  .addCode(
+                      "return arg.l().stream().map($T::fromAttribute).collect(Collectors.toList()); ",
+                      internalMapper)
+                  .returns(get(classDescription.getParametrized()))
+                  .build())
+          .build();
+    }
+    ClassName mapperClass =
+            ClassName.get(repositoryClass.canonicalName(), classDescription.getGeneratedMapperName() + "CLASS");
+
+    ClassName modelClass = ClassName.get(classDescription.getPackageName(), classDescription.getGeneratedMapperName());
+    ParameterizedTypeName ptype =
+        ParameterizedTypeName.get(ClassName.get(LiveMappingDescription.class), modelClass);
+
+    return TypeSpec.classBuilder(mapperClass)
+        .addModifiers(STATIC)
+        .superclass(ptype)
+        .addMethod(MethodSpec.constructorBuilder().addCode(createMapper(classDescription)).build())
+        .build();
   }
 
   @NotNull

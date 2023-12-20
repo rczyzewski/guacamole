@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.LocalDateTimeConverter;
+import io.github.rczyzewski.guacamole.LocalDateTimeToLongConverter;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
@@ -20,14 +21,15 @@ import java.util.List;
 public class Books {
 
   @DynamoDBHashKey String id;
+
   String title;
+
   List<String> authors;
+
   AttributeValue characteristics;
+
   AttributeValue notes;
+
   @DynamoDBConverted(converter = LocalDateTimeConverter.class)
   LocalDateTime published;
-  //List<String> titles;
-  List<List<String>> fullAuthorNames;
-  //List<Books> references;
-  //List<AttributeValue> customArguments;
 }

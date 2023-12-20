@@ -5,10 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.squareup.javapoet.ClassName;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @ToString
@@ -38,10 +35,13 @@ public class FieldDescription {
 
   @Builder
   @ToString
+  @Value
   @AllArgsConstructor
   public static class TypeArgument{
     String typeName;
-    String typePackage;
+    String packageName;
+    String mapperName;
+    DDBType ddbType;
     @Builder.Default
     List<TypeArgument>  typeArguments = Collections.emptyList();
   }

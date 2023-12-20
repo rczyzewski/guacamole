@@ -12,15 +12,14 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.path.*;
+import io.github.rczyzewski.guacamole.ddb.processor.Logger;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +36,7 @@ public class PathGenerator {
   private static final String SELECT_METHOD = "select";
 
   private final ClassName pathsNamespace;
-
+  private final Logger logger;
   @NotNull
   public TypeSpec createPaths(@NotNull ClassDescription classDescription) {
     TypeSpec.Builder queryClass =
@@ -63,6 +62,11 @@ public class PathGenerator {
 
     classDescription
         .getSourandingClasses()
+            .entrySet()
+            .stream()
+            //TODO:  this filter disable generating path for inner lists
+            .filter(it-> ! "List".equals(it.getValue().getName()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         .forEach(
             (txt, it) -> {
               ClassName beanPathClass = pathsNamespace.nestedClass(it.getName() + "Path");
@@ -127,7 +131,13 @@ public class PathGenerator {
         queryClass.addMethod(method);
 
       } else if (fd.getTypeName().startsWith("java.util.List")) {
-        MethodSpec method;
+
+        FieldDescription.TypeArgument dddd = fd.getTypeArgument().getTypeArguments().get(0);
+        Optional<ClassDescription> aa = classDescription.getSourandingClasses().values().stream()
+                .filter(it -> Objects.equals(it.getPackageName(), dddd.getPackageName()))
+                .filter(it -> Objects.equals(it.getName(), dddd.getTypeName()))
+                .findAny();
+
         String a = fd.getTypeArguments().get(0);
         // TODO: Contained types should be expressed as a compound object, not a string
         if (primitives.contains(a)) {
@@ -136,7 +146,7 @@ public class PathGenerator {
                   ClassName.get(ListPath.class),
                   majorBean,
                   ParameterizedTypeName.get(ClassName.get(TerminalElement.class), majorBean));
-          method =
+        MethodSpec  method =
               MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                   .addModifiers(PUBLIC)
                   .addCode(
@@ -154,14 +164,69 @@ public class PathGenerator {
                       parent)
                   .returns(returnType)
                   .build();
+          queryClass.addMethod(method);
         } else if (fd.getSourandingClasses().containsKey(a)) {
           ClassName beanPathClass = pathsNamespace.nestedClass(a + "Path");
           ParameterizedTypeName returnType =
               ParameterizedTypeName.get(ClassName.get(ListPath.class), majorBean, beanPathClass);
-          method =
+          MethodSpec method =
               MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                   .addModifiers(PUBLIC)
                   .addComment(fd.getClassReference())
+                      .addComment("RCZ")
+                  .addCode(
+                      "return $T.<$T, $LPath>builder()\n"
+                          + ".provider(it -> new $LPath(it))\n"
+                          + ".selectedField(\"$L\")\n"
+                          + ".parent($L)\n"
+                          + ".build();\n",
+                      ListPath.class, majorBean, a, a, fd.getAttribute(), parent)
+                  .returns(returnType)
+                  .build();
+          queryClass.addMethod(method);
+
+        } else if (dddd.getTypeName().equals("List") &&  ! dddd.getTypeArguments().isEmpty()) {
+          logger.warn("Hi, what Iam processing" + dddd);
+          /**
+           * FieldDescription(typeName=java.util.List<java.util.List<java.lang.String>>,
+           *                  typePackage=java.util.List<java.util.List<java.lang.String>>,
+           *                  name=fullAuthorNames,
+           *                  attribute=fullAuthorNames,
+           *                  ddbType=OTHER,
+           *                  converterClass=null,
+           *                  isHashKey=false,
+           *                  isRangeKey=false,
+           *                  globalIndexRange=[],
+           *                  globalIndexHash=[],
+           *                  localIndex=null,
+           *                  typeArguments=[List],
+           *                  typeArgument=FieldDescription.TypeArgument(
+           *                          typeName=List,
+           *                          packageName=java.util,
+           *                          mapperName=Mapper_AA,
+           *                          ddbType=OTHER,
+           *                          typeArguments=[FieldDescription.TypeArgument(
+           *                                      typeName=List,
+           *                                      packageName=java.util,
+           *                                      mapperName=Mapper_AB,
+           *                                      ddbType=OTHER,
+           *                                      typeArguments=[FieldDescription.TypeArgument(
+           *                                             typeName=String,
+           *                                             packageName=java.lang,
+           *                                             mapperName=Mapper_AC,
+           *                                             ddbType=STRING,
+           *                                             typeArguments=[])])]), classReference=List)
+           */
+
+          /*
+          ClassName beanPathClass = pathsNamespace.nestedClass(a + "Path" +dddd.getTypeArguments().get(0).getMapperName());
+          ParameterizedTypeName returnType =
+              ParameterizedTypeName.get(ClassName.get(ListPath.class), majorBean, beanPathClass);
+        MethodSpec  method =
+              MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
+                  .addModifiers(PUBLIC)
+                  .addComment(fd.getClassReference())
+                      .addJavadoc(fd.toString())
                   .addCode(
                       "return $T.<$T, $LPath>builder()\n"
                           + ".provider(it -> new $LPath(it))\n"
@@ -176,13 +241,14 @@ public class PathGenerator {
                       parent)
                   .returns(returnType)
                   .build();
+          queryClass.addMethod(method);
+           */
 
         } else {
-          throw new NotSupportedTypeException(
+          logger.warn(
               "Only Lists of documents or "
                   + "primitives(Long,Integer,Double,String) are supported");
-        }
-        queryClass.addMethod(method);
+          }
 
       } else if (fd.getDdbType() == DDBType.OTHER) {
         ClassName beanPathClass = pathsNamespace.nestedClass(fd.getClassReference() + "Path");

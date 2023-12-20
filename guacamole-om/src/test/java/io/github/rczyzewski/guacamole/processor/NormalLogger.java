@@ -14,6 +14,11 @@ public class NormalLogger implements Logger {
   }
 
   @Override
+  public void info(String arg, Element element) {
+    log.info(arg);
+  }
+
+  @Override
   public void warn(String arg) {
     log.warn(arg);
   }

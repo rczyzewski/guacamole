@@ -1,12 +1,12 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.*;
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,7 +31,7 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
 
   private Types types;
   private Logger logger;
-
+  private ConsecutiveIdGenerator idGenerator;
   ClassDescription getClassDescription(Element element) {
 
     HashMap<String, ClassDescription> worldContext = new HashMap<>();
@@ -66,9 +66,11 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
       ClassDescription discoveredClass =
           ClassDescription.builder()
               .name(name)
+              .generatedMapperName(name)
               .packageName(element.getEnclosingElement().toString())
               .fieldDescriptions(new ArrayList<>())
               .sourandingClasses(o)
+              .modelClassName(ClassName.get(element.getEnclosingElement().toString(), name))
               .build();
 
       if (!o.containsKey(name)) {
@@ -81,31 +83,33 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     }
     return this;
   }
+ void put(FieldDescription.TypeArgument argument,
+          Map<String, ClassDescription> worldKnowledge){
 
-  /*
- TypeName getParametrizedTypeName(Element element) {
+    if (!isList(argument)) return;
+    String name = argument.getPackageName() + "." + argument.getTypeName();
 
-   DeclaredType declaredType = ((DeclaredType) element.asType());
+    ClassDescription classDescirtipo =
+        ClassDescription.builder()
+            .packageName(argument.getPackageName())
+            .fieldDescriptions(Collections.emptyList())
+            .name(argument.getTypeName())
+            .generatedMapperName(argument.getMapperName())
+            .sourandingClasses(worldKnowledge)
+            .parametrized(argument)
+            // put the name here:
+            // .modelClassName(ClassName.get(it.getPackageName(), it.getGeneratedMapperName()))
+            .build();
 
-   TypeName[] typeArguments = declaredType.getTypeArguments()
-           .stream()
-           .map(it -> types.asElement(it))
-           .map(it -> (Type.TypeVar) it.asType())
-           .map(this::getParametrizedTypeName)
-           .map(it -> (TypeName) it)
-           .toArray(TypeName[]::new);
+    worldKnowledge.put(name + argument.hashCode(), classDescirtipo);
+    argument.getTypeArguments().forEach(it -> this.put(it,  worldKnowledge));
+ }
 
-   if(  typeArguments.length == 0 ){
+ boolean isList(FieldDescription.TypeArgument argument){
+   return "java.util.List" .equals(argument.getPackageName() + "." + argument.getTypeName());
 
-      return  TypeName.get(declaredType);
-   } else{
 
-      TypeElement ddd = (TypeElement) declaredType.asElement();
-      return ParameterizedTypeName.get(ClassName.get(ddd), typeArguments);
-    }
-  }
-   */
-
+ }
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
 
@@ -131,9 +135,14 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     }
 
 
-    TypeArgumentsVisitor typeVisitor = TypeArgumentsVisitor.builder().logger(logger).build();
+    TypeArgumentsVisitor typeVisitor = TypeArgumentsVisitor.builder()
+            .logger(logger)
+            .idGenerator(idGenerator)
+            .build();
 
-      FieldDescription.TypeArgument typeArgument = ((DeclaredType) e.asType()).accept(typeVisitor, null);
+    FieldDescription.TypeArgument typeArgument = e.asType().accept(typeVisitor, e);
+
+    put(typeArgument, o);
 
     classDescription
         .getFieldDescriptions()
