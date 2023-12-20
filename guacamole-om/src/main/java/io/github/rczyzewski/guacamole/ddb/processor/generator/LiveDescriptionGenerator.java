@@ -139,10 +139,10 @@ public class LiveDescriptionGenerator {
               isKeyValue,
               CodeBlock.of("(bean, value) -> bean.with$L($L.fromAttribute(value))", suffix, ddd ),
               CodeBlock.of(
-                      "value -> $T.ofNullable(value).map(d->d.get$L()).map(it->$T.builder().ss().build())",
+                      "value -> $T.ofNullable(value).map(d->d.get$L())\n" +
+                              ".map(it->$L.toAttribute(it))",
                       Optional.class,
-                      suffix,
-                      AttributeValue.class));
+                      suffix, ddd));
 
     }
     else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
