@@ -26,8 +26,8 @@ public class Books {
   AttributeValue notes;
   @DynamoDBConverted(converter = LocalDateTimeConverter.class)
   LocalDateTime published;
-  //List<String> titles;
+  List<String> titles;
   List<List<String>> fullAuthorNames;
-  //List<Books> references;
-  //List<AttributeValue> customArguments;
+  List<Books> references;
+  List<AttributeValue> customArguments;
 }

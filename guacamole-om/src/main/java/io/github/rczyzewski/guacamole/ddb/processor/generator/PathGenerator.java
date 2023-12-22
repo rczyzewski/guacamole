@@ -39,8 +39,13 @@ public class PathGenerator {
   private final Logger logger;
   @NotNull
   public TypeSpec createPaths(@NotNull ClassDescription classDescription) {
-    TypeSpec.Builder queryClass =
+    TypeSpec.Builder pathNamespace =
         TypeSpec.classBuilder(pathsNamespace).addModifiers(PUBLIC, FINAL, STATIC);
+
+    pathNamespace.addJavadoc(
+        "Set of classes that are defines access to all attributes within  "
+            + classDescription.getName());
+
     ClassName baseBean =
         ClassName.get(classDescription.getPackageName(), classDescription.getName());
     ParameterizedTypeName path = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
@@ -50,7 +55,7 @@ public class PathGenerator {
     Function<Class, ParameterizedTypeName> typedParentPathFunction =
         c -> ParameterizedTypeName.get(ClassName.get(TypedPath.class), baseBean, TypeName.get(c));
 
-    queryClass.addType(
+    pathNamespace.addType(
         createPath(
                 classDescription,
                 rootBeanPathClassName,
@@ -65,11 +70,12 @@ public class PathGenerator {
             .entrySet()
             .stream()
             //TODO:  this filter disable generating path for inner lists
-            .filter(it-> ! "List".equals(it.getValue().getName()))
+            //.filter(it-> !( "List".equals(it.getValue().getName()) &&
+             //       it.getValue().getParametrized().getTypeArguments().get(0).getTypeName().equals("List")))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         .forEach(
             (txt, it) -> {
-              ClassName beanPathClass = pathsNamespace.nestedClass(it.getName() + "Path");
+              ClassName beanPathClass = pathsNamespace.nestedClass(it.getGeneratedMapperName() + "Path");
               TypeSpec.Builder pathClassBuilder =
                   createPath(
                           classDescription,
@@ -88,10 +94,10 @@ public class PathGenerator {
                               .addCode(".map(it -> parent.serialize()).orElse(null);")
                               .addModifiers(PUBLIC)
                               .build());
-              queryClass.addType(pathClassBuilder.build());
+              pathNamespace.addType(pathClassBuilder.build());
             });
     // queryClass.addType
-    return queryClass.build();
+    return pathNamespace.build();
   }
 
   public TypeSpec.Builder createPath(
@@ -111,6 +117,12 @@ public class PathGenerator {
             .addAnnotation(Getter.class)
             .addAnnotation(Builder.class)
             .addModifiers(PUBLIC, FINAL, STATIC);
+
+    queryClass.addJavadoc(String.format("beanName: %s%n" , classDescription.getName()));
+    queryClass.addJavadoc(String.format("packageName: %s%n" , classDescription.getPackageName()));
+    queryClass.addJavadoc(String.format("generatedMapperName: %s%n" , classDescription.getGeneratedMapperName()));
+    queryClass.addJavadoc(String.format("parametrized: %s%n" , classDescription.getParametrized()));
+
     for (FieldDescription fd : classDescription.getFieldDescriptions()) {
 
       if (PRIMITIVE_DDB_TYPE.contains(fd.getDdbType())
