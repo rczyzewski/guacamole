@@ -92,22 +92,7 @@ class AttributeValueTest {
   void pathTest(){
     BooksRepository.Paths.Root pathCreator = new BooksRepository.Paths.Root();
     pathCreator.selectTitles().at(1);
+    pathCreator.selectFullAuthorNames().at(1).at(1);
     pathCreator.selectReferences().at(1);
-
-    //customArguments
-    BooksRepository.Paths.Mapper_AHPath customArguments =
-        BooksRepository.Paths.Mapper_AHPath.builder().parent(null).build();
-
-    //references
-    BooksRepository.Paths.Mapper_AFPath references =
-            BooksRepository.Paths.Mapper_AFPath.builder().parent(null).build();
-
-    //authors or tittles:
-    BooksRepository.Paths.Mapper_UPath authors_or_titles =
-            BooksRepository.Paths.Mapper_UPath.builder().parent(null).build();
-
-    //List<List<String>> fullAuthorNames;
-    BooksRepository.Paths.Mapper_ACPath full_author_names =
-            BooksRepository.Paths.Mapper_ACPath.builder().parent(null).build();
   }
 }
