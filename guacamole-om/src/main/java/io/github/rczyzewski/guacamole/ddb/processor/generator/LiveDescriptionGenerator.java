@@ -4,7 +4,13 @@ import static javax.lang.model.element.Modifier.STATIC;
 import static software.amazon.awssdk.services.dynamodb.model.KeyType.HASH;
 import static software.amazon.awssdk.services.dynamodb.model.KeyType.RANGE;
 
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.FieldMappingDescription;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
@@ -32,7 +38,6 @@ import software.amazon.awssdk.services.dynamodb.model.Projection;
 import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
-import javax.lang.model.element.Modifier;
 
 @AllArgsConstructor
 public class LiveDescriptionGenerator {
@@ -129,9 +134,9 @@ public class LiveDescriptionGenerator {
           CodeBlock.of("value->$T.ofNullable(value.get$L())", Optional.class, suffix));
 
     }
-   else if ("List".equals (fieldDescription.getTypeArgument().getTypeName())) {
-      // (bean, value) ->{ return bean.withFullAuthorNames(  Mapper_AA.fromAttribute(value));  },
-      String ddd = fieldDescription.getTypeArgument().getMapperName();
+   else if (fieldDescription.getTypeArgument().fieldType().equals(FieldDescription.FieldType.LIST)) {
+
+      String ddd = fieldDescription.getTypeArgument().buildMapperClassName();
 
       return createFieldMappingDescription(
               fieldDescription.getAttribute(),
@@ -143,48 +148,6 @@ public class LiveDescriptionGenerator {
                               ".map(it->$L.toAttribute(it))",
                       Optional.class,
                       suffix, ddd));
-
-    }
-    else if ("java.util.List<java.lang.String>".equals(fieldDescription.getTypeName())) {
-
-      return createFieldMappingDescription(
-          fieldDescription.getAttribute(),
-          generator.get(),
-          isKeyValue,
-          CodeBlock.of("(bean, value) -> bean.with$L(value.ss())", suffix),
-          CodeBlock.of(
-              "value -> $T.ofNullable(value).map(d->d.get$L()).map(it->$T.builder().ss().build())",
-              Optional.class,
-              suffix,
-              AttributeValue.class));
-
-    }  else if (fieldDescription.getTypeName().startsWith("java.util.List")) {
-      //createToBeanCode(fieldDescription.getTypeArgument());
-
-      //TODO: right here right now
-      //fieldDescription.getTypeArgument()
-      String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArguments().get(0));
-      return createFieldMappingDescription(
-          fieldDescription.getAttribute(),
-          generator.get(),
-          isKeyValue,
-          CodeBlock.of(
-              "(bean, value) ->"
-                  + " bean.with$L(value.l().stream().map($T::m).map($L::transform).collect($T.toList()))",
-              suffix,
-              AttributeValue.class,
-              liveMappingName, Collectors.class),
-          CodeBlock.of(
-              "value ->"
-                  + " $T.ofNullable(value.get$L())" +
-                      ".map(it->$T.builder().l(it.stream().map($L::export).map(iit"
-                  + " -> $T.builder().m(iit).build()).collect($T.toList())).build())",
-              Optional.class,
-              suffix,
-              AttributeValue.class,
-              liveMappingName,
-              AttributeValue.class,
-              Collectors.class));
 
     } else if (Arrays.asList(
             DDBType.INTEGER, DDBType.DOUBLE, DDBType.FLOAT, DDBType.STRING, DDBType.LONG)
@@ -235,7 +198,7 @@ public class LiveDescriptionGenerator {
 
   TypeName get(FieldDescription.TypeArgument argument) {
     String fullTypeName = argument.getPackageName() + "." + argument.getTypeName();
-    if ("java.util.List".equals(fullTypeName)) {
+    if ( argument.fieldType().equals(FieldDescription.FieldType.LIST)) {
       return ParameterizedTypeName.get(
           ClassName.get(List.class), get(argument.getTypeArguments().get(0)));
     } else if ("java.util.Map".equals(fullTypeName)) {
@@ -248,7 +211,10 @@ public class LiveDescriptionGenerator {
   @SneakyThrows
   public TypeSpec prepare_class(ClassDescription classDescription, ClassName repositoryClass) {
 
-    if( classDescription.getPackageName().equals( "java.util" ) && classDescription.getName().equals("List")){
+    if( Optional.of(classDescription)
+            .map(ClassDescription::getParametrized)
+            .map(FieldDescription.TypeArgument::fieldType)
+            .filter(FieldDescription.FieldType.LIST::equals).isPresent()){
 
       FieldDescription.TypeArgument dddd = classDescription.getParametrized()
               .getTypeArguments()
@@ -276,9 +242,11 @@ public class LiveDescriptionGenerator {
                                           .getParametrized()
                                           .getTypeArguments()
                                           .get(0)
-                                          .getMapperName()));
+                                          .buildMapperClassName()));
 
-      if (standardConverter == null && dddd.getTypeArguments().isEmpty() && !dddd.getTypeName().equals("List")) {
+      if (standardConverter == null
+              && dddd.getTypeArguments().isEmpty()
+              && !dddd.fieldType().equals(FieldDescription.FieldType.LIST)) {
 
         String MAPPER_INSTANCE_NAME =  aa.get().getName().toUpperCase();
 

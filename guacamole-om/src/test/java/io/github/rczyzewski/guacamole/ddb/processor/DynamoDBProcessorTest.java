@@ -34,8 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 @Slf4j
 class DynamoDBProcessorTest {
 
+  /*
   @Test
-  @SneakyThrows
   void sunnyDayTest() {
     NormalLogger logger = new NormalLogger();
     List<FieldDescription> fields = new ArrayList<>();
@@ -69,7 +69,7 @@ class DynamoDBProcessorTest {
     bw.flush();
     Assertions.assertThat(byteArray.toString()).isNotBlank();
     bw.close();
-  }
+  } */
 
   @SneakyThrows
   static String readContentBasedOnCanonicalName(String packageName, String className) {

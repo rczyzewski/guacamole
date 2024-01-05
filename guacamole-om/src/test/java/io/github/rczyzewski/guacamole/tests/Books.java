@@ -29,5 +29,7 @@ public class Books {
   List<String> titles;
   List<List<String>> fullAuthorNames;
   List<Books> references;
+  //TODO: missing support
+  //List<List<Books>> deepReferences;
   List<AttributeValue> customArguments;
 }

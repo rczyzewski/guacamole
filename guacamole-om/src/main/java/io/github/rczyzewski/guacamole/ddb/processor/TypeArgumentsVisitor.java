@@ -1,8 +1,5 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
@@ -10,7 +7,18 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.*;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ErrorType;
+import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.IntersectionType;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.NullType;
+import javax.lang.model.type.PrimitiveType;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.UnionType;
+import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.AbstractTypeVisitor8;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -43,17 +51,19 @@ public class TypeArgumentsVisitor extends AbstractTypeVisitor8<FieldDescription.
     @Override
     public FieldDescription.TypeArgument visitDeclared(DeclaredType t, VariableElement o) {
 
-    // logger.warn("Declared" + t );
-        DDBType ddbType = Arrays.stream(DDBType.values()).filter(it -> it.match(t.asElement())).findFirst().orElse(DDBType.OTHER);
-    DynamoDBDocument a = t.getAnnotation(DynamoDBDocument.class);
-    DynamoDBTable b = t.getAnnotation(DynamoDBTable.class);
+    DDBType ddbType =
+        Arrays.stream(DDBType.values())
+            .filter(it -> it.match(t.asElement()))
+            .findFirst()
+            .orElse(DDBType.OTHER);
 
-
+    String mapperUniqueId = idGenerator.get();
 
     return FieldDescription.TypeArgument.builder()
         .typeName(t.asElement().getSimpleName().toString())
         .packageName(t.asElement().getEnclosingElement().toString())
-        .mapperName("Mapper_" +  idGenerator.get())
+        //.mapperName("Mapper_" +  mapperUniqueId)
+        .mapperUniqueId(mapperUniqueId)
         .ddbType(ddbType)
         .typeArguments(
             t.getTypeArguments().stream()

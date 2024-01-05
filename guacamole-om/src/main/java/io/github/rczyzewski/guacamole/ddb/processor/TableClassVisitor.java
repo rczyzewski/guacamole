@@ -1,7 +1,15 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import com.squareup.javapoet.ClassName;
-import io.github.rczyzewski.guacamole.ddb.datamodeling.*;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBAttribute;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexHashKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexRangeKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBLocalIndexRangeKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBRangeKey;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
@@ -11,10 +19,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
@@ -89,26 +95,22 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     if (!isList(argument)) return;
     String name = argument.getPackageName() + "." + argument.getTypeName();
 
-    ClassDescription classDescirtipo =
+    ClassDescription classDescription =
         ClassDescription.builder()
             .packageName(argument.getPackageName())
             .fieldDescriptions(Collections.emptyList())
             .name(argument.getTypeName())
-            .generatedMapperName(argument.getMapperName())
+            .generatedMapperName(argument.buildMapperClassName())
             .sourandingClasses(worldKnowledge)
             .parametrized(argument)
-            // put the name here:
-            // .modelClassName(ClassName.get(it.getPackageName(), it.getGeneratedMapperName()))
             .build();
 
-    worldKnowledge.put(name + argument.hashCode(), classDescirtipo);
+    worldKnowledge.put(name + argument.hashCode(), classDescription);
     argument.getTypeArguments().forEach(it -> this.put(it,  worldKnowledge));
  }
 
  boolean isList(FieldDescription.TypeArgument argument){
-   return "java.util.List" .equals(argument.getPackageName() + "." + argument.getTypeName());
-
-
+   return argument.fieldType().equals(FieldDescription.FieldType.LIST);
  }
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
@@ -120,18 +122,11 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
 
     String name = e.getSimpleName().toString();
     types.asElement(e.asType()).accept(this, o);
-    List<String> typeArguments = Collections.emptyList();
 
     if (e.asType() instanceof DeclaredType) {
       for (TypeMirror typeArgument : ((DeclaredType) e.asType()).getTypeArguments()) {
         types.asElement(typeArgument).accept(this, o);
       }
-      typeArguments =
-              ((DeclaredType) e.asType())
-                      .getTypeArguments().stream()
-                      .map(types::asElement)
-                      .map(it -> it.getSimpleName().toString())
-                      .collect(Collectors.toList());
     }
 
 
@@ -153,7 +148,6 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
                 .typePackage(e.asType().toString())
                 .ddbType(ddbType)
                 .converterClass(getConverterClass(e))
-                .typeArguments(typeArguments)
                 .typeArgument(typeArgument)
                 .isHashKey(Optional.ofNullable(e.getAnnotation(DynamoDBHashKey.class)).isPresent())
                 .isRangeKey(

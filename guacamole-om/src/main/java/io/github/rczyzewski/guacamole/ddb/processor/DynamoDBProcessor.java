@@ -8,8 +8,20 @@ import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
 import com.google.auto.service.AutoService;
-import com.squareup.javapoet.*;
-import io.github.rczyzewski.guacamole.ddb.*;
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ArrayTypeName;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
+import io.github.rczyzewski.guacamole.ddb.BaseRepository;
+import io.github.rczyzewski.guacamole.ddb.MappedDeleteExpression;
+import io.github.rczyzewski.guacamole.ddb.MappedScanExpression;
+import io.github.rczyzewski.guacamole.ddb.MappedUpdateExpression;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LiveMappingDescription;
@@ -19,7 +31,14 @@ import io.github.rczyzewski.guacamole.ddb.processor.generator.LogicalExpressionB
 import io.github.rczyzewski.guacamole.ddb.processor.generator.PathGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.IndexDescription;
-import java.util.*;
+
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -29,7 +48,6 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Types;
 import lombok.*;
@@ -58,7 +76,6 @@ public class DynamoDBProcessor extends AbstractProcessor {
     super.init(processingEnvironment);
     filer = processingEnvironment.getFiler();
     logger = new CompileTimeLogger(processingEnvironment.getMessager());
-    logger.info("DDBRepoGenerator initialized");
     descriptionGenerator = new LiveDescriptionGenerator(logger);
     types = processingEnvironment.getTypeUtils();
   }
@@ -124,26 +141,24 @@ public class DynamoDBProcessor extends AbstractProcessor {
             .addField(FieldSpec.builder(get(String.class), "tableName", FINAL, PRIVATE).build())
             .addTypes(
                 classDescription.getSourandingClasses().values().stream()
-                    .map(
-                        it -> descriptionGenerator.prepare_class(it,repositoryClazz )
-
-                        )
+                    .map(it -> descriptionGenerator.prepare_class(it, repositoryClazz))
                     .collect(Collectors.toList()))
             .addFields(
                 classDescription.getSourandingClasses().values().stream()
-                    .filter(it-> ! it.getPackageName().equals("java.util"))
+                    .filter(it -> !it.getPackageName().equals("java.util"))
                     .map(
                         it -> {
-                          var newClass =
+                          ClassName newClass =
                               ClassName.get(
-                                  repositoryClazz.canonicalName(), it.getGeneratedMapperName() + "CLASS");
+                                  repositoryClazz.canonicalName(),
+                                  it.getGeneratedMapperName() + "CLASS");
 
                           return FieldSpec.builder(
                                   get(
                                       ClassName.get(LiveMappingDescription.class),
                                       ClassName.get(it.getPackageName(), it.getName())),
                                   toSnakeCase(it.getName()),
-                                  Modifier.STATIC,
+                                  STATIC,
                                   PUBLIC,
                                   FINAL)
                               .initializer(CodeBlock.builder().add("new $T()", newClass).build())
@@ -154,9 +169,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
                 MethodSpec.methodBuilder("getMapper")
                     .addModifiers(PUBLIC)
                     .addCode("return $L;", mainMapperName)
-                    .returns(
-                        ParameterizedTypeName.get(
-                            ClassName.get(LiveMappingDescription.class), clazz))
+                    .returns(get(ClassName.get(LiveMappingDescription.class), clazz))
                     .build())
             .addMethod(
                 MethodSpec.methodBuilder("update")
@@ -166,8 +179,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
                         "return getMapper().generateUpdateExpression(bean, new $T(), tableName);",
                         expressionBuilder)
                     .returns(
-                        ParameterizedTypeName.get(
-                            ClassName.get(MappedUpdateExpression.class), clazz, expressionBuilder))
+                        get(ClassName.get(MappedUpdateExpression.class), clazz, expressionBuilder))
                     .build())
             .addMethod(
                 MethodSpec.methodBuilder("asWriteRequest")
@@ -176,10 +188,10 @@ public class DynamoDBProcessor extends AbstractProcessor {
                     .addCode("return $L.writeRequest( tableName, arg);\n", mainMapperName)
                     .varargs(true)
                     .returns(
-                        ParameterizedTypeName.get(
+                        get(
                             ClassName.get(Map.class),
                             ClassName.get(String.class),
-                            ParameterizedTypeName.get(Collection.class, WriteRequest.class)))
+                            get(Collection.class, WriteRequest.class)))
                     .build())
             .addMethod(
                 MethodSpec.methodBuilder("create")
@@ -211,8 +223,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
                             .unindent()
                             .build())
                     .returns(
-                        ParameterizedTypeName.get(
-                            ClassName.get(MappedScanExpression.class), clazz, expressionBuilder))
+                        get(ClassName.get(MappedScanExpression.class), clazz, expressionBuilder))
                     .build())
             .addMethod(
                 MethodSpec.methodBuilder("delete")

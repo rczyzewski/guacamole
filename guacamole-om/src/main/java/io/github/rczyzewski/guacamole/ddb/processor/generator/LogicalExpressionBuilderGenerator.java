@@ -4,7 +4,12 @@ import static javax.lang.model.element.Modifier.FINAL;
 import static javax.lang.model.element.Modifier.PUBLIC;
 import static javax.lang.model.element.Modifier.STATIC;
 
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.mapper.ExpressionGenerator;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.path.Path;
@@ -204,7 +209,7 @@ public class LogicalExpressionBuilderGenerator {
 
     for (FieldDescription fd : classDescription.getFieldDescriptions()) {
       //TODO: temporary hack, need to support also List<Map<String,List<....>>> itp
-      if( "List". equals(fd.getTypeArgument().getTypeName())) continue;
+      if( fd.getTypeArgument().fieldType().equals(FieldDescription.FieldType.LIST)) continue;
       queryClass.addMethods(createExistsAndTypeConditions(baseBean, fd));
 
       Arrays.stream(LogicalExpression.ComparisonOperator.values())
