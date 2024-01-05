@@ -13,14 +13,20 @@ import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import io.github.rczyzewski.guacamole.ddb.path.*;
+import io.github.rczyzewski.guacamole.ddb.path.ListElement;
+import io.github.rczyzewski.guacamole.ddb.path.ListPath;
+import io.github.rczyzewski.guacamole.ddb.path.Path;
+import io.github.rczyzewski.guacamole.ddb.path.PrimitiveElement;
+import io.github.rczyzewski.guacamole.ddb.path.TypedPath;
 import io.github.rczyzewski.guacamole.ddb.processor.Logger;
 import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
-import java.util.*;
-import java.util.function.Function;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,38 +51,27 @@ public class PathGenerator {
         "Set of classes that are defines access to all attributes within  "
             + classDescription.getName());
 
-    ClassName baseBean =
-        ClassName.get(classDescription.getPackageName(), classDescription.getName());
-    ParameterizedTypeName path = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
+    ClassName baseBean = ClassName.get(classDescription.getPackageName(), classDescription.getName());
+
 
     ClassName rootBeanPathClassName = pathsNamespace.nestedClass("Root");
 
-    Function<Class, ParameterizedTypeName> typedParentPathFunction =
-        c -> ParameterizedTypeName.get(ClassName.get(TypedPath.class), baseBean, TypeName.get(c));
-
     pathNamespace.addType(
         createPath(
-                classDescription,
                 rootBeanPathClassName,
                 baseBean,
                 classDescription,
-                typedParentPathFunction,
                 "null")
             .build());
 
     classDescription
         .getSourandingClasses()
+         .values()
         .forEach(
-            (txt, it) -> {
+             it -> {
               ClassName beanPathClass = pathsNamespace.nestedClass(it.getGeneratedMapperName() + "Path");
-              TypeSpec.Builder pathClassBuilder =
-                  createPath(
-                          classDescription,
-                          beanPathClass,
-                          baseBean,
-                          it,
-                          typedParentPathFunction,
-                          "this")
+              ParameterizedTypeName path = ParameterizedTypeName.get(ClassName.get(Path.class), baseBean);
+              TypeSpec.Builder pathClassBuilder = createPath(beanPathClass, baseBean, it, "this")
                       .addField(FieldSpec.builder(path, "parent", PRIVATE).build())
                       .addSuperinterface(path)
                       .addMethod(
@@ -89,19 +84,20 @@ public class PathGenerator {
                               .build());
               pathNamespace.addType(pathClassBuilder.build());
             });
-    // queryClass.addType
     return pathNamespace.build();
   }
 
+  /**
+   * args:
+   * className: the name of the class that will be created(ending with Path)
+  *  repositoryBean: the name of the class annotated with @DynamoDBTable
+   */
   public TypeSpec.Builder createPath(
-      ClassDescription mainBeanForRepo,
       ClassName className,
-      ClassName majorBean,
+      ClassName repositoryBean,
       @NotNull ClassDescription classDescription,
-      Function<Class, ParameterizedTypeName> typedParentPath,
       String parent) {
 
-    ClassName mainBean = ClassName.get(mainBeanForRepo.getPackageName(), mainBeanForRepo.getName());
     TypeSpec.Builder queryClass =
         TypeSpec.classBuilder(className)
             .addAnnotation(Getter.class)
@@ -115,13 +111,13 @@ public class PathGenerator {
     if (classDescription.getParametrized() != null
         && classDescription.getParametrized().fieldType().equals(LIST)
         && classDescription.getParametrized().getTypeArguments().get(0).fieldType().equals(PRIMITIVE)) {
-      ParameterizedTypeName returnType = ParameterizedTypeName.get(ClassName.get(Path.class), majorBean);
+      ParameterizedTypeName returnType = ParameterizedTypeName.get(ClassName.get(Path.class), repositoryBean);
 
       queryClass.addAnnotation(Builder.class);
       queryClass.addMethod(
           MethodSpec.methodBuilder("at").addModifiers(PUBLIC)
               .addParameter(ParameterSpec.builder(TypeName.get(int.class), "index").build())
-              .addCode("return $T.<$T>builder().parent(this).t(index).build();", ListElement.class, majorBean)
+              .addCode("return $T.<$T>builder().parent(this).t(index).build();", ListElement.class, repositoryBean)
               .returns(returnType)
               .build());
 
@@ -130,13 +126,13 @@ public class PathGenerator {
             && classDescription.getParametrized().fieldType().equals(LIST)
             && classDescription.getParametrized().getTypeArguments().get(0).fieldType().equals(CUSTOM)) {
 
-      ParameterizedTypeName returnType = ParameterizedTypeName.get(ClassName.get(Path.class), majorBean);
+      ParameterizedTypeName returnType = ParameterizedTypeName.get(ClassName.get(Path.class), repositoryBean);
       queryClass.addAnnotation(Builder.class);
       queryClass.addMethod(
               MethodSpec.methodBuilder("at").addModifiers(PUBLIC)
                       .addParameter(ParameterSpec.builder(TypeName.get(int.class), "index").build())
                       .addComment("handling Custom object")
-                      .addCode("return $T.<$T>builder().parent(this).t(index).build();", ListElement.class, majorBean)
+                      .addCode("return $T.<$T>builder().parent(this).t(index).build();", ListElement.class, repositoryBean)
                       .returns(returnType)
                       .build());
 
@@ -154,8 +150,8 @@ public class PathGenerator {
               .addModifiers(PUBLIC)
               .addParameter(ParameterSpec.builder(TypeName.get(int.class), "index").build())
               .addComment("RCZ: handling List")
-              .addCode("$T<$T> e ", ListElement.class, majorBean)
-              .addCode("  = $T.<$T>builder().parent(this).t(index).build();\n", ListElement.class, majorBean)
+              .addCode("$T<$T> e ", ListElement.class, repositoryBean)
+              .addCode("  = $T.<$T>builder().parent(this).t(index).build();\n", ListElement.class, repositoryBean)
               .addCode("return $T.builder().parent(e).build();", returnType)
               .returns(returnType)
               .build());
@@ -171,17 +167,21 @@ public class PathGenerator {
       if (PRIMITIVE_DDB_TYPE.contains(fd.getDdbType())
           || fd.getDdbType().equals(DDBType.NATIVE)
           || Objects.nonNull(fd.getConverterClass())) {
+
+        ParameterizedTypeName returnType =
+            ParameterizedTypeName.get(ClassName.get(TypedPath.class), repositoryBean, TypeName.get(fd.getDdbType().getClazz()));
+
         MethodSpec method =
             MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                 .addModifiers(PUBLIC)
                 .addCode(
                     "return $T.<$T, $T>builder()" + ".parent($L).selectedElement(\"$L\").build();",
                     PrimitiveElement.class,
-                    mainBean,
+                    repositoryBean,
                     fd.getDdbType().getClazz(),
                     parent,
                     fd.getAttribute())
-                .returns(typedParentPath.apply(fd.getDdbType().getClazz()))
+                .returns(returnType)
                 .build();
         queryClass.addMethod(method);
 
@@ -189,7 +189,6 @@ public class PathGenerator {
 
         String a = fd.getTypeArgument().getTypeArguments().get(0).getTypeName();
 
-        // TODO: Contained types should be expressed as a compound object, not a string
         HashSet<Object> supported = new HashSet<>();
         supported.add(PRIMITIVE);
         supported.add(LIST);
@@ -201,14 +200,14 @@ public class PathGenerator {
           MethodSpec method =
               MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                   .addModifiers(PUBLIC)
-                  .addCode(" $T<$T, AttributeValue> part =\n", PrimitiveElement.class, majorBean)
+                  .addCode(" $T<$T, AttributeValue> part =\n", PrimitiveElement.class, repositoryBean)
                   .addCode(
                       "$T.<$T, AttributeValue>builder()\n"
                           + "    .parent($L)\n"
                           + "    .selectedElement(\"$L\")\n"
                           + "    .build();\n",
                       PrimitiveElement.class,
-                      majorBean,
+                      repositoryBean,
                       parent,
                       fd.getAttribute())
                   .addCode("return $T.builder().parent(part).build();", returnType)
@@ -221,54 +220,41 @@ public class PathGenerator {
       } else if (fd.getSourandingClasses().containsKey(a)) {
         ClassName beanPathClass = pathsNamespace.nestedClass(a + "Path");
         ParameterizedTypeName returnType =
-                ParameterizedTypeName.get(ClassName.get(ListPath.class), majorBean, beanPathClass);
+                ParameterizedTypeName.get(ClassName.get(ListPath.class), repositoryBean, beanPathClass);
         MethodSpec method =
                 MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                         .addModifiers(PUBLIC)
-                        .addComment(fd.getClassReference())
-                        .addComment("RCZ")
                         .addCode(
                                 "return $T.<$T, $LPath>builder()\n"
                                         + ".provider(it -> new $LPath(it))\n"
                                         + ".selectedField(\"$L\")\n"
                                         + ".parent($L)\n"
                                         + ".build();\n",
-                                ListPath.class, majorBean, a, a, fd.getAttribute(), parent)
+                                ListPath.class, repositoryBean, a, a, fd.getAttribute(), parent)
                         .returns(returnType)
                         .build();
         queryClass.addMethod(method);
 
-      }
-
-
-        else {
+      } else {
           logger.warn(
               "Only Lists of documents or "
                   + "primitives(Long,Integer,Double,String) are supported");
           }
 
       } else if (fd.getDdbType() == DDBType.OTHER) {
-        ClassName beanPathClass = pathsNamespace.nestedClass(fd.getClassReference() + "Path");
-
-        ClassName Abdadfa = ClassName.bestGuess(fd.getClassReference());
-        ClassName mbfr = ClassName.bestGuess(mainBeanForRepo.getName());
+        
+        ClassName beanPathClass = pathsNamespace.nestedClass(fd.getTypeArgument().getTypeName() + "Path");
+        
         MethodSpec method =
             MethodSpec.methodBuilder(SELECT_METHOD + TypoUtils.upperCaseFirstLetter(fd.getName()))
                 .addModifiers(PUBLIC)
-                .addCode(
-                    "$T<$T, $T> element = $T.<$T, $T>builder()"
-                        + ".parent($L).selectedElement(\"$L\").build();\n",
-                    PrimitiveElement.class,
-                    mbfr,
-                    Abdadfa,
-                    PrimitiveElement.class,
-                    mbfr,
-                    Abdadfa,
-                    parent,
-                    fd.getAttribute())
-                .addCode("  return $T.builder().parent(element).build();", beanPathClass)
+                .addCode("$T<$T, $T> element = ", PrimitiveElement.class, repositoryBean, repositoryBean)
+                .addCode("$T.<$T, $T>builder().parent($L).selectedElement(\"$L\").build();\n",
+                    PrimitiveElement.class, repositoryBean, repositoryBean, parent, fd.getAttribute())
+                .addCode("return $T.builder().parent(element).build();", beanPathClass)
                 .returns(beanPathClass)
                 .build();
+        
         queryClass.addMethod(method);
       }
     }

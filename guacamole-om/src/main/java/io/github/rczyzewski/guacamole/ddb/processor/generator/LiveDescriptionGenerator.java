@@ -21,8 +21,11 @@ import io.github.rczyzewski.guacamole.ddb.processor.TypoUtils;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -37,7 +40,6 @@ import software.amazon.awssdk.services.dynamodb.model.LocalSecondaryIndex;
 import software.amazon.awssdk.services.dynamodb.model.Projection;
 import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
 import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
-
 
 @AllArgsConstructor
 public class LiveDescriptionGenerator {
@@ -104,8 +106,7 @@ public class LiveDescriptionGenerator {
   }
 
   @NotNull
-  public CodeBlock create(
-      @NotNull FieldDescription fieldDescription, ConsecutiveIdGenerator generator) {
+  public CodeBlock create(@NotNull FieldDescription fieldDescription, ConsecutiveIdGenerator generator) {
 
     String suffix = TypoUtils.upperCaseFirstLetter(fieldDescription.getName());
     boolean isKeyValue = fieldDescription.isHashKey() || fieldDescription.isRangeKey();
@@ -115,10 +116,7 @@ public class LiveDescriptionGenerator {
           fieldDescription.getAttribute(),
           generator.get(),
           isKeyValue,
-          CodeBlock.of(
-              "(bean, value) -> bean.with$L($T.valueOf(value))",
-              suffix,
-              fieldDescription.getConverterClass()),
+          CodeBlock.of("(bean, value) -> bean.with$L($T.valueOf(value))", suffix, fieldDescription.getConverterClass()),
           CodeBlock.of(
               "value->$T.ofNullable($T.toValue(value.get$L()))",
               Optional.class,
@@ -136,18 +134,17 @@ public class LiveDescriptionGenerator {
     }
    else if (fieldDescription.getTypeArgument().fieldType().equals(FieldDescription.FieldType.LIST)) {
 
-      String ddd = fieldDescription.getTypeArgument().buildMapperClassName();
-
       return createFieldMappingDescription(
               fieldDescription.getAttribute(),
               generator.get(),
               isKeyValue,
-              CodeBlock.of("(bean, value) -> bean.with$L($L.fromAttribute(value))", suffix, ddd ),
+              CodeBlock.of("(bean, value) -> bean.with$L($L.fromAttribute(value))", suffix,
+                           fieldDescription.getTypeArgument().buildMapperClassName()),
               CodeBlock.of(
                       "value -> $T.ofNullable(value).map(d->d.get$L())\n" +
                               ".map(it->$L.toAttribute(it))",
                       Optional.class,
-                      suffix, ddd));
+                      suffix, fieldDescription.getTypeArgument().buildMapperClassName()));
 
     } else if (Arrays.asList(
             DDBType.INTEGER, DDBType.DOUBLE, DDBType.FLOAT, DDBType.STRING, DDBType.LONG)
@@ -171,10 +168,9 @@ public class LiveDescriptionGenerator {
               AttributeValue.class,
               fieldDescription.getDdbType().getSymbol()));
 
-    } else if (null != fieldDescription.getClassReference()) {
+    } else if (null != fieldDescription.getTypeArgument().getTypeName()) {
 
-      String liveMappingName =
-          TypoUtils.toSnakeCase(fieldDescription.getClassDescription().getName());
+      String liveMappingName = TypoUtils.toSnakeCase(fieldDescription.getTypeArgument().getTypeName());
 
       return createFieldMappingDescription(
           fieldDescription.getAttribute(),
@@ -209,7 +205,7 @@ public class LiveDescriptionGenerator {
   }
 
   @SneakyThrows
-  public TypeSpec prepare_class(ClassDescription classDescription, ClassName repositoryClass) {
+  public TypeSpec prepareMapperClass(ClassDescription classDescription, ClassName repositoryClass) {
 
     if( Optional.of(classDescription)
             .map(ClassDescription::getParametrized)
@@ -248,7 +244,7 @@ public class LiveDescriptionGenerator {
               && dddd.getTypeArguments().isEmpty()
               && !dddd.fieldType().equals(FieldDescription.FieldType.LIST)) {
 
-        String MAPPER_INSTANCE_NAME =  aa.get().getName().toUpperCase();
+        String mapperInstanceName =  aa.get().getName().toUpperCase();
 
         return TypeSpec.classBuilder(repositoryClass.nestedClass(classDescription.getGeneratedMapperName()))
                 .addModifiers(STATIC)
@@ -258,7 +254,7 @@ public class LiveDescriptionGenerator {
                                         ParameterSpec.builder(get(classDescription.getParametrized()), "arg").build())
                                 .addCode(" return AttributeValue.fromL( arg.stream().map(it -> $L.export(it))" +
                                              "    .map(it-> AttributeValue.fromM(it)).collect($T.toList()));",
-                                        MAPPER_INSTANCE_NAME, Collectors.class)
+                                        mapperInstanceName, Collectors.class)
                                 .addModifiers(STATIC)
                                 .returns(AttributeValue.class)
                                 .build())
@@ -268,7 +264,7 @@ public class LiveDescriptionGenerator {
                                 .addParameter(ParameterSpec.builder(AttributeValue.class, "arg").build())
                                 .addCode(
         "return  arg.l().stream().map(it->it.m()).map(it-> $L.transform(it)).collect($T.toList()); ",
-                                        MAPPER_INSTANCE_NAME, Collectors.class)
+                                        mapperInstanceName, Collectors.class)
                                 .returns(get(classDescription.getParametrized()))
                                 .build())
                 .build();

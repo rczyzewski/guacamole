@@ -76,7 +76,6 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
               .packageName(element.getEnclosingElement().toString())
               .fieldDescriptions(new ArrayList<>())
               .sourandingClasses(o)
-              .modelClassName(ClassName.get(element.getEnclosingElement().toString(), name))
               .build();
 
       if (!o.containsKey(name)) {
@@ -92,7 +91,9 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
  void put(FieldDescription.TypeArgument argument,
           Map<String, ClassDescription> worldKnowledge){
 
-    if (!isList(argument)) return;
+     if(!argument.fieldType().equals(FieldDescription.FieldType.LIST))
+         return;
+
     String name = argument.getPackageName() + "." + argument.getTypeName();
 
     ClassDescription classDescription =
@@ -144,8 +145,6 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
         .add(
             FieldDescription.builder()
                 .name(name)
-                .typeName(e.asType().toString())
-                .typePackage(e.asType().toString())
                 .ddbType(ddbType)
                 .converterClass(getConverterClass(e))
                 .typeArgument(typeArgument)
@@ -167,7 +166,6 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
                         .map(Arrays::asList)
                         .orElseGet(Collections::emptyList))
                 .sourandingClasses(o)
-                .classReference(((DeclaredType) e.asType()).asElement().getSimpleName().toString())
                 .attribute(
                     Optional.of(DynamoDBAttribute.class)
                         .map(e::getAnnotation)

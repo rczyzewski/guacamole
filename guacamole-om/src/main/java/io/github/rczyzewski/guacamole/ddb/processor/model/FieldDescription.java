@@ -1,11 +1,10 @@
 package io.github.rczyzewski.guacamole.ddb.processor.model;
 
+import com.squareup.javapoet.ClassName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.squareup.javapoet.ClassName;
 import lombok.Builder;
 import lombok.ToString;
 import lombok.Value;
@@ -13,15 +12,16 @@ import lombok.Value;
 @Builder
 @Value
 public class FieldDescription {
-  String typeName;
-  String typePackage;
+
   //java field name
   String name;
   //ddb field name
   String attribute;
 
   DDBType ddbType;
+
   ClassName converterClass;
+
   boolean isHashKey;
   boolean isRangeKey;
   @Builder.Default List<String> globalIndexRange = Collections.emptyList();
@@ -29,14 +29,8 @@ public class FieldDescription {
   String localIndex;
 
   TypeArgument typeArgument;
-  @Deprecated
-  public ClassDescription getClassDescription() {
-    return this.getSourandingClasses().get(this.getClassReference());
-  }
 
   @ToString.Exclude Map<String, ClassDescription> sourandingClasses;
-
-  String classReference;
 
   @Builder
   @Value

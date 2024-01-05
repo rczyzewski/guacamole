@@ -120,8 +120,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
   public JavaFile generateRepositoryCode(ClassDescription classDescription) {
     ClassName clazz = ClassName.get(classDescription.getPackageName(), classDescription.getName());
 
-    ClassName repositoryClazz =
-        ClassName.get(classDescription.getPackageName(), classDescription.getName() + "Repository");
+    ClassName repositoryClazz = clazz.peerClass( classDescription.getName() + "Repository");
 
     ClassName expressionBuilder = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 
@@ -141,7 +140,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
             .addField(FieldSpec.builder(get(String.class), "tableName", FINAL, PRIVATE).build())
             .addTypes(
                 classDescription.getSourandingClasses().values().stream()
-                    .map(it -> descriptionGenerator.prepare_class(it, repositoryClazz))
+                    .map(it -> descriptionGenerator.prepareMapperClass(it, repositoryClazz))
                     .collect(Collectors.toList()))
             .addFields(
                 classDescription.getSourandingClasses().values().stream()
