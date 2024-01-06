@@ -31,11 +31,11 @@ public class StandardConverters {
   public static class LongConverter {
 
     public Long fromAttribute(AttributeValue arg) {
-      return null;
+      return Long.getLong(arg.n());
     }
 
     public AttributeValue toAttribute(Long arg) {
-      return null;
+      return AttributeValue.fromN(arg.toString());
     }
   }
 
@@ -43,11 +43,11 @@ public class StandardConverters {
   public static class DoubleConverter {
 
     public static Double fromAttribute(AttributeValue arg) {
-      return null;
+      return Double.parseDouble(arg.n());
     }
 
     public static AttributeValue toAttribute(Double arg) {
-      return null;
+      return AttributeValue.fromN(arg.toString());
     }
   }
 
@@ -55,11 +55,11 @@ public class StandardConverters {
   public static class FloatConverter {
 
     public static Float fromAttribute(AttributeValue arg) {
-      return null;
+      return Float.parseFloat(arg.n());
     }
 
     public static AttributeValue toAttribute(Float arg) {
-      return null;
+      return AttributeValue.fromN(arg.toString());
     }
   }
 
