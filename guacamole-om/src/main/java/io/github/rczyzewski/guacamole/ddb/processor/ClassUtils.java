@@ -93,7 +93,6 @@ public class ClassUtils {
                     .filter(it -> !(it.isHashKey() || it.isRangeKey()))
                     .collect(Collectors.toList()))
             .build();
-    logger.info("PRIMARY:   " + primary);
 
     List<IndexDescription> localIndexes =
         getLSIndexes().stream()

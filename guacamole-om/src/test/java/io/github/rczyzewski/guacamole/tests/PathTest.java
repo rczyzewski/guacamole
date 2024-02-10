@@ -122,4 +122,18 @@ class PathTest {
                 .serialize())
         .isEqualTo("employees[1].department.manager.department.employees[5].id");
   }
+  @Test
+  void pathTest(){
+    BooksRepository.Paths.Root pathCreator = new BooksRepository.Paths.Root();
+    assertThat(pathCreator.selectTitles().at(1).serialize()).isEqualTo("titles[1]");
+    assertThat(pathCreator.selectFullAuthorNames().at(1).at(1).serialize()).isEqualTo("fullAuthorNames[1][1]");
+    assertThat(pathCreator.selectReferences().at(1).serialize()).isEqualTo("references[1]");
+    assertThat(pathCreator.selectGridOfBooks().at(0).at(0).serialize()).isEqualTo("gridOfBooks[0][0]");
+    assertThat(pathCreator.selectGridOfBooks().at(0).at(0).at(0).serialize()).isEqualTo("gridOfBooks[0][0][0]");
+    assertThat(pathCreator.selectGridOfBooks().at(0).at(0).at(0).selectAuthors().at(1).serialize()).isEqualTo("gridOfBooks[0][0][0].authors[1]");
+    assertThat(pathCreator.selectFourDimensions().at(0).serialize()).isEqualTo("fourDimensions[0]");
+    assertThat(pathCreator.selectFourDimensions().at(0).at(0).serialize()).isEqualTo("fourDimensions[0][0]");
+    assertThat(pathCreator.selectFourDimensions().at(0).at(0).at(0).serialize()).isEqualTo("fourDimensions[0][0][0]");
+    assertThat(pathCreator.selectFourDimensions().at(0).at(0).at(0).at(0).serialize()).isEqualTo("fourDimensions[0][0][0][0]");
+  }
 }

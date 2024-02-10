@@ -6,6 +6,7 @@ import static javax.tools.Diagnostic.Kind.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.annotation.processing.Messager;
+import javax.lang.model.element.Element;
 import javax.tools.Diagnostic;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
@@ -20,16 +21,32 @@ public class CompileTimeLogger implements Logger {
     msg.printMessage(kind, format("%s %s", date, arg));
   }
 
+  @Override
   public void info(String arg) {
-    // TODO: change to Note
     msg(WARNING, arg);
   }
+  @Override
+  public void info(String arg, Element element) {
+    this.msg.printMessage(WARNING, arg, element);
+  }
 
+  @Override
+  public void warn(String arg, Element element) {
+   this.msg.printMessage(WARNING, arg, element);
+  }
+
+  @Override
   public void warn(String arg) {
-    msg(WARNING, arg);
+    msg(WARNING, arg );
   }
 
+  @Override
   public void error(String arg) {
     msg(ERROR, arg);
+  }
+
+  @Override
+  public void error(String arg, Element element) {
+    this.msg.printMessage(ERROR, arg, element);
   }
 }

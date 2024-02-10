@@ -1,6 +1,12 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeSpec;
 import io.github.rczyzewski.guacamole.ddb.MappedQueryExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression;
 import io.github.rczyzewski.guacamole.ddb.mapper.LogicalExpression.ComparisonOperator;
@@ -62,7 +68,7 @@ public class IndexSelectorGenerator {
         MethodSpec.methodBuilder(Optional.ofNullable(index.getName()).orElse("primary"));
     methodBuilder
         .addParameter(
-            ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeName()), "hash")
+            ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
                 .build())
         .addCode(
             CodeBlock.builder()
@@ -76,13 +82,13 @@ public class IndexSelectorGenerator {
                         + " LogicalExpression.ComparisonOperator.EQUAL, tmp1 );\n",
                     baseBean)
                 .add(
-                    "$T ddd  =  new $T<>(new $T(), $S,  tableName, null, getMapper(), key); \n",
+                    "$T ret  =  new $T<>(new $T(), $S,  tableName, null, getMapper(), key); \n",
                     rt,
                     rt.rawType,
                     rt.typeArguments.get(1),
                     index.getName())
                 .build())
-        .addCode("return ddd;")
+        .addCode("return ret;")
         .returns(rt);
 
     return methodBuilder.build();
@@ -157,7 +163,7 @@ public class IndexSelectorGenerator {
     MethodSpec.Builder methodBuilder =
         MethodSpec.methodBuilder(Optional.ofNullable(index.getName()).orElse("primary"));
     methodBuilder.addParameter(
-        ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeName()), "hash")
+        ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
             .build());
     methodBuilder
         .addParameter(ParameterSpec.builder(function, "generator").build())

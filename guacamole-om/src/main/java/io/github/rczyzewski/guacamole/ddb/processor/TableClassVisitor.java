@@ -1,6 +1,8 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
+import com.squareup.javapoet.ClassName;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBAttribute;
+import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBConverted;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBDocument;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexHashKey;
@@ -8,41 +10,59 @@ import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBIndexRangeKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBLocalIndexRangeKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBRangeKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
+import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
 import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.SimpleElementVisitor8;
 import javax.lang.model.util.Types;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
+public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
 
   private Types types;
-
-  ClassDescription generate(Element element) {
+  private Logger logger;
+  private ConsecutiveIdGenerator idGenerator;
+  ClassDescription getClassDescription(Element element) {
 
     HashMap<String, ClassDescription> worldContext = new HashMap<>();
     element.accept(this, worldContext);
     return worldContext.get(element.getSimpleName().toString());
   }
 
+
+  public ClassName getConverterClass(Element element) {
+    try {
+              return Optional.of(element)
+                      .map(it-> it.getAnnotation(DynamoDBConverted.class))
+                              .map(DynamoDBConverted::converter)
+                      .map(ClassName::get)
+                      .orElse(null);
+
+    } catch(MirroredTypeException mte) {
+      DeclaredType declaredType = (DeclaredType) mte.getTypeMirror();
+      TypeElement typeElement = (TypeElement ) declaredType.asElement();
+      return ClassName.get(typeElement);
+    }
+  }
+
   @Override
-  public AnalyzerVisitor visitType(TypeElement element, Map<String, ClassDescription> o) {
+  public TableClassVisitor visitType(TypeElement element, Map<String, ClassDescription> o) {
 
     String name = element.getSimpleName().toString();
 
@@ -52,6 +72,7 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
       ClassDescription discoveredClass =
           ClassDescription.builder()
               .name(name)
+              .generatedMapperName(name)
               .packageName(element.getEnclosingElement().toString())
               .fieldDescriptions(new ArrayList<>())
               .sourandingClasses(o)
@@ -67,7 +88,31 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     }
     return this;
   }
+ void put(FieldDescription.TypeArgument argument,
+          Map<String, ClassDescription> worldKnowledge){
 
+     if(!argument.fieldType().equals(FieldDescription.FieldType.LIST))
+         return;
+
+    String name = argument.getPackageName() + "." + argument.getTypeName();
+
+    ClassDescription classDescription =
+        ClassDescription.builder()
+            .packageName(argument.getPackageName())
+            .fieldDescriptions(Collections.emptyList())
+            .name(argument.getTypeName())
+            .generatedMapperName(argument.buildMapperClassName())
+            .sourandingClasses(worldKnowledge)
+            .parametrized(argument)
+            .build();
+
+    worldKnowledge.put(name + argument.hashCode(), classDescription);
+    argument.getTypeArguments().forEach(it -> this.put(it,  worldKnowledge));
+ }
+
+ boolean isList(FieldDescription.TypeArgument argument){
+   return argument.fieldType().equals(FieldDescription.FieldType.LIST);
+ }
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
 
@@ -79,30 +124,30 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
     String name = e.getSimpleName().toString();
     types.asElement(e.asType()).accept(this, o);
 
-    List<String> typeArguments = Collections.emptyList();
-
     if (e.asType() instanceof DeclaredType) {
       for (TypeMirror typeArgument : ((DeclaredType) e.asType()).getTypeArguments()) {
         types.asElement(typeArgument).accept(this, o);
       }
-
-      typeArguments =
-          ((DeclaredType) e.asType())
-              .getTypeArguments().stream()
-                  .map(types::asElement)
-                  .map(it -> it.getSimpleName().toString())
-                  .collect(Collectors.toList());
     }
+
+
+    TypeArgumentsVisitor typeVisitor = TypeArgumentsVisitor.builder()
+            .logger(logger)
+            .idGenerator(idGenerator)
+            .build();
+
+    FieldDescription.TypeArgument typeArgument = e.asType().accept(typeVisitor, e);
+
+    put(typeArgument, o);
 
     classDescription
         .getFieldDescriptions()
         .add(
             FieldDescription.builder()
                 .name(name)
-                .typeName(e.asType().toString())
-                .typePackage(e.asType().toString())
                 .ddbType(ddbType)
-                .typeArguments(typeArguments)
+                .converterClass(getConverterClass(e))
+                .typeArgument(typeArgument)
                 .isHashKey(Optional.ofNullable(e.getAnnotation(DynamoDBHashKey.class)).isPresent())
                 .isRangeKey(
                     Optional.ofNullable(e.getAnnotation(DynamoDBRangeKey.class)).isPresent())
@@ -121,7 +166,6 @@ public class AnalyzerVisitor extends SimpleElementVisitor8<Object, Map<String, C
                         .map(Arrays::asList)
                         .orElseGet(Collections::emptyList))
                 .sourandingClasses(o)
-                .classReference(((DeclaredType) e.asType()).asElement().getSimpleName().toString())
                 .attribute(
                     Optional.of(DynamoDBAttribute.class)
                         .map(e::getAnnotation)
