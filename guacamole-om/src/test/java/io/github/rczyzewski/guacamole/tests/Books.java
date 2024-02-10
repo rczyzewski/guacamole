@@ -28,6 +28,10 @@ public class Books {
   LocalDateTime published;
   List<String> titles;
   List<List<String>> fullAuthorNames;
+  List<List<Books>> booksShelf;
+  List<List<List<Books>>> gridOfBooks;
+  List<List<List<List<Books>>>> fourDimensions;
+
   List<Books> references;
   //TODO: missing support
   //List<List<Books>> deepReferences;

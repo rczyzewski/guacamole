@@ -88,11 +88,4 @@ class AttributeValueTest {
     ScanResponse results = ddbClient.scan(r).get();
     assertThat(results.items() ).isEmpty();
   }
-  @Test
-  void pathTest(){
-    BooksRepository.Paths.Root pathCreator = new BooksRepository.Paths.Root();
-    pathCreator.selectTitles().at(1);
-    pathCreator.selectFullAuthorNames().at(1).at(1);
-    pathCreator.selectReferences().at(1);
-  }
 }

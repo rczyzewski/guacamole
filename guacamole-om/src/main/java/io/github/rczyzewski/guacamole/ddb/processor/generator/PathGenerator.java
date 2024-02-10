@@ -126,20 +126,30 @@ public class PathGenerator {
             && classDescription.getParametrized().fieldType().equals(LIST)
             && classDescription.getParametrized().getTypeArguments().get(0).fieldType().equals(CUSTOM)) {
 
-      ParameterizedTypeName returnType = ParameterizedTypeName.get(ClassName.get(Path.class), repositoryBean);
+      String a = classDescription.getParametrized()
+                                 .getTypeArguments()
+                                 .get(0)
+                                 .getTypeName();
+
+      ClassName beanPathClass = pathsNamespace.nestedClass(a + "Path");
+
       queryClass.addAnnotation(Builder.class);
       queryClass.addMethod(
               MethodSpec.methodBuilder("at").addModifiers(PUBLIC)
                       .addParameter(ParameterSpec.builder(TypeName.get(int.class), "index").build())
                       .addComment("handling Custom object")
-                      .addCode("return $T.<$T>builder().parent(this).t(index).build();", ListElement.class, repositoryBean)
-                      .returns(returnType)
+                      .addCode(" $T<$T> e = \n", ListElement.class, repositoryBean)
+                      .addCode(" $T.<$T>builder() .parent(parent).t(index).build();\n", ListElement.class, repositoryBean)
+                      .addCode("return $T.builder().parent(e).build();\n",  beanPathClass)
+                      //.addCode("//return $T.<$T>builder().parent(this).t(index).build();", beanPathClass, repositoryBean)
+                      .returns(beanPathClass)
                       .build());
 
       return queryClass;
     } else if (classDescription.getParametrized() != null
             && classDescription.getParametrized().fieldType().equals(LIST)
             && classDescription.getParametrized().getTypeArguments().get(0).fieldType().equals(LIST)) {
+
 
       ClassName returnType =
           pathsNamespace.nestedClass(
