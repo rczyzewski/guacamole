@@ -20,7 +20,7 @@ public class StandardConverters {
   public static class IntegerConverter {
 
     public static Integer fromAttribute(AttributeValue arg) {
-      return Integer.getInteger(arg.n());
+      return Integer.parseInt(arg.n());
     }
 
     public static AttributeValue toAttribute(Integer arg) {
@@ -28,13 +28,14 @@ public class StandardConverters {
     }
   }
 
+  @UtilityClass
   public static class LongConverter {
 
-    public Long fromAttribute(AttributeValue arg) {
-      return Long.getLong(arg.n());
+    public static Long fromAttribute(AttributeValue arg) {
+      return Long.parseLong(arg.n());
     }
 
-    public AttributeValue toAttribute(Long arg) {
+    public static AttributeValue toAttribute(Long arg) {
       return AttributeValue.fromN(arg.toString());
     }
   }
