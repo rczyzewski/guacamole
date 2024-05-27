@@ -13,9 +13,9 @@ import lombok.Value;
 @Value
 public class FieldDescription {
 
-  //java field name
+  // java field name
   String name;
-  //ddb field name
+  // ddb field name
   String attribute;
 
   DDBType ddbType;
@@ -34,35 +34,40 @@ public class FieldDescription {
 
   @Builder
   @Value
-  public static class TypeArgument{
+  public static class TypeArgument {
     String typeName;
     String packageName;
     String mapperUniqueId;
 
     DDBType ddbType;
 
-    @Builder.Default
-    List<TypeArgument>  typeArguments = Collections.emptyList();
-    private String nonUniqueMapperClassName(){
+    @Builder.Default List<TypeArgument> typeArguments = Collections.emptyList();
+
+    private String nonUniqueMapperClassName() {
       String typeArgumentNames =
-              typeArguments.stream()
-                      .map(TypeArgument::nonUniqueMapperClassName)
-                      .collect(Collectors.joining());
-      return   typeName  + typeArgumentNames;
+          typeArguments.stream()
+              .map(TypeArgument::nonUniqueMapperClassName)
+              .collect(Collectors.joining());
+      return typeName + typeArgumentNames;
     }
-    public String buildMapperClassName(){
-      return   nonUniqueMapperClassName() + mapperUniqueId;
+
+    public String buildMapperClassName() {
+      return nonUniqueMapperClassName() + mapperUniqueId;
     }
-    public String buildPathClassName(){
-      return   nonUniqueMapperClassName() + mapperUniqueId  + "Path";
+
+    public String buildPathClassName() {
+      return nonUniqueMapperClassName() + mapperUniqueId + "Path";
     }
-    public FieldType fieldType(){
-      if(ddbType!= DDBType.OTHER) return FieldType.PRIMITIVE;
-      if( "List".equals(getTypeName()) &&  "java.util".equals(getPackageName()))  return FieldType.LIST;
+
+    public FieldType fieldType() {
+      if (ddbType != DDBType.OTHER) return FieldType.PRIMITIVE;
+      if ("List".equals(getTypeName()) && "java.util".equals(getPackageName()))
+        return FieldType.LIST;
       return FieldType.CUSTOM;
     }
   }
-  public enum FieldType{
+
+  public enum FieldType {
     LIST,
     MAP,
     SET,

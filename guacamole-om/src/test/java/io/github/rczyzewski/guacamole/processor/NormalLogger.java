@@ -32,6 +32,7 @@ public class NormalLogger implements Logger {
   public void error(String arg) {
     log.error(arg);
   }
+
   @Override
   public void error(String arg, Element element) {
     log.error(arg);

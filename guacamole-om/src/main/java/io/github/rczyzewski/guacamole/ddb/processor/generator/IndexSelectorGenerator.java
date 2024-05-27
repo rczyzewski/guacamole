@@ -68,7 +68,9 @@ public class IndexSelectorGenerator {
         MethodSpec.methodBuilder(Optional.ofNullable(index.getName()).orElse("primary"));
     methodBuilder
         .addParameter(
-            ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
+            ParameterSpec.builder(
+                    ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()),
+                    "hash")
                 .build())
         .addCode(
             CodeBlock.builder()
@@ -163,7 +165,8 @@ public class IndexSelectorGenerator {
     MethodSpec.Builder methodBuilder =
         MethodSpec.methodBuilder(Optional.ofNullable(index.getName()).orElse("primary"));
     methodBuilder.addParameter(
-        ParameterSpec.builder(ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
+        ParameterSpec.builder(
+                ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
             .build());
     methodBuilder
         .addParameter(ParameterSpec.builder(function, "generator").build())

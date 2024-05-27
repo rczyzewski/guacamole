@@ -1,11 +1,9 @@
 package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
-import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 
 import lombok.SneakyThrows;
@@ -18,7 +16,6 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
@@ -49,15 +46,15 @@ class AttributeValueTest {
       Books.builder()
           .id("I45678")
           .authors(Collections.singletonList("Mark Twain"))
-              .title("ddd")
+          .title("ddd")
           .notes(AttributeValue.fromS("ddddd"))
           .build();
 
   Books huckFin =
       Books.builder()
           .id("B12345")
-              .authors(Collections.singletonList("Mark Twain"))
-              .title("")
+          .authors(Collections.singletonList("Mark Twain"))
+          .title("")
           .notes(AttributeValue.fromL(Collections.singletonList(AttributeValue.fromN("1985"))))
           .build();
 
@@ -84,8 +81,11 @@ class AttributeValueTest {
     Instant a = Clock.fixed(Instant.ofEpochSecond(10000), UTC).instant();
 
     // Instant.ofEpochSecond()
-    ScanRequest r = repo.scan().condition(BooksRepository.LogicalExpressionBuilder::idNotExists).asScanItemRequest();
+    ScanRequest r =
+        repo.scan()
+            .condition(BooksRepository.LogicalExpressionBuilder::idNotExists)
+            .asScanItemRequest();
     ScanResponse results = ddbClient.scan(r).get();
-    assertThat(results.items() ).isEmpty();
+    assertThat(results.items()).isEmpty();
   }
 }

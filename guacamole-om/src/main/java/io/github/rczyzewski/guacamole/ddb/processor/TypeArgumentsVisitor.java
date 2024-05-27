@@ -25,31 +25,32 @@ import java.util.stream.Collectors;
 
 @Builder
 @AllArgsConstructor
-public class TypeArgumentsVisitor extends AbstractTypeVisitor8<FieldDescription.TypeArgument, VariableElement> {
+public class TypeArgumentsVisitor
+    extends AbstractTypeVisitor8<FieldDescription.TypeArgument, VariableElement> {
 
-   Logger  logger;
-   ConsecutiveIdGenerator idGenerator;
+  Logger logger;
+  ConsecutiveIdGenerator idGenerator;
 
-    @Override
-    public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
-        logger.error("Visiting primitive ", o);
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
+    logger.error("Visiting primitive ", o);
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
-        logger.warn("Visitingnull");
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
+    logger.warn("Visitingnull");
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
-        logger.warn("VisitArray");
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
+    logger.warn("VisitArray");
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitDeclared(DeclaredType t, VariableElement o) {
+  @Override
+  public FieldDescription.TypeArgument visitDeclared(DeclaredType t, VariableElement o) {
 
     DDBType ddbType =
         Arrays.stream(DDBType.values())
@@ -62,7 +63,7 @@ public class TypeArgumentsVisitor extends AbstractTypeVisitor8<FieldDescription.
     return FieldDescription.TypeArgument.builder()
         .typeName(t.asElement().getSimpleName().toString())
         .packageName(t.asElement().getEnclosingElement().toString())
-        //.mapperName("Mapper_" +  mapperUniqueId)
+        // .mapperName("Mapper_" +  mapperUniqueId)
         .mapperUniqueId(mapperUniqueId)
         .ddbType(ddbType)
         .typeArguments(
@@ -75,44 +76,44 @@ public class TypeArgumentsVisitor extends AbstractTypeVisitor8<FieldDescription.
 
   @Override
   public FieldDescription.TypeArgument visitError(ErrorType t, VariableElement o) {
-        return null;
-    }
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitTypeVariable(TypeVariable t, VariableElement o) {
-        logger.warn("Visiting type variable: " +  t + "   "+  o );
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitTypeVariable(TypeVariable t, VariableElement o) {
+    logger.warn("Visiting type variable: " + t + "   " + o);
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitWildcard(WildcardType t, VariableElement o) {
-        logger.warn("visitWildcards are not supported" +  t);
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitWildcard(WildcardType t, VariableElement o) {
+    logger.warn("visitWildcards are not supported" + t);
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitExecutable(ExecutableType t, VariableElement o) {
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitExecutable(ExecutableType t, VariableElement o) {
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitNoType(NoType t, VariableElement o) {
-        logger.warn("no types are not supported" +  t);
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitNoType(NoType t, VariableElement o) {
+    logger.warn("no types are not supported" + t);
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitUnknown(TypeMirror t, VariableElement o) {
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitUnknown(TypeMirror t, VariableElement o) {
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitUnion(UnionType t, VariableElement o) {
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitUnion(UnionType t, VariableElement o) {
+    return null;
+  }
 
-    @Override
-    public FieldDescription.TypeArgument visitIntersection(IntersectionType t, VariableElement o) {
-        return null;
-    }
+  @Override
+  public FieldDescription.TypeArgument visitIntersection(IntersectionType t, VariableElement o) {
+    return null;
+  }
 }

@@ -25,6 +25,7 @@ public class CompileTimeLogger implements Logger {
   public void info(String arg) {
     msg(WARNING, arg);
   }
+
   @Override
   public void info(String arg, Element element) {
     this.msg.printMessage(WARNING, arg, element);
@@ -32,12 +33,12 @@ public class CompileTimeLogger implements Logger {
 
   @Override
   public void warn(String arg, Element element) {
-   this.msg.printMessage(WARNING, arg, element);
+    this.msg.printMessage(WARNING, arg, element);
   }
 
   @Override
   public void warn(String arg) {
-    msg(WARNING, arg );
+    msg(WARNING, arg);
   }
 
   @Override

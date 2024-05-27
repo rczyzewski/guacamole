@@ -103,7 +103,7 @@ public class LogicalExpressionBuilderGenerator {
     if (LogicalExpression.ComparisonOperator.BEGINS_WITH.equals(operator)) {
       if (Objects.equals(fd.getDdbType().getSymbol(), "n")) {
 
-        //TODO: why like that?
+        // TODO: why like that?
         return null;
       }
 
@@ -208,8 +208,8 @@ public class LogicalExpressionBuilderGenerator {
             .superclass(superInterface);
 
     for (FieldDescription fd : classDescription.getFieldDescriptions()) {
-      //TODO: temporary hack, need to support also List<Map<String,List<....>>> itp
-      if( fd.getTypeArgument().fieldType().equals(FieldDescription.FieldType.LIST)) continue;
+      // TODO: temporary hack, need to support also List<Map<String,List<....>>> itp
+      if (fd.getTypeArgument().fieldType().equals(FieldDescription.FieldType.LIST)) continue;
       queryClass.addMethods(createExistsAndTypeConditions(baseBean, fd));
 
       Arrays.stream(LogicalExpression.ComparisonOperator.values())

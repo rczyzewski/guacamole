@@ -12,7 +12,6 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Value
 @Builder
 @DynamoDBTable
@@ -24,8 +23,10 @@ public class Books {
   List<String> authors;
   AttributeValue characteristics;
   AttributeValue notes;
+
   @DynamoDBConverted(converter = LocalDateTimeConverter.class)
   LocalDateTime published;
+
   List<String> titles;
   List<List<String>> fullAuthorNames;
   List<List<Books>> booksShelf;
@@ -33,7 +34,7 @@ public class Books {
   List<List<List<List<Books>>>> fourDimensions;
 
   List<Books> references;
-  //TODO: missing support
-  //List<List<Books>> deepReferences;
+  // TODO: missing support
+  // List<List<Books>> deepReferences;
   List<AttributeValue> customArguments;
 }

@@ -84,7 +84,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
     ConsecutiveIdGenerator consecutiveIdGenerator = ConsecutiveIdGenerator.builder().build();
-    TableClassVisitor classAnalyzer = new TableClassVisitor(types,logger, consecutiveIdGenerator);
+    TableClassVisitor classAnalyzer = new TableClassVisitor(types, logger, consecutiveIdGenerator);
 
     roundEnv.getElementsAnnotatedWith(DynamoDBTable.class).stream()
         .filter(it -> ElementKind.CLASS == it.getKind())
@@ -120,7 +120,7 @@ public class DynamoDBProcessor extends AbstractProcessor {
   public JavaFile generateRepositoryCode(ClassDescription classDescription) {
     ClassName clazz = ClassName.get(classDescription.getPackageName(), classDescription.getName());
 
-    ClassName repositoryClazz = clazz.peerClass( classDescription.getName() + "Repository");
+    ClassName repositoryClazz = clazz.peerClass(classDescription.getName() + "Repository");
 
     ClassName expressionBuilder = repositoryClazz.nestedClass("LogicalExpressionBuilder");
 

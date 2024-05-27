@@ -33,11 +33,13 @@ import javax.lang.model.util.Types;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
+public class TableClassVisitor
+    extends SimpleElementVisitor8<Object, Map<String, ClassDescription>> {
 
   private Types types;
   private Logger logger;
   private ConsecutiveIdGenerator idGenerator;
+
   ClassDescription getClassDescription(Element element) {
 
     HashMap<String, ClassDescription> worldContext = new HashMap<>();
@@ -45,18 +47,17 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     return worldContext.get(element.getSimpleName().toString());
   }
 
-
   public ClassName getConverterClass(Element element) {
     try {
-              return Optional.of(element)
-                      .map(it-> it.getAnnotation(DynamoDBConverted.class))
-                              .map(DynamoDBConverted::converter)
-                      .map(ClassName::get)
-                      .orElse(null);
+      return Optional.of(element)
+          .map(it -> it.getAnnotation(DynamoDBConverted.class))
+          .map(DynamoDBConverted::converter)
+          .map(ClassName::get)
+          .orElse(null);
 
-    } catch(MirroredTypeException mte) {
+    } catch (MirroredTypeException mte) {
       DeclaredType declaredType = (DeclaredType) mte.getTypeMirror();
-      TypeElement typeElement = (TypeElement ) declaredType.asElement();
+      TypeElement typeElement = (TypeElement) declaredType.asElement();
       return ClassName.get(typeElement);
     }
   }
@@ -88,11 +89,10 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
     }
     return this;
   }
- void put(FieldDescription.TypeArgument argument,
-          Map<String, ClassDescription> worldKnowledge){
 
-     if(!argument.fieldType().equals(FieldDescription.FieldType.LIST))
-         return;
+  void put(FieldDescription.TypeArgument argument, Map<String, ClassDescription> worldKnowledge) {
+
+    if (!argument.fieldType().equals(FieldDescription.FieldType.LIST)) return;
 
     String name = argument.getPackageName() + "." + argument.getTypeName();
 
@@ -107,12 +107,13 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
             .build();
 
     worldKnowledge.put(name + argument.hashCode(), classDescription);
-    argument.getTypeArguments().forEach(it -> this.put(it,  worldKnowledge));
- }
+    argument.getTypeArguments().forEach(it -> this.put(it, worldKnowledge));
+  }
 
- boolean isList(FieldDescription.TypeArgument argument){
-   return argument.fieldType().equals(FieldDescription.FieldType.LIST);
- }
+  boolean isList(FieldDescription.TypeArgument argument) {
+    return argument.fieldType().equals(FieldDescription.FieldType.LIST);
+  }
+
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
 
@@ -130,11 +131,8 @@ public class TableClassVisitor extends SimpleElementVisitor8<Object, Map<String,
       }
     }
 
-
-    TypeArgumentsVisitor typeVisitor = TypeArgumentsVisitor.builder()
-            .logger(logger)
-            .idGenerator(idGenerator)
-            .build();
+    TypeArgumentsVisitor typeVisitor =
+        TypeArgumentsVisitor.builder().logger(logger).idGenerator(idGenerator).build();
 
     FieldDescription.TypeArgument typeArgument = e.asType().accept(typeVisitor, e);
 
