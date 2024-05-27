@@ -23,11 +23,6 @@
         <module>guacamole-dockertest</module>
         <module>guacamole-om</module>
         <module>report-aggregate</module>
-
-        <!--
-        <module>examples</module>
-        <module>guacamole-reactor</module>
-        -->
     </modules>
 </project>
 
