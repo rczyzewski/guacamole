@@ -12,22 +12,24 @@ import org.junit.jupiter.api.Test;
 @Slf4j
 class PathTest {
 
-  EmployeeRepository.Paths.Root pathCreator = new EmployeeRepository.Paths.Root();
+  EmployeeRepository.Paths.Root employeePathCreator = new EmployeeRepository.Paths.Root();
+  CountryRepository.Paths.CountryPath countryPathCreator =
+          CountryRepository.Paths.CountryPath.builder().build();
 
   @Test
   void validatingPaths() {
 
-    assertThat(pathCreator.selectEmployees().serialize()).isEqualTo("employees");
+    assertThat(employeePathCreator.selectEmployees().serialize()).isEqualTo("employees");
 
-    assertThat(pathCreator.selectEmployees().at(2).serialize()).isEqualTo("employees[2]");
+    assertThat(employeePathCreator.selectEmployees().at(2).serialize()).isEqualTo("employees[2]");
 
-    assertThat(pathCreator.selectEmployees().at(2).selectEmployees().serialize())
+    assertThat(employeePathCreator.selectEmployees().at(2).selectEmployees().serialize())
         .isEqualTo("employees[2].employees");
-    assertThat(pathCreator.selectDepartment().selectEmployees().at(1).selectEmployees().serialize())
+    assertThat(employeePathCreator.selectDepartment().selectEmployees().at(1).selectEmployees().serialize())
         .isEqualTo("department.employees[1].employees");
 
     assertThat(
-            pathCreator
+            employeePathCreator
                 .selectDepartment()
                 .selectManager()
                 .selectEmployees()
@@ -40,25 +42,23 @@ class PathTest {
   @Test
   void validatingPathsWithATopLevelFields() {
 
-    CountryRepository.Paths.CountryPath pathCreator =
-        CountryRepository.Paths.CountryPath.builder().build();
-    assertThat(pathCreator.selectId().serialize()).isEqualTo("id");
+    assertThat(countryPathCreator.selectId().serialize()).isEqualTo("id");
 
-    assertThat(pathCreator.selectName().serialize()).isEqualTo("name");
+    assertThat(countryPathCreator.selectName().serialize()).isEqualTo("name");
 
-    assertThat(pathCreator.selectHeadOfState().serialize()).isEqualTo("PRESIDENT");
+    assertThat(countryPathCreator.selectHeadOfState().serialize()).isEqualTo("PRESIDENT");
 
-    assertThat(pathCreator.selectFullName().serialize()).isEqualTo("fullName");
+    assertThat(countryPathCreator.selectFullName().serialize()).isEqualTo("fullName");
 
-    assertThat(pathCreator.selectPopulation().serialize()).isEqualTo("population");
+    assertThat(countryPathCreator.selectPopulation().serialize()).isEqualTo("population");
 
-    assertThat(pathCreator.selectFamousPerson().serialize()).isEqualTo("famousPerson");
+    assertThat(countryPathCreator.selectFamousPerson().serialize()).isEqualTo("famousPerson");
 
-    assertThat(pathCreator.selectFamousMusician().serialize()).isEqualTo("ROCK_STAR");
+    assertThat(countryPathCreator.selectFamousMusician().serialize()).isEqualTo("ROCK_STAR");
 
-    assertThat(pathCreator.selectArea().serialize()).isEqualTo("area");
+    assertThat(countryPathCreator.selectArea().serialize()).isEqualTo("area");
 
-    assertThat(pathCreator.selectDensity().serialize()).isEqualTo("density");
+    assertThat(countryPathCreator.selectDensity().serialize()).isEqualTo("density");
   }
 
   @Test
@@ -81,14 +81,14 @@ class PathTest {
 
   @Test
   void selectCompoundElementFromList() {
-    assertThat(pathCreator.selectEmployees().at(5).serialize()).isEqualTo("employees[5]");
-    assertThat(pathCreator.selectEmployees().at(5).selectName().serialize())
+    assertThat(employeePathCreator.selectEmployees().at(5).serialize()).isEqualTo("employees[5]");
+    assertThat(employeePathCreator.selectEmployees().at(5).selectName().serialize())
         .isEqualTo("employees[5].name");
   }
 
   @Test
   void ensureThatPathPartsAreGeneratedCorrectly() {
-    Path<Employee> path = pathCreator.selectEmployees().at(5).selectName();
+    Path<Employee> path = employeePathCreator.selectEmployees().at(5).selectName();
 
     Set<String> parts = path.getPartsName();
     assertThat(parts).contains("employees", "name");
@@ -103,14 +103,14 @@ class PathTest {
 
   @Test
   void selectRecursiveElement() {
-    assertThat(pathCreator.selectEmployees().at(5).selectId().serialize())
+    assertThat(employeePathCreator.selectEmployees().at(5).selectId().serialize())
         .isEqualTo("employees[5].id");
   }
 
   @Test
   void selectRecursiveElementAFewLevelDepth() {
     assertThat(
-            pathCreator
+            employeePathCreator
                 .selectEmployees()
                 .at(1)
                 .selectDepartment()

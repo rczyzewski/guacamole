@@ -1,8 +1,6 @@
 package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
@@ -19,7 +17,6 @@ import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-import static java.time.ZoneOffset.UTC;
 import static org.assertj.core.api.Assertions.*;
 
 @Slf4j
@@ -47,7 +44,7 @@ class AttributeValueTest {
           .id("I45678")
           .authors(Collections.singletonList("Mark Twain"))
           .title("ddd")
-          .notes(AttributeValue.fromS("ddddd"))
+          .notes(AttributeValue.fromS("some notes on the margin, made by author"))
           .build();
 
   Books huckFin =
@@ -78,9 +75,6 @@ class AttributeValueTest {
   @Test
   @SneakyThrows
   void firstTest() {
-    Instant a = Clock.fixed(Instant.ofEpochSecond(10000), UTC).instant();
-
-    // Instant.ofEpochSecond()
     ScanRequest r =
         repo.scan()
             .condition(BooksRepository.LogicalExpressionBuilder::idNotExists)

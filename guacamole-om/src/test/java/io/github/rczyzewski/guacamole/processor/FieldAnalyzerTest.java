@@ -1,6 +1,5 @@
 package io.github.rczyzewski.guacamole.processor;
 
-import java.io.File;
 import java.nio.file.Paths;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -13,13 +12,9 @@ class FieldAnalyzerTest {
   @Test
   void runningCompiler() {
 
+    // based on: https://blog.frankel.ch/compilation-java-code-on-the-fly/
     JavaCompiler jc = ToolProvider.getSystemJavaCompiler();
-    log.info("dddd {}", Paths.get("./src/main/test/java/SmallTable.java").toAbsolutePath());
-
-    // https://blog.frankel.ch/compilation-java-code-on-the-fly/
-
-    File f =
-        new File(Paths.get("./src/main/test/java/SmallTable.java").toAbsolutePath().toString());
+    log.info("path for source code file {}", Paths.get("./src/main/test/java/SmallTable.java").toAbsolutePath());
 
     jc.run(
         System.in,

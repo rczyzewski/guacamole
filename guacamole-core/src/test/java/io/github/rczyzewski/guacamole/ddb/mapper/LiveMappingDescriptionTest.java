@@ -24,7 +24,6 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 class LiveMappingDescriptionTest {
 
   static <T> List<FieldMappingDescription<T>> createSingleMapping(
-      Class<T> ignored,
       BiFunction<T, AttributeValue, T> wither,
       Function<T, Optional<AttributeValue>> export) {
     return Collections.singletonList(
@@ -118,7 +117,6 @@ class LiveMappingDescriptionTest {
 
     List<FieldMappingDescription<SimpleBeanWithStrings>> mapping =
         createSingleMapping(
-            SimpleBeanWithStrings.class,
             (bean, value) -> bean.withProperty(value.s()),
             value -> Optional.of(AttributeValue.builder().s(value.getProperty()).build()));
 
@@ -135,7 +133,6 @@ class LiveMappingDescriptionTest {
 
     List<FieldMappingDescription<SimpleBeanWithStrings>> mapping =
         createSingleMapping(
-            SimpleBeanWithStrings.class,
             (bean, value) -> bean.withProperty(value.s()),
             value -> Optional.of(AttributeValue.builder().s(value.getProperty()).build()));
 
@@ -151,7 +148,6 @@ class LiveMappingDescriptionTest {
 
     List<FieldMappingDescription<SimpleBeanWithInteger>> mapping =
         createSingleMapping(
-            SimpleBeanWithInteger.class,
             (bean, value) -> bean.withProperty(Integer.valueOf(value.n())),
             null);
 
@@ -178,7 +174,6 @@ class LiveMappingDescriptionTest {
 
     List<FieldMappingDescription<SimpleBeanWithListOfStrings>> mapping =
         createSingleMapping(
-            SimpleBeanWithListOfStrings.class,
             (bean, value) -> bean.withProperty(value.ss()),
             null);
 
