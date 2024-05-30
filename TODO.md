@@ -31,14 +31,14 @@ Plan for development of the library
 * [ ] validate if annotation processing works in the same way with JDK listed in SDKman. 
 * [ ] find the minimal version of AWS sdk required
 * [ ] typesafe setting calculated value like : value1=value1+value2 
-* [ ] remove a deprecated methods
-* [ ] migrating filter/keyFilter into expression style
+* [x] remove a deprecated methods
+* [x] migrating filter/keyFilter into expression style
 * [ ] add support/potential support for other reactive libraries
 * [ ] typesafe support for adding/removing element to the list/set
 * [ ] support for classes in unnamed package
 * [ ] custom field type support: like Datetime
 * [ ] independent code generation tests, based on manually crated Field/Class/Index description
-* [ ] attach sonarQube - attached to the local 
+* [x] attach sonarQube - attached to the local 
 * [ ] maven report generating javadocs
 * [ ] maven report with dependencies
 * [ ] maven report with code coverage

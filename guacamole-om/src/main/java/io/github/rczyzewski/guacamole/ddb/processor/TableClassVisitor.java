@@ -70,21 +70,27 @@ public class TableClassVisitor
     if (null != element.getAnnotation(DynamoDBTable.class)
         || null != element.getAnnotation(DynamoDBDocument.class)) {
 
+      String originalName = element.getEnclosingElement().toString();
+      if (originalName.contains(" ")) {
+        originalName = null;
+      }
+
       ClassDescription discoveredClass =
           ClassDescription.builder()
               .name(name)
               .generatedMapperName(name)
-              .packageName(element.getEnclosingElement().toString())
+              .packageName(originalName)
               .fieldDescriptions(new ArrayList<>())
               .sourandingClasses(o)
               .build();
 
+
       if (!o.containsKey(name)) {
         o.put(name, discoveredClass);
-
         element.getEnclosedElements().stream()
-            .filter(it -> ElementKind.FIELD == it.getKind())
-            .forEach(it -> it.accept(this, o));
+               .filter(it -> ElementKind.FIELD == it.getKind())
+               .forEach(it -> it.accept(this, o));
+
       }
     }
     return this;
@@ -94,7 +100,7 @@ public class TableClassVisitor
 
     if (!argument.fieldType().equals(FieldDescription.FieldType.LIST)) return;
 
-    String name = argument.getPackageName() + "." + argument.getTypeName();
+    String name = Optional.ofNullable(argument.getPackageName()).map(it-> it +  ".").orElse("") + argument.getTypeName();
 
     ClassDescription classDescription =
         ClassDescription.builder()

@@ -68,7 +68,6 @@ class AttributeValueTest {
     testHelperDynamoDB.getDdbAsyncClient().createTable(repo.createTable()).get();
   }
 
-  @SneakyThrows
   @BeforeEach
   void beforeEach() {}
 

@@ -9,9 +9,7 @@ class TypoUtilsTest {
 
   @Test
   void uppercaseFirstLetter() {
-    String test = "lower";
-
-    assertThat(TypoUtils.upperCaseFirstLetter(test)).isEqualTo("Lower");
+    assertThat(TypoUtils.upperCaseFirstLetter("lower")).isEqualTo("Lower");
   }
 
   @Test
@@ -29,7 +27,7 @@ class TypoUtilsTest {
   @Test
   void toCamelCase() {
 
-    assertThat(TypoUtils.toCamelCase("ddddd")).isEqualTo("ddddd");
+    assertThat(TypoUtils.toCamelCase("foo")).isEqualTo("foo");
     assertThat(TypoUtils.toCamelCase("secondRange")).isEqualTo("secondrange");
     assertThat(TypoUtils.toCamelCase("foo_bar")).isEqualTo("fooBar");
     assertThat(TypoUtils.toCamelCase("foo_bar_spam")).isEqualTo("fooBarSpam");

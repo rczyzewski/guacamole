@@ -48,7 +48,7 @@ public class Customer{
     List<String> hobbies;
 
     @DynamoDBConverted(converter = InstantConverter.class)
-    Instant regDate;
+    Instant registrationDate;
 }
 ```
 

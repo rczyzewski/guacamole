@@ -26,6 +26,7 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,7 +54,7 @@ public class PathGenerator {
             + classDescription.getName());
 
     ClassName baseBean =
-        ClassName.get(classDescription.getPackageName(), classDescription.getName());
+        ClassName.get(Optional.ofNullable(classDescription.getPackageName()).orElse(""), classDescription.getName());
 
     ClassName rootBeanPathClassName = pathsNamespace.nestedClass("Root");
 

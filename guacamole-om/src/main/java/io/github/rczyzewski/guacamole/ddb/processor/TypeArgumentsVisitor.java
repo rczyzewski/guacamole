@@ -31,23 +31,6 @@ public class TypeArgumentsVisitor
   Logger logger;
   ConsecutiveIdGenerator idGenerator;
 
-  @Override
-  public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
-    logger.error("Visiting primitive ", o);
-    return null;
-  }
-
-  @Override
-  public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
-    logger.warn("Visitingnull");
-    return null;
-  }
-
-  @Override
-  public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
-    logger.warn("VisitArray");
-    return null;
-  }
 
   @Override
   public FieldDescription.TypeArgument visitDeclared(DeclaredType t, VariableElement o) {
@@ -59,11 +42,14 @@ public class TypeArgumentsVisitor
             .orElse(DDBType.OTHER);
 
     String mapperUniqueId = idGenerator.get();
+    String packageName = t.asElement().getEnclosingElement().toString();
+    if (packageName.contains(" ")) {
+      packageName = null;
+    }
 
     return FieldDescription.TypeArgument.builder()
         .typeName(t.asElement().getSimpleName().toString())
-        .packageName(t.asElement().getEnclosingElement().toString())
-        // .mapperName("Mapper_" +  mapperUniqueId)
+        .packageName(packageName)
         .mapperUniqueId(mapperUniqueId)
         .ddbType(ddbType)
         .typeArguments(
@@ -74,6 +60,23 @@ public class TypeArgumentsVisitor
         .build();
   }
 
+  @Override
+  public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
+    logger.error("Visiting primitive ", o);
+    return null;
+  }
+
+  @Override
+  public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
+    logger.warn("Visiting null");
+    return null;
+  }
+
+  @Override
+  public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
+    logger.warn("VisitArray");
+    return null;
+  }
   @Override
   public FieldDescription.TypeArgument visitError(ErrorType t, VariableElement o) {
     return null;
@@ -98,7 +101,6 @@ public class TypeArgumentsVisitor
 
   @Override
   public FieldDescription.TypeArgument visitNoType(NoType t, VariableElement o) {
-    logger.warn("no types are not supported" + t);
     return null;
   }
 

@@ -196,8 +196,7 @@ public class LiveDescriptionGenerator {
               liveMappingName));
 
     } else {
-
-      throw new NotSupportedTypeException(fieldDescription);
+      throw new NotSupportedTypeException(fieldDescription.toString());
     }
   }
 
@@ -209,7 +208,7 @@ public class LiveDescriptionGenerator {
     } else if ("java.util.Map".equals(fullTypeName)) {
       return null;
     } else {
-      return ClassName.get(argument.getPackageName(), argument.getTypeName());
+      return ClassName.get(Optional.ofNullable(argument.getPackageName()).orElse(""), argument.getTypeName());
     }
   }
 
@@ -222,13 +221,14 @@ public class LiveDescriptionGenerator {
         .filter(FieldDescription.FieldType.LIST::equals)
         .isPresent()) {
 
-      FieldDescription.TypeArgument dddd =
+      FieldDescription.TypeArgument typeArgument =
           classDescription.getParametrized().getTypeArguments().get(0);
 
-      Optional<ClassDescription> aa =
+      Optional<ClassDescription> typeArgumentClassDescription =
           classDescription.getSourandingClasses().values().stream()
-              .filter(it -> Objects.equals(it.getPackageName(), dddd.getPackageName()))
-              .filter(it -> Objects.equals(it.getName(), dddd.getTypeName()))
+              .filter(it -> Objects.equals(Optional.ofNullable(it.getPackageName()).orElse(""),
+                                           Optional.ofNullable(typeArgument.getPackageName()).orElse("")))
+              .filter(it -> Objects.equals(it.getName(), typeArgument.getTypeName()))
               .findAny();
 
       Class<?> standardConverter =
@@ -252,10 +252,12 @@ public class LiveDescriptionGenerator {
                               .buildMapperClassName()));
 
       if (standardConverter == null
-          && dddd.getTypeArguments().isEmpty()
-          && !dddd.fieldType().equals(FieldDescription.FieldType.LIST)) {
+          && typeArgument.getTypeArguments().isEmpty()
+          && typeArgumentClassDescription.isPresent()
+          && !typeArgument.fieldType().equals(FieldDescription.FieldType.LIST)
+       ) {
 
-        String mapperInstanceName = aa.get().getName().toUpperCase();
+       String mapperInstanceName = TypoUtils.toSnakeCase(typeArgumentClassDescription.get().getName()).toUpperCase();
 
         return TypeSpec.classBuilder(
                 repositoryClass.nestedClass(classDescription.getGeneratedMapperName()))
@@ -319,7 +321,7 @@ public class LiveDescriptionGenerator {
             repositoryClass.canonicalName(), classDescription.getGeneratedMapperName() + "CLASS");
 
     ClassName modelClass =
-        ClassName.get(classDescription.getPackageName(), classDescription.getGeneratedMapperName());
+        ClassName.get(Optional.ofNullable(classDescription.getPackageName()).orElse(""), classDescription.getGeneratedMapperName());
     ParameterizedTypeName ptype =
         ParameterizedTypeName.get(ClassName.get(LiveMappingDescription.class), modelClass);
 
@@ -333,7 +335,7 @@ public class LiveDescriptionGenerator {
   @NotNull
   public CodeBlock createMapper(@NotNull ClassDescription description) {
 
-    ClassName mappedClassName = ClassName.get(description.getPackageName(), description.getName());
+    ClassName mappedClassName = ClassName.get(Optional.ofNullable(description.getPackageName()).orElse(""), description.getName());
     ConsecutiveIdGenerator idGenerator =
         ConsecutiveIdGenerator.builder().base("ABCDEFGHIJKLMNOPRSTUWXYZ").build();
     CodeBlock indentBlocks =
