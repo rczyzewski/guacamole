@@ -75,6 +75,7 @@ class AttributeValueTest {
     } finally {
       log.info("Table '{} deleted", repo.getTableName());
     }
+    client.createTable(repo.createTable());
   }
 
   @Test
