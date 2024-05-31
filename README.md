@@ -2,56 +2,76 @@
 
 Typesafe utilities for accessing AWS dynamodb
 
-
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rczyzewski_guacamole&metric=alert_status)]
+![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rczyzewski_guacamole&metric=alert_status)
 
 The purpose guacamole is to perform DynamoDB operation with support of the compiler, lombok and the IDE.
 
 ## Installation
 
+It is required, that when building a module containing classes annotated with `@DynamoDbTable`, there must
+be `guacamole-om` available in the classpath. This way will allow AnnotationProcessor to create a Repository classes,
+for each annotated class. It is sufficient to attach in a scope `provided` as, this is not required to use already
+created classes.
+
 ```xml
+
 <dependencies>
     <dependency>
         <groupId>io.github.rczyzewski</groupId>
         <artifactId>guacamole-om</artifactId>
-        <version>0.1.1-RC2</version>
-        <!-- the scope is provided, as this is required just to generate code accessing dynamodb -->
+        <version>0.1.1-RC3</version>
         <scope>provided</scope>
     </dependency>
     <dependency>
         <groupId>io.github.rczyzewski</groupId>
         <artifactId>guacamole-core</artifactId>
-        <version>0.1.1-RC2</version>
+        <version>0.1.1-RC3</version>
     </dependency>
 </dependencies>
 ```
 
 The latest version always available in [here](https://mvnrepository.com/artifact/io.github.rczyzewski/guacamole-core).
 
-## Definition of the entity 
+## Definition of the entity
+
 Following snippets are take from this sample [file](guacamole-om/src/test/java/ExampleTest.java)
+DynamoDB can be used without predefined structures: we can treat documents stored there as
+a `Map<String, AttributeValue>`. The obvious benefit is that we don't need to define those properties upfront. However,
+those properties need to be finally defined, to be able to use it. This way references to attributes will be appearing
+close to a domain logic. If it's not defined in a single place, then those definitions will be scattered: probably by
+using constant as attribute.
+
+The oposite solution is to define entity, it's indexes in a single place, together with attached data about indexes and
+attribute types. Thanks to this approach, we can generate a `Repository` classes, that can take over some boilerplate
+code for commonly used scenarios. It simplifies refactoring a lot: popular IDE like intelliJ, can deal with refactoring
+of this simple entity, and it's method usages. The generated `*Repository`classes, won't be refactored, however after
+recompilation, usages that are no longer using existing filed or are not matching attribute types, will be reported
+as errors.
+
+This way compiler will tell us, that we are using things that are not valid for a given entity. In similar
+situation `Map<String, AttributeValue>` won't report errors, that might appear during testing or even in production.
 
 ```java
 @Value
 @With
 @Builder
 @DynamoDBTable
-public class Customer{
-
+class Customer{
     @DynamoDBHashKey
     String id;
-
-    @DynamoDBRangeKey
     String name;
-
+    String address;
     String email;
-    
-    List<String> hobbies;
-
-    @DynamoDBConverted(converter = InstantConverter.class)
-    Instant registrationDate;
 }
 ```
+
+Let's focus for a while on annotations used
+
+* `@Value`, `@With`, `@Builder` are [lombok](https://projectlombok.org/features/) annotations, that generate methods
+  that are later used by `Guacamole`.
+* `@DynamoDBTable` is an annotation, that will tell `Guacamole` to generate a repository for a given entity.
+* `@DynamoDBHashKey` is an annotation that indicates where is the primary key for an entity.
+
 [Detailed data about schema definition](docs/schema.md)
 
 ## Creation of the table
@@ -89,6 +109,7 @@ public class Customer{
 ```
 
 ## Scann
+
 method `getAll` is a 'syntax sugar' to get all the data.
 
 ```jshelllanguage
@@ -104,9 +125,9 @@ The same can be achieved like:
 ```jshelllanguage 
     //scanning primary key
     repo.primary()
-       .execute()
-       .log("AllCustomers")
-       .blockLast();
+        .execute()
+        .log("AllCustomers")
+        .blockLast();
 ```
 
 ## Query
@@ -116,12 +137,12 @@ To execute query and not a scan operation, need to provide keyFilter
 ```jshelllanguage
     //Getting all the customers with given id
     repo.primary()
-       .keyFilter()
-       .idEquals("id103")
-       .end()
-       .execute()
-       .log("CustomerId103")
-       .blockLast();
+        .keyFilter()
+        .idEquals("id103")
+        .end()
+        .execute()
+        .log("CustomerId103")
+        .blockLast();
 ```
 
 To provide 'post filtering conditions', need to provide filter() condition
@@ -146,7 +167,7 @@ directly: https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/examples-d
                                                           it.or(it.priceLessOrEqual(100),
                                                                 it.piecesAvailableGreaterOrEqual(4))))
                               .asUpdateItemRequest();
-    CompletableFuture <UpdateItemResponse> f = ddbClient.updateItem(n);
+    CompletableFuture < UpdateItemResponse > f = ddbClient.updateItem(n);
     assertThatThrownBy(f::get)
             .hasCauseInstanceOf(ConditionalCheckFailedException.class);
 ```
@@ -160,9 +181,10 @@ As Guacamole is purly concentrated on generating requests, those requests might 
         TransactWriteItemsRequest
                 .builder()
                 .transactItems(TransactWriteItem.builder()
-                                                .update(Update.builder()
-                                                .build())
-                                       .put(Put.builder().build())
+                                       .update(Update.builder()
+                                                       .build())
+                                       .put(Put.builder()
+                                                    .build())
                                        .build())
                 .build());
 
