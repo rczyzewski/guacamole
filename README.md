@@ -3,7 +3,7 @@
 Typesafe utilities for accessing AWS dynamodb
 
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rczyzewski_guacamole&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=rczyzewski_guacamole)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rczyzewski_guacamole&metric=alert_status)]
 
 The purpose guacamole is to perform DynamoDB operation with support of the compiler, lombok and the IDE.
 
@@ -29,6 +29,7 @@ The purpose guacamole is to perform DynamoDB operation with support of the compi
 The latest version always available in [here](https://mvnrepository.com/artifact/io.github.rczyzewski/guacamole-core).
 
 ## Definition of the entity 
+Following snippets are take from this sample [file](guacamole-om/src/test/java/ExampleTest.java)
 
 ```java
 @Value
@@ -51,7 +52,7 @@ public class Customer{
     Instant registrationDate;
 }
 ```
-[Contribution guidelines for this project](docs/schema.md)
+[Detailed data about schema definition](docs/schema.md)
 
 ## Creation of the table
 
@@ -59,7 +60,7 @@ public class Customer{
     DynamoDbAsyncClient dynamoDBClient =
             DynamoDbAsyncClient.builder().region(Region.US_EAST_1)
                     .build();
-    CustomerRepository repo = new CustomerRepository("io.github.rczyzewski.guacamole.tests.Customer");
+    CustomerRepository repo = new CustomerRepository("Customer");
     //default create table request - indexes already detected
     CreateTableRequest request = repo.createTable();
     //let's assume that wee need to customize it
@@ -73,7 +74,7 @@ public class Customer{
 
 ```jshelllanguage
     Instant instant = Instant.now();
-    io.github.rczyzewski.guacamole.tests.Customer customer = io.github.rczyzewski.guacamole.tests.Customer.builder()
+    Customer customer = Customer.builder()
                                 .email("sblue@noserver.com")
                                 .id("id103")
                                 .name("Susan Blue")
@@ -91,7 +92,7 @@ public class Customer{
 method `getAll` is a 'syntax sugar' to get all the data.
 
 ```jshelllanguage
-    CustomerRepository repo = new CustomerRepository(rxDynamo, "io.github.rczyzewski.guacamole.tests.Customer");
+    CustomerRepository repo = new CustomerRepository(rxDynamo, "Customer");
     //Scanning the table
     repo.getAll()
         .log("AllCustomers")
