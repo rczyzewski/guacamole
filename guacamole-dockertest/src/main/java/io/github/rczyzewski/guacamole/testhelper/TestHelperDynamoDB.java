@@ -6,6 +6,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 @AllArgsConstructor
 public class TestHelperDynamoDB {
@@ -20,5 +21,14 @@ public class TestHelperDynamoDB {
                 AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
         .region(Region.of(localstack.getRegion()))
         .build();
+  }
+  public DynamoDbClient getDdbClient() {
+    return DynamoDbClient.builder()
+                   .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
+                   .credentialsProvider(
+                           StaticCredentialsProvider.create(
+                                   AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+                   .region(Region.of(localstack.getRegion()))
+                   .build();
   }
 }

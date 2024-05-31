@@ -51,6 +51,7 @@ public class Customer{
     Instant registrationDate;
 }
 ```
+[Contribution guidelines for this project](docs/schema.md)
 
 ## Creation of the table
 
@@ -58,7 +59,7 @@ public class Customer{
     DynamoDbAsyncClient dynamoDBClient =
             DynamoDbAsyncClient.builder().region(Region.US_EAST_1)
                     .build();
-    CustomerRepository repo = new CustomerRepository("Customer");
+    CustomerRepository repo = new CustomerRepository("io.github.rczyzewski.guacamole.tests.Customer");
     //default create table request - indexes already detected
     CreateTableRequest request = repo.createTable();
     //let's assume that wee need to customize it
@@ -72,7 +73,7 @@ public class Customer{
 
 ```jshelllanguage
     Instant instant = Instant.now();
-    Customer customer = Customer.builder()
+    io.github.rczyzewski.guacamole.tests.Customer customer = io.github.rczyzewski.guacamole.tests.Customer.builder()
                                 .email("sblue@noserver.com")
                                 .id("id103")
                                 .name("Susan Blue")
@@ -90,7 +91,7 @@ public class Customer{
 method `getAll` is a 'syntax sugar' to get all the data.
 
 ```jshelllanguage
-    CustomerRepository repo = new CustomerRepository(rxDynamo, "Customer");
+    CustomerRepository repo = new CustomerRepository(rxDynamo, "io.github.rczyzewski.guacamole.tests.Customer");
     //Scanning the table
     repo.getAll()
         .log("AllCustomers")
