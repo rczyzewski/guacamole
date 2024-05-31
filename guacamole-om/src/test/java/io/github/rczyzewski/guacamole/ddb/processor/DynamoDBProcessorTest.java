@@ -5,6 +5,11 @@ import static com.google.testing.compile.Compiler.javac;
 
 import com.google.testing.compile.Compilation;
 import com.google.testing.compile.JavaFileObjects;
+import io.github.rczyzewski.guacamole.ddb.processor.generator.LiveDescriptionGenerator;
+import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
+import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
+import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+import io.github.rczyzewski.guacamole.processor.NormalLogger;
 import io.github.rczyzewski.guacamole.tests.Country;
 import io.github.rczyzewski.guacamole.tests.Employee;
 import io.github.rczyzewski.guacamole.tests.indexes.PlayerRanking;
@@ -12,11 +17,16 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 import javax.annotation.processing.Processor;
 import javax.tools.JavaFileObject;
+
+import lombok.Cleanup;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -25,23 +35,23 @@ import org.junit.jupiter.params.provider.MethodSource;
 @Slf4j
 class DynamoDBProcessorTest {
 
-  /*
   @Test
+  @SneakyThrows
   void sunnyDayTest() {
     NormalLogger logger = new NormalLogger();
-    List<FieldDescription> fields = new ArrayList<>();
-    fields.add(
-        FieldDescription.builder()
-            .isHashKey(true)
-            .attribute("ID")
-            .typeName("java.lang.String")
-            .ddbType(DDBType.STRING)
-            .name("ABC")
-            .build());
+    List<FieldDescription> fields = Collections.singletonList(
+            FieldDescription.builder()
+                    .isHashKey(true)
+                    .typeArgument(FieldDescription.TypeArgument.builder().typeName("String").packageName("java.util")
+                                          .build())
+                    .attribute("ID")
+                    .ddbType(DDBType.STRING)
+                    .name("ABC")
+                    .build());
 
     ClassDescription classDescription =
         ClassDescription.builder()
-            .packageName("io.foo.bar") // TODO: reporting when class is in the default package
+            .packageName("io.foo.bar")
             .sourandingClasses(Collections.emptyMap())
             .fieldDescriptions(fields)
             .name("SomeClass")
@@ -53,15 +63,16 @@ class DynamoDBProcessorTest {
             .logger(logger)
             .build();
 
+    @Cleanup
     ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-
+    @Cleanup
     BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
+
     dynamoDBProcessor.generateRepositoryCode(classDescription).writeTo(bw);
     bw.flush();
-    Assertions.assertThat(byteArray.toString()).isNotBlank();
     bw.close();
-  } */
-
+    Assertions.assertThat(byteArray.toString()).isNotBlank();
+}
   @SneakyThrows
   static String readContentBasedOnCanonicalName(String packageName, String className) {
     String baseDir = new File(".").getCanonicalPath() + "/src/test/java/";
