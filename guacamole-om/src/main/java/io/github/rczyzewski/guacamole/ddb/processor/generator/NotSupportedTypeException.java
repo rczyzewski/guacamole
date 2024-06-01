@@ -1,7 +1,19 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
-import lombok.experimental.StandardException;
+import javax.lang.model.element.Element;
+import lombok.Getter;
 
-@StandardException
+@Getter
 public class NotSupportedTypeException extends RuntimeException {
+  public NotSupportedTypeException(String msg, Element e) {
+    super(msg);
+    element = e;
+  }
+
+  public NotSupportedTypeException(String msg) {
+    super(msg);
+    element = null;
+  }
+
+  final Element element;
 }
