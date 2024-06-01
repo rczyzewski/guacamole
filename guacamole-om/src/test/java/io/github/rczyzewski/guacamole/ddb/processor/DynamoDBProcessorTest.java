@@ -10,8 +10,10 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.ClassDescription;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import io.github.rczyzewski.guacamole.processor.NormalLogger;
+import io.github.rczyzewski.guacamole.tests.Books;
 import io.github.rczyzewski.guacamole.tests.Country;
 import io.github.rczyzewski.guacamole.tests.Employee;
+import io.github.rczyzewski.guacamole.tests.indexes.ForumThread;
 import io.github.rczyzewski.guacamole.tests.indexes.PlayerRanking;
 import java.io.*;
 import java.nio.file.Files;
@@ -82,7 +84,7 @@ class DynamoDBProcessorTest {
   }
 
   private static Stream<Arguments> customAddTestCases() {
-    return Stream.of(Country.class, Employee.class, PlayerRanking.class)
+    return Stream.of(Country.class, Employee.class, PlayerRanking.class, Books.class, ForumThread.class)
         .map(
             it ->
                 Arguments.of(

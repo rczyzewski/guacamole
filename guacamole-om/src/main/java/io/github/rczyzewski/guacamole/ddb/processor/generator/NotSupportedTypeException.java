@@ -6,14 +6,13 @@ import lombok.Getter;
 @Getter
 public class NotSupportedTypeException extends RuntimeException {
   public NotSupportedTypeException(String msg, Element e) {
-    super(msg);
+    this(msg);
     element = e;
   }
 
   public NotSupportedTypeException(String msg) {
     super(msg);
-    element = null;
   }
 
-  final Element element;
+  transient Element element;
 }
