@@ -201,18 +201,14 @@ public class LiveDescriptionGenerator {
   }
 
   TypeName get(FieldDescription.TypeArgument argument) {
-    String fullTypeName = argument.getPackageName() + "." + argument.getTypeName();
     if (argument.fieldType().equals(FieldDescription.FieldType.LIST)) {
       return ParameterizedTypeName.get(
           ClassName.get(List.class), get(argument.getTypeArguments().get(0)));
-    } else if ("java.util.Map".equals(fullTypeName)) {
-      return null;
-    } else {
+    }  else {
       return ClassName.get(Optional.ofNullable(argument.getPackageName()).orElse(""), argument.getTypeName());
     }
   }
 
-  @SneakyThrows
   public TypeSpec prepareMapperClass(ClassDescription classDescription, ClassName repositoryClass) {
 
     if (Optional.of(classDescription)

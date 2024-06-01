@@ -116,10 +116,6 @@ public class TableClassVisitor
     argument.getTypeArguments().forEach(it -> this.put(it, worldKnowledge));
   }
 
-  boolean isList(FieldDescription.TypeArgument argument) {
-    return argument.fieldType().equals(FieldDescription.FieldType.LIST);
-  }
-
   @Override
   public Object visitVariable(VariableElement e, Map<String, ClassDescription> o) {
 
