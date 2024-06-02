@@ -145,6 +145,7 @@ UpdateItemRequest update2 =
         repo.update(customer.withEmail("joe.doe@email.com"))
             .condition(it -> it.emailEqual("joe@email.com"))
             .asUpdateItemRequest();
+
 UpdateItemResponse updateItemResponse2 = client.updateItem(update2);
 ```
 
@@ -155,11 +156,11 @@ however, as we will see soon, it allows to create conditions, that are 'safe' - 
 and relevant for the current data model.
 
 ```java
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
-
 void scannAllData(CustomerRepository repo, DynamoDbClient client){
+    
     ScanRequest scanRequest = repo.scan().asScanItemRequest();
     ScanResponseresponse = client.scan(scanRequest);
+    
     for(Map<String, AttributeValue> item : response.items()){
         Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
         log.info("retrieved all customers: {}", retrivedCustomer);
@@ -183,10 +184,12 @@ condition. `Guacamole` takes care that for only possible options will be availab
 
 ```java
   void queryDataByPrimaryKey(CustomerRepository repo, DynamoDbClient client){
+    
     QueryRequest scanRequest = repo.getIndexSelector().primary("")
                                    .condition(it -> it.addressEqual("joe.doe@gmail.com"))
                                    .asQueryRequest();
     QueryResponse response = client.query(scanRequest);
+    
     for(Map<String, AttributeValue> item : response.items()){
         Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
         log.info("retrieved selected: {}", retrivedCustomer);
@@ -202,6 +205,7 @@ method `asWriteRequest` generated in `Repository`.
 ```java
 Customer customer2 = customer.withId(UUID.randomUUID().toString());
 Customer customer3 = customer.withId(UUID.randomUUID().toString());
+
 BatchWriteItemResponse batchWriteItemResponse =
         client.batchWriteItem(it -> it.requestItems(repo.asWriteRequest(customer2, customer3)));
 ```
@@ -214,8 +218,10 @@ As Guacamole is purly concentrated on generating requests, those requests might 
 
 ```java
 void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
+    
     Customer customer4 = customer.withId(UUID.randomUUID().toString()).withName("Alice");
     Customer customer5 = customer.withId(UUID.randomUUID().toString()).withName("Bob");
+    
     client.transactWriteItems(
             TransactWriteItemsRequest.builder()
                     .transactItems(
@@ -236,6 +242,7 @@ void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, C
 ```
 
 A very similar situation happen for updates in transactions:
+
 [//]: # (TODO: create update transaction item: missing functionality)
 
 ```java
