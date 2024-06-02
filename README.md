@@ -168,80 +168,101 @@ void scannAllData(CustomerRepository repo, DynamoDbClient client){
 ```
 
 I think the part ``CustomerRepository.CUSTOMER.transform(item);`` might catch attention. What is doing, is transforming
-a map, into a `Customer` object. 
+a map, into a `Customer` object.
+
 [//]: # (TODO: object mapper section in docs directory)
 
-
-The same can be achieved like:
-
-```jshelllanguage 
-    //scanning primary key
-    repo.primary()
-        .execute()
-        .log("AllCustomers")
-        .blockLast();
-```
+[//]: # (TODO: scanning the index: missing functionality)
 
 ## Query
 
-To execute query and not a scan operation, need to provide keyFilter
+Query operation is very similar to scanning, however it require to provide hash key, and optionally a rage key
+condition. `Guacamole` takes care that for only possible options will be available.
 
-```jshelllanguage
-    //Getting all the customers with given id
-    repo.primary()
-        .keyFilter()
-        .idEquals("id103")
-        .end()
-        .execute()
-        .log("CustomerId103")
-        .blockLast();
+[//]: # (TODO: no AND/NOT/OR available in conditions, missing functionality)
+
+```java
+  void queryDataByPrimaryKey(CustomerRepository repo, DynamoDbClient client){
+    QueryRequest scanRequest = repo.getIndexSelector().primary("")
+                                   .condition(it -> it.addressEqual("joe.doe@gmail.com"))
+                                   .asQueryRequest();
+    QueryResponse response = client.query(scanRequest);
+    for(Map<String, AttributeValue> item : response.items()){
+        Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
+        log.info("retrieved selected: {}", retrivedCustomer);
+    }
+}
 ```
 
-To provide 'post filtering conditions', need to provide filter() condition
+## Batch writes
 
-```jshelllanguage
-        repo.primary()
-            .filter()
-            .emailEquals("another@noserver.com")
-            .execute()
-            .log("CustomerWitEmai")
-            .blockLast();
-```
+Amazon Sdk 2.0 offers possibility of making batch writes. This functionality can be easily combined with
+method `asWriteRequest` generated in `Repository`.
 
-That is much shorter way, than using amazon client
-directly: https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/examples-dynamodb.html
-
-## Conditional updates
-
-```jshelllanguage
-    UpdateItemRequest n = repo.updateWithExpression(product.withCost(8_815))
-                              .withCondition(it -> it.and(it.nameEqual("RedCar"),
-                                                          it.or(it.priceLessOrEqual(100),
-                                                                it.piecesAvailableGreaterOrEqual(4))))
-                              .asUpdateItemRequest();
-    CompletableFuture < UpdateItemResponse > f = ddbClient.updateItem(n);
-    assertThatThrownBy(f::get)
-            .hasCauseInstanceOf(ConditionalCheckFailedException.class);
+```java
+Customer customer2 = customer.withId(UUID.randomUUID().toString());
+Customer customer3 = customer.withId(UUID.randomUUID().toString());
+BatchWriteItemResponse batchWriteItemResponse =
+        client.batchWriteItem(it -> it.requestItems(repo.asWriteRequest(customer2, customer3)));
 ```
 
 ## Transactions
 
 As Guacamole is purly concentrated on generating requests, those requests might be combined into transactions.
 
-```jshelllanguage
-    ddbClient.transactWriteItems(
-        TransactWriteItemsRequest
-                .builder()
-                .transactItems(TransactWriteItem.builder()
-                                       .update(Update.builder()
-                                                       .build())
-                                       .put(Put.builder()
-                                                    .build())
-                                       .build())
-                .build());
+[//]: # (TODO: create transaction write item: missing functionality)
 
-    repo = new ProductRepository(getTableName());
-    rxDynamo.createTable(repo.createTable())
-            .block();
-    ddbClient.putItem(repo.create(product)).get();
+```java
+void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
+    Customer customer4 = customer.withId(UUID.randomUUID().toString()).withName("Alice");
+    Customer customer5 = customer.withId(UUID.randomUUID().toString()).withName("Bob");
+    client.transactWriteItems(
+            TransactWriteItemsRequest.builder()
+                    .transactItems(
+                            TransactWriteItem.builder()
+                                    .put(
+                                            Put.builder()
+                                                    .tableName(repo.getTableName())
+                                                    .item(repo.create(customer4).item())
+                                                    .build())
+                                    .put(
+                                            Put.builder()
+                                                    .tableName(repo.getTableName())
+                                                    .item(repo.create(customer5).item())
+                                                    .build())
+                                    .build())
+                    .build());
+}
 ```
+
+A very similar situation happen for updates in transactions:
+[//]: # (TODO: create update transaction item: missing functionality)
+
+```java
+void exampleUpdateInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
+    UpdateItemRequest update4 =
+            repo.update(customer.withAddress("joe.doe@email.com"))
+                .condition(it -> it.addressEqual("Joe Street"))
+                .asUpdateItemRequest();
+    client.transactWriteItems(
+            TransactWriteItemsRequest.builder()
+                    .transactItems(
+                            TransactWriteItem.builder()
+                                    .update(
+                                            Update.builder()
+                                                    .key(update4.key())
+                                                    .tableName(repo.getTableName())
+                                                    .conditionExpression(update4.conditionExpression())
+                                                    .expressionAttributeValues(update4.expressionAttributeValues())
+                                                    .expressionAttributeNames(update4.expressionAttributeNames())
+                                                    .updateExpression(update4.updateExpression())
+                                                    .build())
+                                    .build())
+                    .build());
+}
+```
+
+### Custom updates
+
+The purpose of the feature is to be able to make updates to the values that are in ddb. For example, we want to update an
+object, and increase a version number of that object.
