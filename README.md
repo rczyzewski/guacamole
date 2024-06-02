@@ -78,13 +78,13 @@ Let's focus for a while on annotations used
 ## Repository setup
 
 `Guacamole` for each class annotated with `@DynamoDBTable` generates a `Repository` class: the class will be located in
-the same package as annotated class. Its name is concatenation of the original class name and "Repository".
+the same package as annotated class. Its name is concatenation of the original class name and `Repository`.
 The generated class contains helper methods, to operate with dynamo db. The repository has a focus on two main areas:
-generating requests to dynamoDB and serializing/deserializing objects comming from/to mongo.
+generating requests to dynamoDB and serializing/deserializing objects coming from/to mongo.
 Let's take a look how repository is initialized for the above class.
 
 ```
-    CustomerRepository repo = new CustomerRepository("customers");
+CustomerRepository repo = new CustomerRepository("customers");
 ```
 
 Let's take a look, how this object, can help us with the creation of a table.
@@ -92,7 +92,7 @@ Let's take a look, how this object, can help us with the creation of a table.
 ## Creation/Deletion of the table
 
 In the sample blow we are defining DynamoDBClient - we might as well pick the asynchronous version.
-Then we create the a `CreateTableRequest` using a crateTable() method.
+Then we create the a `CreateTableRequest` using a `crateTable()` method.
 Finally, we are invoking method of a client, to create a table, using `CreateTableRequest` as an argument.
 
 ```java
@@ -106,7 +106,7 @@ CreateTableResponse creationTableResponse = client.createTable(createTableReques
 Removal of the table is even easier:
 
 ```java
-    DeleteTableResponse deleteTableResponse = client.deleteTable(it -> it.tableName(repo.getTableName()));
+DeleteTableResponse deleteTableResponse = client.deleteTable(it -> it.tableName(repo.getTableName()));
 ```
 
 The main difference, is that in case of removal of the table, repository is not providing a request object for the
@@ -116,9 +116,10 @@ As at this moment w already have a table crated, let's put some data into it.
 
 ## Inserting and updating the data
 
-```java
+`Guacamole` helps generating `PutItemRequest` and `UpdateItemRequest` object. It is achieved by using method `create`,
+provided by the repository class. In a very similar way the objects could be updated.
 
-// Inserting data
+```java
 Customer customer =
         Customer.builder()
                 .id(uuid)
@@ -127,22 +128,49 @@ Customer customer =
                 .email("joe@email.com")
                 .build();
 
+PutItemRequest putItemRequest = repo.create(customer);
+PutItemResponse putResponse = client.putItem(putItemRequest);
 
-putItem(repo.create(customer));
+// Updating data
+UpdateItemRequest update1 = repo.update(customer.withName("John Doe"))
+                                .asUpdateItemRequest();
+UpdateItemResponse updateItemResponse1 = client.updateItem(update1);
+```
 
+`DynamoDB` provides a conditional updates: it will update the document, only if the conditions is met.
+More about conditions you will find in section related to querying and scanning.
+
+```java
+UpdateItemRequest update2 =
+        repo.update(customer.withEmail("joe.doe@email.com"))
+            .condition(it -> it.emailEqual("joe@email.com"))
+            .asUpdateItemRequest();
+UpdateItemResponse updateItemResponse2 = client.updateItem(update2);
 ```
 
 ## Scan
 
-method `getAll` is a 'syntax sugar' to get all the data.
+method `scan` is a 'syntax sugar' to get a ScanRequest object. For the simple case it might seem as an overkill,
+however, as we will see soon, it allows to create conditions, that are 'safe' - possible for performing in dynamodb,
+and relevant for the current data model.
 
-```jshelllanguage
-    CustomerRepository repo = new CustomerRepository(rxDynamo, "Customer");
-    //Scanning the table
-    repo.getAll()
-        .log("AllCustomers")
-        .blockLast();
+```java
+import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
+
+void scannAllData(CustomerRepository repo, DynamoDbClient client){
+    ScanRequest scanRequest = repo.scan().asScanItemRequest();
+    ScanResponseresponse = client.scan(scanRequest);
+    for(Map<String, AttributeValue> item : response.items()){
+        Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
+        log.info("retrieved all customers: {}", retrivedCustomer);
+    }
+}
 ```
+
+I think the part ``CustomerRepository.CUSTOMER.transform(item);`` might catch attention. What is doing, is transforming
+a map, into a `Customer` object. 
+[//]: # (TODO: object mapper section in docs directory)
+
 
 The same can be achieved like:
 
