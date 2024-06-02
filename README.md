@@ -52,6 +52,7 @@ This way compiler will tell us, that we are using things that are not valid for 
 situation `Map<String, AttributeValue>` won't report errors, that might appear during testing or even in production.
 
 ```java
+
 @Value
 @With
 @Builder
@@ -74,41 +75,64 @@ Let's focus for a while on annotations used
 
 [Detailed data about schema definition](docs/schema.md)
 
-## Creation of the table
+## Repository setup
 
-```jshelllanguage
-    DynamoDbAsyncClient dynamoDBClient =
-            DynamoDbAsyncClient.builder().region(Region.US_EAST_1)
-                    .build();
-    CustomerRepository repo = new CustomerRepository("Customer");
-    //default create table request - indexes already detected
-    CreateTableRequest request = repo.createTable();
-    //let's assume that wee need to customize it
-    request.toBuilder().billingMode(BillingMode.PAY_PER_REQUEST)
-            .build();
-    //creating the table in the cloud
-    rxDynamo.createTable(request).block();
+`Guacamole` for each class annotated with `@DynamoDBTable` generates a `Repository` class: the class will be located in
+the same package as annotated class. Its name is concatenation of the original class name and "Repository".
+The generated class contains helper methods, to operate with dynamo db. The repository has a focus on two main areas:
+generating requests to dynamoDB and serializing/deserializing objects comming from/to mongo.
+Let's take a look how repository is initialized for the above class.
+
+```
+    CustomerRepository repo = new CustomerRepository("customers");
 ```
 
-## Inserting data
+Let's take a look, how this object, can help us with the creation of a table.
 
-```jshelllanguage
-    Instant instant = Instant.now();
-    Customer customer = Customer.builder()
-                                .email("sblue@noserver.com")
-                                .id("id103")
-                                .name("Susan Blue")
-                                .regDate(instant)
-                                .build();
-    //Inserting new object into dynamoDB
-    repo.create(customer)
-        .map(it -> customer.withEmail("another@noserver.com"))
-        //Executing update request for the same object
-        .flatMap(epo::update)
-        .block();
+## Creation/Deletion of the table
+
+In the sample blow we are defining DynamoDBClient - we might as well pick the asynchronous version.
+Then we create the a `CreateTableRequest` using a crateTable() method.
+Finally, we are invoking method of a client, to create a table, using `CreateTableRequest` as an argument.
+
+```java
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
+DynamoDbClient client = DynamoDbClient.create();
+CreateTableRequest createTableRequest = repo.createTable();
+CreateTableResponse creationTableResponse = client.createTable(createTableRequest);
 ```
 
-## Scann
+Removal of the table is even easier:
+
+```java
+    DeleteTableResponse deleteTableResponse = client.deleteTable(it -> it.tableName(repo.getTableName()));
+```
+
+The main difference, is that in case of removal of the table, repository is not providing a request object for the
+dynamodDB client, as this request is less complex than `CreateTableRequest`. For the creation fo the table, `Guacamole`,
+the `CreateTableRequest` must contain information about defined indexes.
+As at this moment w already have a table crated, let's put some data into it.
+
+## Inserting and updating the data
+
+```java
+
+// Inserting data
+Customer customer =
+        Customer.builder()
+                .id(uuid)
+                .name("Joe")
+                .address("Joe Street")
+                .email("joe@email.com")
+                .build();
+
+
+putItem(repo.create(customer));
+
+```
+
+## Scan
 
 method `getAll` is a 'syntax sugar' to get all the data.
 
