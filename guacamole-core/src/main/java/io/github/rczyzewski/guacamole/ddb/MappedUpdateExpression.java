@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.*;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.Update;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
 @Builder(toBuilder = true)
@@ -303,6 +304,18 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>> {
                 .orElse(null))
         .tableName(tableName)
         .build();
+  }
+
+  public Update asTransactionUpdate(){
+    UpdateItemRequest update = asUpdateItemRequest();
+    return Update.builder()
+                   .key(update.key())
+                   .tableName(tableName)
+                   .conditionExpression(update.conditionExpression())
+                   .expressionAttributeValues(update.expressionAttributeValues())
+                   .expressionAttributeNames(update.expressionAttributeNames())
+                   .updateExpression(update.updateExpression())
+                   .build();
   }
 
   private static String serializeEpr(String name, String value) {
