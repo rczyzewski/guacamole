@@ -1,8 +1,10 @@
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBHashKey;
 import io.github.rczyzewski.guacamole.ddb.datamodeling.DynamoDBTable;
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
+
 import java.util.Map;
 import java.util.UUID;
+
 import lombok.Builder;
 import lombok.Value;
 import lombok.With;
@@ -16,22 +18,15 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
-import software.amazon.awssdk.services.dynamodb.model.CreateTableResponse;
-import software.amazon.awssdk.services.dynamodb.model.DeleteTableResponse;
 import software.amazon.awssdk.services.dynamodb.model.Put;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
 import software.amazon.awssdk.services.dynamodb.model.Update;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse;
 
 @Slf4j
 @Testcontainers
@@ -41,192 +36,134 @@ class ExampleTest {
 
   @Container
   static LocalStackContainer localstack =
-          new LocalStackContainer(localstackImage)
-                  .withServices(LocalStackContainer.Service.DYNAMODB)
-                  .withLogConsumer(new Slf4jLogConsumer(log));
+      new LocalStackContainer(localstackImage)
+          .withServices(LocalStackContainer.Service.DYNAMODB)
+          .withLogConsumer(new Slf4jLogConsumer(log));
 
   private final DynamoDbClient client = new TestHelperDynamoDB(localstack).getDdbClient();
 
   @BeforeEach
   void beforeEach() {
     try {
-        DeleteTableResponse dd = client.deleteTable(it -> it.tableName(repo.getTableName()));
+      client.deleteTable(it -> it.tableName(repo.getTableName()));
     } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException ignored) {
 
     } finally {
-        log.info("Table '{} deleted", repo.getTableName());
+      log.info("Table '{} deleted", repo.getTableName());
     }
   }
 
-    CustomerRepository repo = new CustomerRepository("customers");
+  CustomerRepository repo = new CustomerRepository("customers");
 
-    @Test
-    void exampleTest() {
+  @Test
+  void exampleTest() {
 
-        String uuid = UUID.randomUUID().toString();
+    String uuid = UUID.randomUUID().toString();
 
-        // Creation/deletion of table
-        CreateTableRequest createTableRequest = repo.createTable();
-        CreateTableResponse crationTableResponse = client.createTable(createTableRequest);
+    // Creation/deletion of table
+    CreateTableRequest createTableRequest = repo.createTable();
+    client.createTable(createTableRequest);
 
-        // Inserting data
-        Customer customer =
-                Customer.builder()
-                        .id(uuid)
-                        .name("Joe")
-                        .address("Joe Street")
-                        .email("joe@email.com")
-                        .build();
-        PutItemRequest abc = repo.create(customer);
-        PutItemResponse putResponse = client.putItem(abc);
+    // Inserting data
+    Customer customer =
+        Customer.builder()
+            .id(uuid)
+            .name("Joe")
+            .address("Joe Street")
+            .email("joe@email.com")
+            .build();
+    PutItemRequest abc = repo.create(customer);
+    client.putItem(abc);
 
-        // Updating data
-        UpdateItemRequest update1 = repo.update(customer.withName("John Doe"))
-                                        .asUpdateItemRequest();
-        // Updating data - with condition
-        UpdateItemResponse updateItemResponse = client.updateItem(update1);
-        UpdateItemRequest update2 =
-                repo.update(customer.withEmail("joe.doe@email.com"))
-                    .condition(it -> it.emailEqual("joe@email.com") )
-                    .asUpdateItemRequest();
+    // Updating data
+    UpdateItemRequest update1 = repo.update(customer.withName("John Doe")).asUpdateItemRequest();
+    // Updating data - with condition
+    client.updateItem(update1);
+    UpdateItemRequest update2 =
+        repo.update(customer.withEmail("joe.doe@email.com"))
+            .condition(it -> it.emailEqual("joe@email.com"))
+            .asUpdateItemRequest();
 
-        client.updateItem(update2);
+    client.updateItem(update2);
 
-        // Scanning all data
-        ScanRequest scanRequest = repo.scan().asScanItemRequest();
+    // Scanning all data
+    ScanRequest scanRequest = repo.scan().asScanItemRequest();
 
-        for(Map<String, AttributeValue> item : client.scan(scanRequest).items())
-        {
-            Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
+    for (Map<String, AttributeValue> item : client.scan(scanRequest).items()) {
+      Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
 
-            log.info("retrieved all customers: {}", retrivedCustomer);
-        }
-        client.scan(scanRequest).items().stream()
-              .map(CustomerRepository.CUSTOMER::transform)
-              .forEach(it -> log.info("retrieved all customers: {}", it));
-        // Scanning data with condition
-        ScanRequest scanRequest2 =
-                repo.scan().condition(it -> it.emailBeginsWith("joe")).asScanItemRequest();
+      log.info("all customers: {}", retrivedCustomer);
+    }
+    client.scan(scanRequest).items().stream()
+        .map(CustomerRepository.CUSTOMER::transform)
+        .forEach(it -> log.info("retrieved all customers: {}", it));
+    // Scanning data with condition
+    ScanRequest scanRequest2 =
+        repo.scan().condition(it -> it.emailBeginsWith("joe")).asScanItemRequest();
 
-        client.scan(scanRequest2).items().stream()
-              .map(CustomerRepository.CUSTOMER::transform)
-              .forEach(it -> log.info("retrieved customer matching condition: {}", it));
+    client.scan(scanRequest2).items().stream()
+        .map(CustomerRepository.CUSTOMER::transform)
+        .forEach(it -> log.info("retrieved customer matching condition: {}", it));
 
-        //Query - by index
-        QueryRequest query =
-                repo.getIndexSelector().primary("uuid").asQueryRequest();
+    // Query - by index
+    QueryRequest query = repo.getIndexSelector().primary("uuid").asQueryRequest();
 
-        client.query(query).items().stream()
-              .map(CustomerRepository.CUSTOMER::transform)
-              .forEach(it -> log.info("retrieved customer: {}", it));
+    client.query(query).items().stream()
+        .map(CustomerRepository.CUSTOMER::transform)
+        .forEach(it -> log.info("retrieved customer: {}", it));
 
-        //Query - with conditions
-        QueryRequest query2 =
-                repo.getIndexSelector().primary("uuid").asQueryRequest();
+    // Query - with conditions
+    QueryRequest query2 = repo.getIndexSelector().primary("uuid").asQueryRequest();
 
-        client.query(query2).items().stream()
-              .map(CustomerRepository.CUSTOMER::transform)
-              .forEach(it -> log.info("retrieved customer matching uuid: {}", it));
+    client.query(query2).items().stream()
+        .map(CustomerRepository.CUSTOMER::transform)
+        .forEach(it -> log.info("retrieved customer matching uuid: {}", it));
 
-        //Batch write
-        Customer customer2 = customer.withId(UUID.randomUUID().toString());
-        Customer customer3 = customer.withId(UUID.randomUUID().toString());
-    BatchWriteItemResponse dddd =
-        client.batchWriteItem(it -> it.requestItems(repo.asWriteRequest(customer2, customer3)));
+    // Batch write
+    Customer customer2 = customer.withId(UUID.randomUUID().toString());
+    Customer customer3 = customer.withId(UUID.randomUUID().toString());
+    client.batchWriteItem(it -> it.requestItems(repo.asWriteRequest(customer2, customer3)));
 
-        //Transactions - putting data
 
-        Customer customer4 = customer.withId(UUID.randomUUID().toString()).withName("Alice");
-        Customer customer5 = customer.withId(UUID.randomUUID().toString()).withName("Bob");
-        client.transactWriteItems(
-                TransactWriteItemsRequest.builder()
-                        .transactItems(
-                                TransactWriteItem.builder()
-                                        .put(
-                                                Put.builder()
-                                                        .tableName(repo.getTableName())
-                                                        .item(repo.create(customer4).item())
-                                                        .build())
-                                        .put(
-                                                Put.builder()
-                                                        .tableName(repo.getTableName())
-                                                        .item(repo.create(customer5).item())
-                                                        .build())
-                                        .build())
-                        .build());
+    // Transactions - putting data
+    exampleWriteInTransaction(repo, client, customer);
 
     // Transactions - updating data
+    exampleUpdateInTransaction(repo, client, customer );
+  }
+
+  void exampleUpdateInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer) {
+    Update update = repo.update(customer.withAddress("joe.doe@email.com"))
+            .condition(it -> it.addressEqual("Joe Street"))
+            .asTransactionUpdate();
+
+    client.transactWriteItems(
+        TransactWriteItemsRequest.builder()
+            .transactItems(TransactWriteItem.builder().update(update).build())
+            .build());
+  }
+
+  void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer) {
+    Customer alice = customer.withId(UUID.randomUUID().toString()).withName("Alice");
+    Customer bob = customer.withId(UUID.randomUUID().toString()).withName("Bob");
     client.transactWriteItems(
         TransactWriteItemsRequest.builder()
             .transactItems(
                 TransactWriteItem.builder()
-                    .update(
-                        repo.update(customer.withAddress("joe.doe@email.com"))
-                            .condition(it -> it.addressEqual("Joe Street"))
-                            .asTransactionUpdate())
+                    .put(
+                        Put.builder()
+                            .tableName(repo.getTableName())
+                            .item(repo.create(alice).item())
+                            .build())
+                    .put(
+                        Put.builder()
+                            .tableName(repo.getTableName())
+                            .item(repo.create(bob).item())
+                            .build())
                     .build())
             .build());
-    }
-    void exampleUpdateInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
-        UpdateItemRequest update4 =
-                repo.update(customer.withAddress("joe.doe@email.com"))
-                    .condition(it -> it.addressEqual("Joe Street"))
-                    .asUpdateItemRequest();
+  }
 
-        client.transactWriteItems(
-                TransactWriteItemsRequest.builder()
-                        .transactItems(
-                                TransactWriteItem.builder()
-                                        .update(
-                                                Update.builder()
-                                                        .key(update4.key())
-                                                        .tableName(repo.getTableName())
-                                                        .conditionExpression(update4.conditionExpression())
-                                                        .expressionAttributeValues(update4.expressionAttributeValues())
-                                                        .expressionAttributeNames(update4.expressionAttributeNames())
-                                                        .updateExpression(update4.updateExpression())
-                                                        .build())
-                                        .build())
-                        .build());
-    }
-void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
-    Customer customer4 = customer.withId(UUID.randomUUID().toString()).withName("Alice");
-    Customer customer5 = customer.withId(UUID.randomUUID().toString()).withName("Bob");
-    client.transactWriteItems(
-            TransactWriteItemsRequest.builder()
-                    .transactItems(
-                            TransactWriteItem.builder()
-                                    .put(
-                                            Put.builder()
-                                                    .tableName(repo.getTableName())
-                                                    .item(repo.create(customer4).item())
-                                                    .build())
-                                    .put(
-                                            Put.builder()
-                                                    .tableName(repo.getTableName())
-                                                    .item(repo.create(customer5).item())
-                                                    .build())
-                                    .build())
-                    .build());
-}
-    void scannAllData(CustomerRepository repo, DynamoDbClient client) {
-        ScanRequest scanRequest = repo.scan().asScanItemRequest();
-        ScanResponse response = client.scan(scanRequest);
-        for (Map<String, AttributeValue> item : response.items()) {
-            Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
-            log.info("retrieved all customers: {}", retrivedCustomer);
-        }
-    }
-    void queryDataByPrimaryKey(CustomerRepository repo, DynamoDbClient client) {
-        QueryRequest scanRequest = repo.getIndexSelector().primary("")
-                                           .condition(it->it.addressEqual("joe.doe@gmail.com"))
-                                       .asQueryRequest();
-        QueryResponse response = client.query(scanRequest);
-        for (Map<String, AttributeValue> item : response.items()) {
-            Customer retrivedCustomer = CustomerRepository.CUSTOMER.transform(item);
-            log.info("retrieved all customers: {}", retrivedCustomer);
-        }
-    }
 }
 
 @Value
@@ -234,8 +171,8 @@ void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, C
 @Builder
 @DynamoDBTable
 class Customer {
-    @DynamoDBHashKey String id;
-    String name;
-    String address;
-    String email;
+  @DynamoDBHashKey String id;
+  String name;
+  String address;
+  String email;
 }

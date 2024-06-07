@@ -217,28 +217,26 @@ As Guacamole is purly concentrated on generating requests, those requests might 
 [//]: # (TODO: create transaction write item: missing functionality)
 
 ```java
-void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
-    
-    Customer customer4 = customer.withId(UUID.randomUUID().toString()).withName("Alice");
-    Customer customer5 = customer.withId(UUID.randomUUID().toString()).withName("Bob");
-    
-    client.transactWriteItems(
-            TransactWriteItemsRequest.builder()
-                    .transactItems(
-                            TransactWriteItem.builder()
-                                    .put(
-                                            Put.builder()
-                                                    .tableName(repo.getTableName())
-                                                    .item(repo.create(customer4).item())
-                                                    .build())
-                                    .put(
-                                            Put.builder()
-                                                    .tableName(repo.getTableName())
-                                                    .item(repo.create(customer5).item())
-                                                    .build())
-                                    .build())
-                    .build());
-}
+void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer) {
+  Customer alice = customer.withId(UUID.randomUUID().toString()).withName("Alice");
+  Customer bob = customer.withId(UUID.randomUUID().toString()).withName("Bob");
+  client.transactWriteItems(
+          TransactWriteItemsRequest.builder()
+                  .transactItems(
+                          TransactWriteItem.builder()
+                                  .put(
+                                          Put.builder()
+                                                  .tableName(repo.getTableName())
+                                                  .item(repo.create(alice).item())
+                                                  .build())
+                                  .put(
+                                          Put.builder()
+                                                  .tableName(repo.getTableName())
+                                                  .item(repo.create(bob).item())
+                                                  .build())
+                                  .build())
+                  .build());
+  }
 ```
 
 A very similar situation happen for updates in transactions:
@@ -247,25 +245,14 @@ A very similar situation happen for updates in transactions:
 
 ```java
 void exampleUpdateInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer){
-    UpdateItemRequest update4 =
-            repo.update(customer.withAddress("joe.doe@email.com"))
-                .condition(it -> it.addressEqual("Joe Street"))
-                .asUpdateItemRequest();
-    client.transactWriteItems(
-            TransactWriteItemsRequest.builder()
-                    .transactItems(
-                            TransactWriteItem.builder()
-                                    .update(
-                                            Update.builder()
-                                                    .key(update4.key())
-                                                    .tableName(repo.getTableName())
-                                                    .conditionExpression(update4.conditionExpression())
-                                                    .expressionAttributeValues(update4.expressionAttributeValues())
-                                                    .expressionAttributeNames(update4.expressionAttributeNames())
-                                                    .updateExpression(update4.updateExpression())
-                                                    .build())
-                                    .build())
-                    .build());
+  Update update = repo.update(customer.withAddress("joe.doe@email.com"))
+                      .condition(it -> it.addressEqual("Joe Street"))
+                      .asTransactionUpdate();
+  client.transactWriteItems(
+          TransactWriteItemsRequest.builder()
+                  .transactItems(TransactWriteItem.builder().update(update)
+                                         .build())
+                  .build());
 }
 ```
 
