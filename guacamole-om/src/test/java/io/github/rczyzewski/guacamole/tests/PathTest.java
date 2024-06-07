@@ -14,7 +14,7 @@ class PathTest {
 
   EmployeeRepository.Paths.Root employeePathCreator = new EmployeeRepository.Paths.Root();
   CountryRepository.Paths.CountryPath countryPathCreator =
-          CountryRepository.Paths.CountryPath.builder().build();
+      CountryRepository.Paths.CountryPath.builder().build();
 
   @Test
   void validatingPaths() {
@@ -25,7 +25,13 @@ class PathTest {
 
     assertThat(employeePathCreator.selectEmployees().at(2).selectEmployees().serialize())
         .isEqualTo("employees[2].employees");
-    assertThat(employeePathCreator.selectDepartment().selectEmployees().at(1).selectEmployees().serialize())
+    assertThat(
+            employeePathCreator
+                .selectDepartment()
+                .selectEmployees()
+                .at(1)
+                .selectEmployees()
+                .serialize())
         .isEqualTo("department.employees[1].employees");
 
     assertThat(

@@ -54,7 +54,9 @@ public class PathGenerator {
             + classDescription.getName());
 
     ClassName baseBean =
-        ClassName.get(Optional.ofNullable(classDescription.getPackageName()).orElse(""), classDescription.getName());
+        ClassName.get(
+            Optional.ofNullable(classDescription.getPackageName()).orElse(""),
+            classDescription.getName());
 
     ClassName rootBeanPathClassName = pathsNamespace.nestedClass("Root");
 

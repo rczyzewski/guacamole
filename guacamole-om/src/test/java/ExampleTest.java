@@ -124,16 +124,17 @@ class ExampleTest {
     Customer customer3 = customer.withId(UUID.randomUUID().toString());
     client.batchWriteItem(it -> it.requestItems(repo.asWriteRequest(customer2, customer3)));
 
-
     // Transactions - putting data
     exampleWriteInTransaction(repo, client, customer);
 
     // Transactions - updating data
-    exampleUpdateInTransaction(repo, client, customer );
+    exampleUpdateInTransaction(repo, client, customer);
   }
 
-  void exampleUpdateInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer) {
-    Update update = repo.update(customer.withAddress("joe.doe@email.com"))
+  void exampleUpdateInTransaction(
+      CustomerRepository repo, DynamoDbClient client, Customer customer) {
+    Update update =
+        repo.update(customer.withAddress("joe.doe@email.com"))
             .condition(it -> it.addressEqual("Joe Street"))
             .asTransactionUpdate();
 
@@ -143,7 +144,8 @@ class ExampleTest {
             .build());
   }
 
-  void exampleWriteInTransaction(CustomerRepository repo, DynamoDbClient client, Customer customer) {
+  void exampleWriteInTransaction(
+      CustomerRepository repo, DynamoDbClient client, Customer customer) {
     Customer alice = customer.withId(UUID.randomUUID().toString()).withName("Alice");
     Customer bob = customer.withId(UUID.randomUUID().toString()).withName("Bob");
     client.transactWriteItems(
@@ -163,7 +165,6 @@ class ExampleTest {
                     .build())
             .build());
   }
-
 }
 
 @Value

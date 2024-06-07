@@ -14,7 +14,9 @@ class FieldAnalyzerTest {
 
     // based on: https://blog.frankel.ch/compilation-java-code-on-the-fly/
     JavaCompiler jc = ToolProvider.getSystemJavaCompiler();
-    log.info("path for source code file {}", Paths.get("./src/main/test/java/SmallTable.java").toAbsolutePath());
+    log.info(
+        "path for source code file {}",
+        Paths.get("./src/main/test/java/SmallTable.java").toAbsolutePath());
 
     jc.run(
         System.in,

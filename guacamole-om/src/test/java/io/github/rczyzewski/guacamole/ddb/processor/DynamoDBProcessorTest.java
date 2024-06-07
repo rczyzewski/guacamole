@@ -41,15 +41,19 @@ class DynamoDBProcessorTest {
   @SneakyThrows
   void sunnyDayTest() {
     NormalLogger logger = new NormalLogger();
-    List<FieldDescription> fields = Collections.singletonList(
+    List<FieldDescription> fields =
+        Collections.singletonList(
             FieldDescription.builder()
-                    .isHashKey(true)
-                    .typeArgument(FieldDescription.TypeArgument.builder().typeName("String").packageName("java.util")
-                                          .build())
-                    .attribute("ID")
-                    .ddbType(DDBType.STRING)
-                    .name("ABC")
-                    .build());
+                .isHashKey(true)
+                .typeArgument(
+                    FieldDescription.TypeArgument.builder()
+                        .typeName("String")
+                        .packageName("java.util")
+                        .build())
+                .attribute("ID")
+                .ddbType(DDBType.STRING)
+                .name("ABC")
+                .build());
 
     ClassDescription classDescription =
         ClassDescription.builder()
@@ -65,16 +69,15 @@ class DynamoDBProcessorTest {
             .logger(logger)
             .build();
 
-    @Cleanup
-    ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-    @Cleanup
-    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
+    @Cleanup ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+    @Cleanup BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(byteArray));
 
     dynamoDBProcessor.generateRepositoryCode(classDescription).writeTo(bw);
     bw.flush();
     bw.close();
     Assertions.assertThat(byteArray.toString()).isNotBlank();
-}
+  }
+
   @SneakyThrows
   static String readContentBasedOnCanonicalName(String packageName, String className) {
     String baseDir = new File(".").getCanonicalPath() + "/src/test/java/";
@@ -84,7 +87,8 @@ class DynamoDBProcessorTest {
   }
 
   private static Stream<Arguments> customAddTestCases() {
-    return Stream.of(Country.class, Employee.class, PlayerRanking.class, Books.class, ForumThread.class)
+    return Stream.of(
+            Country.class, Employee.class, PlayerRanking.class, Books.class, ForumThread.class)
         .map(
             it ->
                 Arguments.of(

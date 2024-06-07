@@ -15,8 +15,12 @@ public class SchemaUtils {
   public static KeySchemaElement createKeySchemaElement(String attributeName, KeyType keyType) {
     return KeySchemaElement.builder().attributeName(attributeName).keyType(keyType).build();
   }
+
   public static AttributeDefinition createAttributeDefinition(String attributeName, String type) {
-    return AttributeDefinition.builder().attributeName(attributeName).attributeType(type.toUpperCase()).build();
+    return AttributeDefinition.builder()
+        .attributeName(attributeName)
+        .attributeType(type.toUpperCase())
+        .build();
   }
 
   public static Projection createProjection(@NotNull ProjectionType projectionType) {

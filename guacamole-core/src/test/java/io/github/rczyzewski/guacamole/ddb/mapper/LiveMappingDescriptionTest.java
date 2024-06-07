@@ -24,8 +24,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 class LiveMappingDescriptionTest {
 
   static <T> List<FieldMappingDescription<T>> createSingleMapping(
-      BiFunction<T, AttributeValue, T> wither,
-      Function<T, Optional<AttributeValue>> export) {
+      BiFunction<T, AttributeValue, T> wither, Function<T, Optional<AttributeValue>> export) {
     return Collections.singletonList(
         new FieldMappingDescription<>("a", false, wither, export, "fakeShortName"));
   }
@@ -147,9 +146,7 @@ class LiveMappingDescriptionTest {
   void easyIntegerMapping() {
 
     List<FieldMappingDescription<SimpleBeanWithInteger>> mapping =
-        createSingleMapping(
-            (bean, value) -> bean.withProperty(Integer.valueOf(value.n())),
-            null);
+        createSingleMapping((bean, value) -> bean.withProperty(Integer.valueOf(value.n())), null);
 
     LiveMappingDescription<SimpleBeanWithInteger> dynamoObjectMapper =
         new LiveMappingDescription<>(SimpleBeanWithInteger::new, mapping);
@@ -173,9 +170,7 @@ class LiveMappingDescriptionTest {
   void easyListMapping() {
 
     List<FieldMappingDescription<SimpleBeanWithListOfStrings>> mapping =
-        createSingleMapping(
-            (bean, value) -> bean.withProperty(value.ss()),
-            null);
+        createSingleMapping((bean, value) -> bean.withProperty(value.ss()), null);
 
     LiveMappingDescription<SimpleBeanWithListOfStrings> dynamoObjectMapper =
         new LiveMappingDescription<>(SimpleBeanWithListOfStrings::new, mapping);

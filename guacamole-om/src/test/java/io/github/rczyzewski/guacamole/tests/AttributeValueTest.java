@@ -63,12 +63,10 @@ class AttributeValueTest {
           .published(LocalDateTime.now())
           .build();
 
-
   @BeforeAll
   @SneakyThrows
   static void beforeAll() {
-    @Cleanup
-    DynamoDbClient client = testHelperDynamoDB.getDdbClient();
+    @Cleanup DynamoDbClient client = testHelperDynamoDB.getDdbClient();
     try {
       client.deleteTable(it -> it.tableName(repo.getTableName()));
     } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException ignored) {
@@ -81,7 +79,7 @@ class AttributeValueTest {
   @Test
   @SneakyThrows
   void firstTest() {
-    //TODO: add manny tests
+    // TODO: add manny tests
     ScanRequest r =
         repo.scan()
             .condition(BooksRepository.LogicalExpressionBuilder::idNotExists)

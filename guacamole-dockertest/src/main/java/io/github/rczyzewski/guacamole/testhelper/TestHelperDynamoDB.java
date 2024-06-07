@@ -22,13 +22,14 @@ public class TestHelperDynamoDB {
         .region(Region.of(localstack.getRegion()))
         .build();
   }
+
   public DynamoDbClient getDdbClient() {
     return DynamoDbClient.builder()
-                   .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
-                   .credentialsProvider(
-                           StaticCredentialsProvider.create(
-                                   AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
-                   .region(Region.of(localstack.getRegion()))
-                   .build();
+        .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB))
+        .credentialsProvider(
+            StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
+        .region(Region.of(localstack.getRegion()))
+        .build();
   }
 }

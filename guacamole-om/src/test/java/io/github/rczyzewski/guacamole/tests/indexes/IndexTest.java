@@ -139,8 +139,7 @@ class IndexTest {
     request = repo.getIndexSelector().primary("dd").asQueryRequest();
     assertThat(perfrom(request)).isEmpty();
 
-    request =
-        repo.getIndexSelector().primary("dd", g -> g.gameTitleEqual("ddd")).asQueryRequest();
+    request = repo.getIndexSelector().primary("dd", g -> g.gameTitleEqual("ddd")).asQueryRequest();
     assertThat(perfrom(request)).isEmpty();
 
     request =
@@ -182,13 +181,12 @@ class IndexTest {
             .condition(it -> it.winsBetween(2, 222))
             .asQueryRequest();
 
-
     assertThat(perfrom(request)).isNotEmpty();
 
     QueryRequest request2 =
-            repo.getIndexSelector()
-                .GameTitleIndex("Meteor Blaster", it -> it.topScoreLess(1000))
-                .asQueryRequest();
+        repo.getIndexSelector()
+            .GameTitleIndex("Meteor Blaster", it -> it.topScoreLess(1000))
+            .asQueryRequest();
     assertThat(perfrom(request2)).isNotEmpty();
   }
 }

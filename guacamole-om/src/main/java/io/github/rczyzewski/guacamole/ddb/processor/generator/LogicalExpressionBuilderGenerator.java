@@ -34,7 +34,9 @@ public class LogicalExpressionBuilderGenerator {
 
   private CodeBlock prepareLocalPathVariable(FieldDescription fd) {
     ClassName baseBean =
-        ClassName.get(Optional.ofNullable(classDescription.getPackageName()).orElse(""), classDescription.getName());
+        ClassName.get(
+            Optional.ofNullable(classDescription.getPackageName()).orElse(""),
+            classDescription.getName());
     return CodeBlock.of(
         "Path<$T> path = (new Paths.Root()).select$L()\n;",
         baseBean,
@@ -199,7 +201,9 @@ public class LogicalExpressionBuilderGenerator {
   public TypeSpec createLogicalExpressionBuilder(ClassName customSearchAF) {
 
     ClassName baseBean =
-        ClassName.get(Optional.ofNullable(classDescription.getPackageName()).orElse(""), classDescription.getName());
+        ClassName.get(
+            Optional.ofNullable(classDescription.getPackageName()).orElse(""),
+            classDescription.getName());
 
     ParameterizedTypeName superInterface =
         ParameterizedTypeName.get(ClassName.get(ExpressionGenerator.class), baseBean);

@@ -119,9 +119,9 @@ public class TypeArgumentsVisitor
 
   @Override
   public FieldDescription.TypeArgument visitUnknown(TypeMirror t, VariableElement o) {
-   String msg = "unknown is not supported";
+    String msg = "unknown is not supported";
     logger.error(msg, o);
-    throw new NotSupportedTypeException(msg , o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override

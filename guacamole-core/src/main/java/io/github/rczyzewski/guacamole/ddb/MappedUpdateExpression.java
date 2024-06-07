@@ -306,16 +306,16 @@ public class MappedUpdateExpression<T, G extends ExpressionGenerator<T>> {
         .build();
   }
 
-  public Update asTransactionUpdate(){
+  public Update asTransactionUpdate() {
     UpdateItemRequest update = asUpdateItemRequest();
     return Update.builder()
-                   .key(update.key())
-                   .tableName(tableName)
-                   .conditionExpression(update.conditionExpression())
-                   .expressionAttributeValues(update.expressionAttributeValues())
-                   .expressionAttributeNames(update.expressionAttributeNames())
-                   .updateExpression(update.updateExpression())
-                   .build();
+        .key(update.key())
+        .tableName(tableName)
+        .conditionExpression(update.conditionExpression())
+        .expressionAttributeValues(update.expressionAttributeValues())
+        .expressionAttributeNames(update.expressionAttributeNames())
+        .updateExpression(update.updateExpression())
+        .build();
   }
 
   private static String serializeEpr(String name, String value) {

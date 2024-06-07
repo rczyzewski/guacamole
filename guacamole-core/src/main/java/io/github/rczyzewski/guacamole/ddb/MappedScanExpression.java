@@ -46,7 +46,8 @@ public class MappedScanExpression<T, G extends ExpressionGenerator<T>> {
             preparedConditionExpression
                 .map(MappedExpressionUtils.ResolvedExpression::getValues)
                 .orElse(null))
-        .expressionAttributeNames(preparedConditionExpression.map(it-> allAttributeNames).orElse(null))
+        .expressionAttributeNames(
+            preparedConditionExpression.map(it -> allAttributeNames).orElse(null))
         .select(Select.ALL_ATTRIBUTES)
         .filterExpression(
             preparedConditionExpression

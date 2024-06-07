@@ -45,7 +45,8 @@ public class LiveDescriptionGenerator {
   @NotNull private final Logger logger;
 
   @NotNull
-  private static CodeBlock createKeySchema(@NotNull KeyType keyType, @NotNull String attributeName) {
+  private static CodeBlock createKeySchema(
+      @NotNull KeyType keyType, @NotNull String attributeName) {
 
     return CodeBlock.of(
         "$T.createKeySchemaElement($S, $T.$L)",
@@ -276,7 +277,8 @@ public class LiveDescriptionGenerator {
                   .addModifiers(STATIC)
                   .addParameter(ParameterSpec.builder(AttributeValue.class, "arg").build())
                   .addCode(
-                      "return arg.l().stream().map($T::fromAttribute).collect(Collectors.toList());",
+                      "return"
+                          + " arg.l().stream().map($T::fromAttribute).collect(Collectors.toList());",
                       internalMapper)
                   .returns(get(classDescription.getParametrized()))
                   .build())
@@ -418,8 +420,9 @@ public class LiveDescriptionGenerator {
                         .build())
             .collect(CodeBlock.joining(",\n"));
 
-    Optional.of(secondaryIndexes).filter(it-> ! it.isEmpty())
-       .ifPresent(indexes -> request.add(".globalSecondaryIndexes($L)\n", indexes));
+    Optional.of(secondaryIndexes)
+        .filter(it -> !it.isEmpty())
+        .ifPresent(indexes -> request.add(".globalSecondaryIndexes($L)\n", indexes));
 
     return request.add(".build();").build();
   }

@@ -84,13 +84,11 @@ public class TableClassVisitor
               .sourandingClasses(o)
               .build();
 
-
       if (!o.containsKey(name)) {
         o.put(name, discoveredClass);
         element.getEnclosedElements().stream()
-               .filter(it -> ElementKind.FIELD == it.getKind())
-               .forEach(it -> it.accept(this, o));
-
+            .filter(it -> ElementKind.FIELD == it.getKind())
+            .forEach(it -> it.accept(this, o));
       }
     }
     return this;
@@ -100,7 +98,9 @@ public class TableClassVisitor
 
     if (!argument.fieldType().equals(FieldDescription.FieldType.LIST)) return;
 
-    String name = Optional.ofNullable(argument.getPackageName()).map(it-> it +  ".").orElse("") + argument.getTypeName();
+    String name =
+        Optional.ofNullable(argument.getPackageName()).map(it -> it + ".").orElse("")
+            + argument.getTypeName();
 
     ClassDescription classDescription =
         ClassDescription.builder()
