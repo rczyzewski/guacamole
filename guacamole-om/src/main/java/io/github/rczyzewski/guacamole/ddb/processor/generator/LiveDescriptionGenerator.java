@@ -23,23 +23,18 @@ import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
 import software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndex;
 import software.amazon.awssdk.services.dynamodb.model.KeyType;
 import software.amazon.awssdk.services.dynamodb.model.LocalSecondaryIndex;
-import software.amazon.awssdk.services.dynamodb.model.Projection;
 import software.amazon.awssdk.services.dynamodb.model.ProjectionType;
-import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 @AllArgsConstructor
 public class LiveDescriptionGenerator {
@@ -50,8 +45,7 @@ public class LiveDescriptionGenerator {
   @NotNull private final Logger logger;
 
   @NotNull
-  private static CodeBlock createKeySchema(
-      @NotNull KeyType keyType, @NotNull String attributeName) {
+  private static CodeBlock createKeySchema(@NotNull KeyType keyType, @NotNull String attributeName) {
 
     return CodeBlock.of(
         "$T.createKeySchemaElement($S, $T.$L)",
@@ -59,33 +53,6 @@ public class LiveDescriptionGenerator {
         attributeName,
         KeyType.class,
         keyType);
-  }
-
-  @NotNull
-  private static CodeBlock createProjection(@NotNull ProjectionType projectionType) {
-    // TODO: move all builders into helper in LiveDescrition, so here we have one liner
-    return CodeBlock.builder()
-        .indent()
-        .add("$T.builder()", Projection.class)
-        .add(".projectionType($T.$L)", ProjectionType.class, projectionType)
-        .add(".build()")
-        .unindent()
-        .build();
-  }
-
-  @NotNull
-  private static CodeBlock createThroughput(
-      @NotNull Long writeCapacity, @NotNull Long readCapacity) {
-
-    // TODO: move all builders into helper in LiveDescrition, so here we have one liner
-    return CodeBlock.builder()
-        .indent()
-        .add("$T.builder()\n", ProvisionedThroughput.class)
-        .add(".writeCapacityUnits($LL)\n", writeCapacity)
-        .add(".readCapacityUnits($LL)\n", readCapacity)
-        .add(".build()")
-        .unindent()
-        .build();
   }
 
   public CodeBlock createFieldMappingDescription(
@@ -196,24 +163,20 @@ public class LiveDescriptionGenerator {
               liveMappingName));
 
     } else {
-
-      throw new NotSupportedTypeException(fieldDescription);
+      throw new NotSupportedTypeException(fieldDescription.toString());
     }
   }
 
   TypeName get(FieldDescription.TypeArgument argument) {
-    String fullTypeName = argument.getPackageName() + "." + argument.getTypeName();
     if (argument.fieldType().equals(FieldDescription.FieldType.LIST)) {
       return ParameterizedTypeName.get(
           ClassName.get(List.class), get(argument.getTypeArguments().get(0)));
-    } else if ("java.util.Map".equals(fullTypeName)) {
-      return null;
     } else {
-      return ClassName.get(argument.getPackageName(), argument.getTypeName());
+      return ClassName.get(
+          Optional.ofNullable(argument.getPackageName()).orElse(""), argument.getTypeName());
     }
   }
 
-  @SneakyThrows
   public TypeSpec prepareMapperClass(ClassDescription classDescription, ClassName repositoryClass) {
 
     if (Optional.of(classDescription)
@@ -222,13 +185,17 @@ public class LiveDescriptionGenerator {
         .filter(FieldDescription.FieldType.LIST::equals)
         .isPresent()) {
 
-      FieldDescription.TypeArgument dddd =
+      FieldDescription.TypeArgument typeArgument =
           classDescription.getParametrized().getTypeArguments().get(0);
 
-      Optional<ClassDescription> aa =
+      Optional<ClassDescription> typeArgumentClassDescription =
           classDescription.getSourandingClasses().values().stream()
-              .filter(it -> Objects.equals(it.getPackageName(), dddd.getPackageName()))
-              .filter(it -> Objects.equals(it.getName(), dddd.getTypeName()))
+              .filter(
+                  it ->
+                      Objects.equals(
+                          Optional.ofNullable(it.getPackageName()).orElse(""),
+                          Optional.ofNullable(typeArgument.getPackageName()).orElse("")))
+              .filter(it -> Objects.equals(it.getName(), typeArgument.getTypeName()))
               .findAny();
 
       Class<?> standardConverter =
@@ -252,10 +219,12 @@ public class LiveDescriptionGenerator {
                               .buildMapperClassName()));
 
       if (standardConverter == null
-          && dddd.getTypeArguments().isEmpty()
-          && !dddd.fieldType().equals(FieldDescription.FieldType.LIST)) {
+          && typeArgument.getTypeArguments().isEmpty()
+          && typeArgumentClassDescription.isPresent()
+          && !typeArgument.fieldType().equals(FieldDescription.FieldType.LIST)) {
 
-        String mapperInstanceName = aa.get().getName().toUpperCase();
+        String mapperInstanceName =
+            TypoUtils.toSnakeCase(typeArgumentClassDescription.get().getName()).toUpperCase();
 
         return TypeSpec.classBuilder(
                 repositoryClass.nestedClass(classDescription.getGeneratedMapperName()))
@@ -307,8 +276,7 @@ public class LiveDescriptionGenerator {
                   .addModifiers(STATIC)
                   .addParameter(ParameterSpec.builder(AttributeValue.class, "arg").build())
                   .addCode(
-                      "return arg.l().stream().map($T::fromAttribute).collect(Collectors.toList());"
-                          + " ",
+                      "return arg.l().stream().map($T::fromAttribute).collect(Collectors.toList());",
                       internalMapper)
                   .returns(get(classDescription.getParametrized()))
                   .build())
@@ -319,7 +287,9 @@ public class LiveDescriptionGenerator {
             repositoryClass.canonicalName(), classDescription.getGeneratedMapperName() + "CLASS");
 
     ClassName modelClass =
-        ClassName.get(classDescription.getPackageName(), classDescription.getGeneratedMapperName());
+        ClassName.get(
+            Optional.ofNullable(classDescription.getPackageName()).orElse(""),
+            classDescription.getGeneratedMapperName());
     ParameterizedTypeName ptype =
         ParameterizedTypeName.get(ClassName.get(LiveMappingDescription.class), modelClass);
 
@@ -333,7 +303,9 @@ public class LiveDescriptionGenerator {
   @NotNull
   public CodeBlock createMapper(@NotNull ClassDescription description) {
 
-    ClassName mappedClassName = ClassName.get(description.getPackageName(), description.getName());
+    ClassName mappedClassName =
+        ClassName.get(
+            Optional.ofNullable(description.getPackageName()).orElse(""), description.getName());
     ConsecutiveIdGenerator idGenerator =
         ConsecutiveIdGenerator.builder().base("ABCDEFGHIJKLMNOPRSTUWXYZ").build();
     CodeBlock indentBlocks =
@@ -365,16 +337,11 @@ public class LiveDescriptionGenerator {
         utils.getAttributes().stream()
             .map(
                 it ->
-                    CodeBlock.builder()
-                        .indent()
-                        .add("$T.builder()\n", AttributeDefinition.class)
-                        .add(".attributeName($S)\n", it.getAttribute())
-                        .add(
-                            ".attributeType($S)\n",
-                            it.getDdbType().getSymbol().toUpperCase(Locale.US))
-                        .add(".build()\n")
-                        .unindent()
-                        .build())
+                    CodeBlock.of(
+                        "$T.createAttributeDefinition($S,$S)",
+                        SchemaUtils.class,
+                        it.getAttribute(),
+                        it.getDdbType().getSymbol()))
             .collect(CodeBlock.joining(",\n"));
 
     CodeBlock.Builder request =
@@ -389,8 +356,10 @@ public class LiveDescriptionGenerator {
                     .collect(CodeBlock.joining(",\n")))
             .add(".attributeDefinitions($L)", attributeDefinitions)
             .add(
-                ".provisionedThroughput( $L )\n",
-                createThroughput(DEFAULT_WRITE_CAPACITY, DEFAULT_READ_CAPACITY));
+                ".provisionedThroughput($T.createThroughput($L, $L))\n",
+                SchemaUtils.class,
+                DEFAULT_WRITE_CAPACITY,
+                DEFAULT_READ_CAPACITY);
 
     Optional.of(
             utils.getLSIndexes().stream()
@@ -404,7 +373,11 @@ public class LiveDescriptionGenerator {
                                 ".keySchema($L, $L)\n",
                                 primary,
                                 createKeySchema(RANGE, it.getAttribute()))
-                            .add(".projection($L)\n", createProjection(ProjectionType.ALL))
+                            .add(
+                                ".projection($T.createProjection($T.$L))\n",
+                                SchemaUtils.class,
+                                ProjectionType.class,
+                                ProjectionType.ALL)
                             .add(".build()\n")
                             .unindent()
                             .build())
@@ -412,35 +385,41 @@ public class LiveDescriptionGenerator {
         .filter(it -> !it.isEmpty())
         .ifPresent(lst -> request.add(".localSecondaryIndexes($L)\n", lst));
 
-    Optional.of(
-            utils.getGSIndexHash().stream()
-                .map(
-                    index ->
-                        CodeBlock.builder()
-                            .indent()
-                            .add("$T.builder()\n", GlobalSecondaryIndex.class)
-                            .add(".indexName($S)\n", index)
-                            .add(".projection($L)\n", createProjection(ProjectionType.ALL))
-                            .add(
-                                ".provisionedThroughput( $L )\n",
-                                createThroughput(DEFAULT_WRITE_CAPACITY, DEFAULT_READ_CAPACITY))
-                            .add(
-                                ".keySchema($L)\n",
-                                Stream.of(utils.getGSIndexHash(index), utils.getGSIndexRange(index))
-                                    .filter(Optional::isPresent)
-                                    .map(Optional::get)
-                                    .map(
-                                        field ->
-                                            createKeySchema(
-                                                computeIndexType(field, index),
-                                                field.getAttribute()))
-                                    .collect(CodeBlock.joining(",")))
-                            .add(".build()\n")
-                            .unindent()
-                            .build())
-                .collect(CodeBlock.joining(",\n")))
-        .filter(it -> !it.isEmpty())
-        .ifPresent(indexes -> request.add(".globalSecondaryIndexes($L)\n", indexes));
+    CodeBlock secondaryIndexes =
+        utils.getGSIndexHash().stream()
+            .map(
+                index ->
+                    CodeBlock.builder()
+                        .indent()
+                        .add("$T.builder()\n", GlobalSecondaryIndex.class)
+                        .add(".indexName($S)\n", index)
+                        .add(
+                            ".projection($T.createProjection($T.$L))\n",
+                            SchemaUtils.class,
+                            ProjectionType.class,
+                            ProjectionType.ALL)
+                        .add(
+                            ".provisionedThroughput($T.createThroughput($L, $L))\n",
+                            SchemaUtils.class,
+                            DEFAULT_WRITE_CAPACITY,
+                            DEFAULT_READ_CAPACITY)
+                        .add(
+                            ".keySchema($L)\n",
+                            Stream.of(utils.getGSIndexHash(index), utils.getGSIndexRange(index))
+                                .filter(Optional::isPresent)
+                                .map(Optional::get)
+                                .map(
+                                    field ->
+                                        createKeySchema(
+                                            computeIndexType(field, index), field.getAttribute()))
+                                .collect(CodeBlock.joining(",")))
+                        .add(".build()\n")
+                        .unindent()
+                        .build())
+            .collect(CodeBlock.joining(",\n"));
+
+    Optional.of(secondaryIndexes).filter(it-> ! it.isEmpty())
+       .ifPresent(indexes -> request.add(".globalSecondaryIndexes($L)\n", indexes));
 
     return request.add(".build();").build();
   }

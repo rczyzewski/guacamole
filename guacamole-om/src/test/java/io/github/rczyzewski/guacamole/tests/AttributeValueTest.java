@@ -1,15 +1,13 @@
 package io.github.rczyzewski.guacamole.tests;
 
 import io.github.rczyzewski.guacamole.testhelper.TestHelperDynamoDB;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
+import lombok.Cleanup;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -17,9 +15,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
-import static java.time.ZoneOffset.UTC;
 import static org.assertj.core.api.Assertions.*;
 
 @Slf4j
@@ -47,7 +45,7 @@ class AttributeValueTest {
           .id("I45678")
           .authors(Collections.singletonList("Mark Twain"))
           .title("ddd")
-          .notes(AttributeValue.fromS("ddddd"))
+          .notes(AttributeValue.fromS("some notes on the margin, made by author"))
           .build();
 
   Books huckFin =
@@ -65,22 +63,25 @@ class AttributeValueTest {
           .published(LocalDateTime.now())
           .build();
 
+
   @BeforeAll
   @SneakyThrows
   static void beforeAll() {
-    testHelperDynamoDB.getDdbAsyncClient().createTable(repo.createTable()).get();
+    @Cleanup
+    DynamoDbClient client = testHelperDynamoDB.getDdbClient();
+    try {
+      client.deleteTable(it -> it.tableName(repo.getTableName()));
+    } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException ignored) {
+    } finally {
+      log.info("Table '{} deleted", repo.getTableName());
+    }
+    client.createTable(repo.createTable());
   }
-
-  @SneakyThrows
-  @BeforeEach
-  void beforeEach() {}
 
   @Test
   @SneakyThrows
   void firstTest() {
-    Instant a = Clock.fixed(Instant.ofEpochSecond(10000), UTC).instant();
-
-    // Instant.ofEpochSecond()
+    //TODO: add manny tests
     ScanRequest r =
         repo.scan()
             .condition(BooksRepository.LogicalExpressionBuilder::idNotExists)

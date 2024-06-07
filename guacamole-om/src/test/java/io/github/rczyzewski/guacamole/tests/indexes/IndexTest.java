@@ -133,25 +133,24 @@ class IndexTest {
   @Test
   @SneakyThrows
   void noResultsWhenUsingNonExistingHashKey() {
-    QueryRequest request = repo.getIndexSelector().GameTitleIndex("dd").asQuerytemRequest();
+    QueryRequest request = repo.getIndexSelector().GameTitleIndex("dd").asQueryRequest();
     assertThat(perfrom(request)).isEmpty();
 
-    request = repo.getIndexSelector().primary("dd").asQuerytemRequest();
-    assertThat(perfrom(request)).isEmpty();
-
-    request =
-        repo.getIndexSelector().primary("dd", g -> g.gameTitleEqual("ddd")).asQuerytemRequest();
+    request = repo.getIndexSelector().primary("dd").asQueryRequest();
     assertThat(perfrom(request)).isEmpty();
 
     request =
-        repo.getIndexSelector().GameTitleIndex("dd", g -> g.topScoreLess(123)).asQuerytemRequest();
+        repo.getIndexSelector().primary("dd", g -> g.gameTitleEqual("ddd")).asQueryRequest();
+    assertThat(perfrom(request)).isEmpty();
+
+    request =
+        repo.getIndexSelector().GameTitleIndex("dd", g -> g.topScoreLess(123)).asQueryRequest();
     assertThat(perfrom(request)).isEmpty();
   }
 
   @Test
   @SneakyThrows
   void emptyScanShouldReturnResults() {
-    // TODO: when scanning without condition, the exception is thrown
     ScanRequest request =
         repo.scan()
             .condition(PlayerRankingRepository.LogicalExpressionBuilder::userIdExists)
@@ -169,7 +168,7 @@ class IndexTest {
   @SneakyThrows
   void shouldRetriveResultsWhenScanningByExistingSecondaryKey() {
     QueryRequest request =
-        repo.getIndexSelector().GameTitleIndex("Meteor Blaster").asQuerytemRequest();
+        repo.getIndexSelector().GameTitleIndex("Meteor Blaster").asQueryRequest();
     assertThat(perfrom(request)).isNotEmpty();
   }
 
@@ -179,15 +178,17 @@ class IndexTest {
 
     QueryRequest request =
         repo.getIndexSelector()
-            .GameTitleIndex("Meteor Blaster", dd -> dd.topScoreLess(1000))
+            .GameTitleIndex("Meteor Blaster", it -> it.topScoreLess(1000))
             .condition(it -> it.winsBetween(2, 222))
-            .asQuerytemRequest();
+            .asQueryRequest();
 
-    QueryRequest request2 =
-        repo.getIndexSelector()
-            .GameTitleIndex("Meteor Blaster", dd -> dd.topScoreLess(1000))
-            .asQuerytemRequest();
 
     assertThat(perfrom(request)).isNotEmpty();
+
+    QueryRequest request2 =
+            repo.getIndexSelector()
+                .GameTitleIndex("Meteor Blaster", it -> it.topScoreLess(1000))
+                .asQueryRequest();
+    assertThat(perfrom(request2)).isNotEmpty();
   }
 }

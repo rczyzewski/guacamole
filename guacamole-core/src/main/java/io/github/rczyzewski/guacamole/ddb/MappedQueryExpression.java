@@ -31,7 +31,7 @@ public class MappedQueryExpression<T, G> {
     return this.withCondition(a);
   }
 
-  public QueryRequest asQuerytemRequest() {
+  public QueryRequest asQueryRequest() {
 
     ConsecutiveIdGenerator cid = ConsecutiveIdGenerator.builder().build();
 

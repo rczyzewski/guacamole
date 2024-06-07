@@ -34,7 +34,5 @@ public class Books {
   List<List<List<List<Books>>>> fourDimensions;
 
   List<Books> references;
-  // TODO: missing support
-  // List<List<Books>> deepReferences;
   List<AttributeValue> customArguments;
 }

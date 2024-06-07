@@ -1,6 +1,7 @@
 package io.github.rczyzewski.guacamole.ddb.processor;
 
 import io.github.rczyzewski.guacamole.ddb.mapper.ConsecutiveIdGenerator;
+import io.github.rczyzewski.guacamole.ddb.processor.generator.NotSupportedTypeException;
 import io.github.rczyzewski.guacamole.ddb.processor.model.DDBType;
 import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
 import lombok.AllArgsConstructor;
@@ -32,24 +33,6 @@ public class TypeArgumentsVisitor
   ConsecutiveIdGenerator idGenerator;
 
   @Override
-  public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
-    logger.error("Visiting primitive ", o);
-    return null;
-  }
-
-  @Override
-  public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
-    logger.warn("Visitingnull");
-    return null;
-  }
-
-  @Override
-  public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
-    logger.warn("VisitArray");
-    return null;
-  }
-
-  @Override
   public FieldDescription.TypeArgument visitDeclared(DeclaredType t, VariableElement o) {
 
     DDBType ddbType =
@@ -59,11 +42,15 @@ public class TypeArgumentsVisitor
             .orElse(DDBType.OTHER);
 
     String mapperUniqueId = idGenerator.get();
+    // TODO:: adding getSimpleName do not work - causing Path generation to fail
+    String packageName = t.asElement().getEnclosingElement().toString();
+    if (packageName.contains(" ")) {
+      packageName = null;
+    }
 
     return FieldDescription.TypeArgument.builder()
         .typeName(t.asElement().getSimpleName().toString())
-        .packageName(t.asElement().getEnclosingElement().toString())
-        // .mapperName("Mapper_" +  mapperUniqueId)
+        .packageName(packageName)
         .mapperUniqueId(mapperUniqueId)
         .ddbType(ddbType)
         .typeArguments(
@@ -75,45 +62,79 @@ public class TypeArgumentsVisitor
   }
 
   @Override
+  public FieldDescription.TypeArgument visitPrimitive(PrimitiveType t, VariableElement o) {
+    String msg = "'primitives' are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
+  }
+
+  @Override
+  public FieldDescription.TypeArgument visitNull(NullType t, VariableElement o) {
+    String msg = "'null' are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
+  }
+
+  @Override
+  public FieldDescription.TypeArgument visitArray(ArrayType t, VariableElement o) {
+    String msg = "'arrays' are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
+  }
+
+  @Override
   public FieldDescription.TypeArgument visitError(ErrorType t, VariableElement o) {
-    return null;
+    String msg = "'errorType' are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitTypeVariable(TypeVariable t, VariableElement o) {
-    logger.warn("Visiting type variable: " + t + "   " + o);
-    return null;
+    String msg = "typeVariable are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitWildcard(WildcardType t, VariableElement o) {
-    logger.warn("visitWildcards are not supported" + t);
-    return null;
+    String msg = "wildcards are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitExecutable(ExecutableType t, VariableElement o) {
-    return null;
+    String msg = "executable are not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitNoType(NoType t, VariableElement o) {
-    logger.warn("no types are not supported" + t);
-    return null;
+    String msg = "noType is not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitUnknown(TypeMirror t, VariableElement o) {
-    return null;
+   String msg = "unknown is not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg , o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitUnion(UnionType t, VariableElement o) {
-    return null;
+    String msg = "union is not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 
   @Override
   public FieldDescription.TypeArgument visitIntersection(IntersectionType t, VariableElement o) {
-    return null;
+    String msg = "intersection is not supported";
+    logger.error(msg, o);
+    throw new NotSupportedTypeException(msg, o);
   }
 }

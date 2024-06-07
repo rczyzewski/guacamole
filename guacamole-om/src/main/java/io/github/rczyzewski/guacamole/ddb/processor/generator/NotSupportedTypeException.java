@@ -1,13 +1,18 @@
 package io.github.rczyzewski.guacamole.ddb.processor.generator;
 
-import io.github.rczyzewski.guacamole.ddb.processor.model.FieldDescription;
+import javax.lang.model.element.Element;
+import lombok.Getter;
 
+@Getter
 public class NotSupportedTypeException extends RuntimeException {
-  NotSupportedTypeException(FieldDescription fieldDescription) {
-    super(fieldDescription.toString());
+  public NotSupportedTypeException(String msg, Element e) {
+    this(msg);
+    element = e;
   }
 
-  NotSupportedTypeException(String msg) {
+  public NotSupportedTypeException(String msg) {
     super(msg);
   }
+
+  transient Element element;
 }

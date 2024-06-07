@@ -623,15 +623,13 @@ class ConditionsTest {
 
   private static Stream<Arguments> customAddTestCases() {
     CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
-    MappedUpdateExpression.RczSetExpressionGenerator<Country> eg =
-        new MappedUpdateExpression.RczSetExpressionGenerator<>();
     return Stream.of(
         Arguments.of(
             "setting a new density",
             path.selectDensity(),
             12,
             UNITED_KINGDOM.withDensity(UNITED_KINGDOM.getDensity() + 12)),
-        Arguments.of("set up initialy empty field", path.selectHeadOfState(), 12, UNITED_KINGDOM));
+        Arguments.of("set up initially empty field", path.selectHeadOfState(), 12, UNITED_KINGDOM));
   }
 
   @ParameterizedTest(name = "{index}. {0}")
@@ -657,13 +655,11 @@ class ConditionsTest {
 
   private static Stream<Arguments> customRemoveTestCases() {
     CountryRepository.Paths.Root path = new CountryRepository.Paths.Root();
-    MappedUpdateExpression.RczSetExpressionGenerator<Country> eg =
-        new MappedUpdateExpression.RczSetExpressionGenerator<>();
     return Stream.of(
         Arguments.of(
             "setting a new density", path.selectDensity(), UNITED_KINGDOM.withDensity(null)),
         Arguments.of(
-            "set up initialy empty field",
+            "set up initially empty field",
             path.selectHeadOfState(),
             UNITED_KINGDOM.withHeadOfState(null)));
   }
