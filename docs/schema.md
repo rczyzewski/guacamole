@@ -1,4 +1,11 @@
-# In this small file there will be arranbhed information about annotations
+#Annotation for defining attributes
 
-## DynamoDbAttribute
-## DynamoDbAttribute
+## @DynamoDBTable.java
+## DynamoDBAttribute.java          
+## DynamoDBDocument.java          
+## DynamoDBIndexHashKey.java       
+## DynamoDBLocalIndexRangeKey.java 
+## DynamoDBConverted.java          
+## DynamoDBHashKey.java            
+## DynamoDBIndexRangeKey.java      
+## DynamoDBRangeKey.java           

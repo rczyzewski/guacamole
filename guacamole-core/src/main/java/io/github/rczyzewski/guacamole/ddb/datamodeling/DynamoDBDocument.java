@@ -6,6 +6,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Generate mapper/path/expressions based on properties given in the class.
+ */
 @Retention(RetentionPolicy.SOURCE)
 @Target({ElementType.TYPE})
 @Inherited
