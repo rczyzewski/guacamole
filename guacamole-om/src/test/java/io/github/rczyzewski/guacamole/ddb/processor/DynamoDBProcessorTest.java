@@ -129,6 +129,7 @@ class DynamoDBProcessorTest {
   @Test
   @SneakyThrows
   void compilationOfAEntityWithoutPrimaryKey() {
+    //TODO: add more tests for checking unsupported types and bad situtions if it's handled with grace
     JavaFileObject entity = JavaFileObjects.forResource("NoIndexDefined.java");
 
     Class<?> lombokAnnotationProcessor =

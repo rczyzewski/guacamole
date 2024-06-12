@@ -69,6 +69,7 @@ public class IndexSelectorGenerator {
     methodBuilder
         .addParameter(
             ParameterSpec.builder(
+                    //TODO: remove bstGuess
                     ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()),
                     "hash")
                 .build())
@@ -166,6 +167,7 @@ public class IndexSelectorGenerator {
         MethodSpec.methodBuilder(Optional.ofNullable(index.getName()).orElse("primary"));
     methodBuilder.addParameter(
         ParameterSpec.builder(
+                //TODO: remove bestGuess
                 ClassName.bestGuess(index.getHashField().getTypeArgument().getTypeName()), "hash")
             .build());
     methodBuilder

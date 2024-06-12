@@ -11,6 +11,7 @@ import lombok.NonNull;
 @AllArgsConstructor
 @Builder
 public class ListElement<E> implements Path<E> {
+  //TODO: make a full test coverage over this class
 
   @Getter @NonNull Path<E> parent;
   int t;
