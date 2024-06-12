@@ -8,6 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: maven-settings-xml-action
+        uses: whelk-io/maven-settings-xml-action@v22
+        with:
+          servers: '[{ "id": "some-server", "username": "some.user", "password": "some.password" }]'
+
       - name: Set up Java for publishing to Maven Central Repository
         uses: actions/setup-java@v1
         with:
@@ -19,12 +24,7 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Publish to the Maven Central Repository
         run: |
-          mvn \
-            --no-transfer-progress \
-            --batch-mode \
-            -pl guacamole-core,guacamole-dockertest,guacamole-om  \
-            -P release \
-            clean package deploy
+          cat .m2/settings.xml
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
