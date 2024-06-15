@@ -13,6 +13,31 @@
     <relativePath>../guacamole-parent</relativePath>
   </parent>
 
+  <description>contains annotation processor for guacamole repository generation</description>
+  <url>https://github.com/rczyzewski/guacamole</url>
+
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Rafal Czyzewski</name>
+      <email>rafal.czyzewski@gmail.com</email>
+      <organization>rczyzewski</organization>
+      <organizationUrl>https://github.com/rczyzewski</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:git://github.com/rczyzewski/guacamole.git</connection>
+    <developerConnection>scm:git:ssh://github.com:rczyzewski/guacamole.git</developerConnection>
+    <url>https://github.com/rczyzewski/guacamole/tree/main</url>
+  </scm>
+
   <dependencies>
     <dependency>
       <groupId>com.google.auto.service</groupId>
