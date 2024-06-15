@@ -23,6 +23,7 @@ jobs:
           --no-transfer-progress \
           --batch-mode \
           -pl guacamole-core,guacamole-dockertest,guacamole-om  \
+          -P release \
           clean package deploy
         env:
           MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
