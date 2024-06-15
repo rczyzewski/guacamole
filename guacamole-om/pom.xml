@@ -11,7 +11,7 @@
     <version>0.1.1-RC3</version>
     <artifactId>guacamole-parent</artifactId>
     <groupId>io.github.rczyzewski</groupId>
-    <relativePath>./../guacamole-parent</relativePath>
+    <relativePath>../guacamole-parent</relativePath>
   </parent>
 
   <dependencies>
