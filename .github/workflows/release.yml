@@ -19,7 +19,11 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Publish to the Maven Central Repository
         run: |
-          echo  ${FAKE}
+          mvn \
+          --no-transfer-progress \
+          --batch-mode \
+          -pl guacamole-core,guacamole-dockertest,guacamole-om  \
+          clean package deploy
         env:
           MAVEN_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
