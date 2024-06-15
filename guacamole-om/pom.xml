@@ -5,7 +5,6 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>guacamole-om</artifactId>
   <version>0.1.1-RC3</version>
-  <name>Guacamole Repository Generator</name>
 
   <parent>
     <version>0.1.1-RC3</version>
