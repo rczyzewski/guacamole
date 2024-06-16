@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <artifactId>report-aggregate</artifactId>
-    <version>0.1.1-RC4</version>
+    <version>0.1.1-RC5-SNAPSHOT</version>
     <modelVersion>4.0.0</modelVersion>
     <name>Coverage Report</name>
     <description>Aggregate Coverage Report</description>
     <parent>
-        <version>0.1.1-RC4</version>
+        <version>0.1.1-RC5-SNAPSHOT</version>
         <artifactId>guacamole-parent</artifactId>
         <groupId>io.github.rczyzewski</groupId>
         <relativePath>./../guacamole-parent</relativePath>
@@ -18,17 +16,17 @@
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-core</artifactId>
-            <version>0.1.1-RC4</version>
+            <version>0.1.1-RC5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-dockertest</artifactId>
-            <version>0.1.1-RC4</version>
+            <version>0.1.1-RC5-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-om</artifactId>
-            <version>0.1.1-RC4</version>
+            <version>0.1.1-RC5-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>
