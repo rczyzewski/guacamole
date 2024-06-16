@@ -19,13 +19,13 @@ created classes.
     <dependency>
         <groupId>io.github.rczyzewski</groupId>
         <artifactId>guacamole-om</artifactId>
-        <version>0.1.1-RC3</version>
+        <version>0.1.1-RC4</version>
         <scope>provided</scope>
     </dependency>
     <dependency>
         <groupId>io.github.rczyzewski</groupId>
         <artifactId>guacamole-core</artifactId>
-        <version>0.1.1-RC3</version>
+        <version>0.1.1-RC4</version>
     </dependency>
 </dependencies>
 ```

@@ -3,12 +3,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <artifactId>report-aggregate</artifactId>
-    <version>0.1.1-RC3</version>
+    <version>0.1.1-RC4</version>
     <modelVersion>4.0.0</modelVersion>
     <name>Coverage Report</name>
     <description>Aggregate Coverage Report</description>
     <parent>
-        <version>0.1.1-RC3</version>
+        <version>0.1.1-RC4</version>
         <artifactId>guacamole-parent</artifactId>
         <groupId>io.github.rczyzewski</groupId>
         <relativePath>./../guacamole-parent</relativePath>
@@ -18,17 +18,17 @@
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-core</artifactId>
-            <version>0.1.1-RC3</version>
+            <version>0.1.1-RC4</version>
         </dependency>
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-dockertest</artifactId>
-            <version>0.1.1-RC3</version>
+            <version>0.1.1-RC4</version>
         </dependency>
         <dependency>
             <groupId>io.github.rczyzewski</groupId>
             <artifactId>guacamole-om</artifactId>
-            <version>0.1.1-RC3</version>
+            <version>0.1.1-RC4</version>
         </dependency>
     </dependencies>
     <build>
