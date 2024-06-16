@@ -13,7 +13,6 @@
         <relativePath>../guacamole-parent</relativePath>
     </parent>
 
-    <description>dependency required both for generation of the guacamole repository and the runtime</description>
     <url>https://github.com/rczyzewski/guacamole</url>
 
     <licenses>
