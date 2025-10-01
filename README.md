@@ -4,7 +4,7 @@ Typesafe utilities for accessing AWS dynamodb
 
 ![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=rczyzewski_guacamole&metric=alert_status)
 
-The purpose guacamole is to perform DynamoDB operation with support of the compiler, lombok and the IDE.
+The purpose of guacamole is to perform DynamoDB operation with support of the compiler, lombok and the IDE.
 
 ## Installation
 
